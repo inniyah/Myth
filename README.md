@@ -1,2 +1,3 @@
 # OctaCore
-A new generation of the OctaForge engine
+
+OctaCore is the engine component of OctaForge 2.0.
