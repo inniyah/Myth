@@ -1,15 +1,15 @@
 #!/bin/sh
-# TESS_DATA should refer to the directory in which Tesseract data files are placed.
-#TESS_DATA=~/tesseract
-#TESS_DATA=/usr/local/tesseract
+# TESS_DATA should refer to the directory in which OF data files are placed.
+#TESS_DATA=~/octacore
+#TESS_DATA=/usr/local/octacore
 TESS_DATA=.
 
-# TESS_BIN should refer to the directory in which Tesseract executable files are placed.
+# TESS_BIN should refer to the directory in which OF executable files are placed.
 TESS_BIN=${TESS_DATA}/bin_unix
 
-# TESS_OPTIONS contains any command line options you would like to start Tesseract with.
+# TESS_OPTIONS contains any command line options you would like to start OF with.
 #TESS_OPTIONS=""
-TESS_OPTIONS="-u${HOME}/.tesseract"
+TESS_OPTIONS="-u${HOME}/.octaforge"
 
 # SYSTEM_NAME should be set to the name of your operating system.
 #SYSTEM_NAME=Linux
@@ -55,7 +55,7 @@ then
   cd ${TESS_DATA}
   exec ${TESS_BIN}/${SYSTEM_NAME}${MACHINE_NAME}client ${TESS_OPTIONS} "$@"
 else
-  echo "Your platform does not have a pre-compiled Tesseract client."
+  echo "Your platform does not have a pre-compiled OctaForge client."
   echo "Please follow the following steps to build a native client:"
   echo "1) Ensure you have the SDL2, SDL2-image, SDL2-mixer, and OpenGL libraries installed."
   echo "2) Type \"make -C src install\"."
