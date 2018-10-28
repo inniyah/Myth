@@ -112,29 +112,14 @@ static void showglslinfo(GLenum type, GLuint obj, const char *name, const char *
 static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *def, const char *name, bool msg = true)
 {
     const char *source = def + strspn(def, " \t\r\n");
-    const char *parts[16];
-    int numparts = 0;
-    parts[numparts++] = "#version 400\n";
-
-    parts[numparts++] =
-        "#define texture1D(sampler, coords) texture(sampler, coords)\n"
-        "#define texture2D(sampler, coords) texture(sampler, coords)\n"
-        "#define texture2DOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-        "#define texture2DProj(sampler, coords) textureProj(sampler, coords)\n"
-        "#define shadow2D(sampler, coords) texture(sampler, coords)\n"
-        "#define shadow2DOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-        "#define texture3D(sampler, coords) texture(sampler, coords)\n"
-        "#define textureCube(sampler, coords) texture(sampler, coords)\n";
-    parts[numparts++] =
-        "#define texture2DRect(sampler, coords) texture(sampler, coords)\n"
-        "#define texture2DRectProj(sampler, coords) textureProj(sampler, coords)\n"
-        "#define shadow2DRect(sampler, coords) texture(sampler, coords)\n";
-    parts[numparts++] =
-        "#define texture2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-        "#define shadow2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n";
-
-    parts[numparts++] = source;
-
+    const char *parts[] = {
+        "#version 400\n",
+        "#define textureRect(sampler, coords) texture(sampler, coords)\n"
+        "#define textureRectProj(sampler, coords) textureProj(sampler, coords)\n"
+        "#define textureRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n",
+        source
+    };
+    GLsizei numparts = sizeof(parts) / sizeof(void *);
     obj = glCreateShader_(type);
     glShaderSource_(obj, numparts, (const GLchar **)parts, NULL);
     glCompileShader_(obj);
@@ -786,7 +771,7 @@ void setupshaders()
         "in vec4 colorscale;\n"
         "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
-        "    vec4 color = texture2D(tex0, texcoord0);\n"
+        "    vec4 color = texture(tex0, texcoord0);\n"
         "    fragcolor = colorscale * color;\n"
         "}\n");
     hudtextshader = newshader(0, "<init>hudtext",
@@ -806,7 +791,7 @@ void setupshaders()
         "in vec4 colorscale;\n"
         "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
-        "    float dist = texture2D(tex0, texcoord0).r;\n"
+        "    float dist = texture(tex0, texcoord0).r;\n"
         "    float border = smoothstep(textparams.x, textparams.y, dist);\n"
         "    float outline = smoothstep(textparams.z, textparams.w, dist);\n"
         "    fragcolor = vec4(colorscale.rgb * outline, colorscale.a * border);\n"
