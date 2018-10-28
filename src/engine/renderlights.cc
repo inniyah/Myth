@@ -64,7 +64,6 @@ void setupbloom(int w, int h)
         glBindBuffer_(GL_PIXEL_PACK_BUFFER, 0);
     }
 
-    static const uchar gray[12] = { 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32 };
     static const float grayf[12] = { 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f };
     createtexture(bloomtex[4], bloompbo ? 4 : 1, 1, (const void *)grayf, 3, 1, GL_R16F);
 
@@ -182,7 +181,7 @@ void setupao(int w, int h)
     delete[] noise;
 
     bool upscale = aoreduce && aobilateral && aobilateralupscale;
-    GLenum format = aoprec && GL_R8,
+    GLenum format = aoprec ? GL_R8 : GL_RGBA8,
            packformat = aobilateral && aopackdepth ? (aodepthformat ? GL_RG16F : GL_RGBA8) : format;
     int packfilter = upscale && aopackdepth && !aodepthformat ? 0 : 1;
     loopi(upscale ? 3 : 2)

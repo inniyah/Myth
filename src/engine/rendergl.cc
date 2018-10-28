@@ -273,28 +273,6 @@ VAR(usetexcompress, 1, 0, 0);
 VAR(maxdrawbufs, 1, 0, 0);
 VAR(maxdualdrawbufs, 1, 0, 0);
 
-static bool checkseries(const char *s, const char *name, int low, int high)
-{
-    if(name) s = strstr(s, name);
-    if(!s) return false;
-    while(*s && !isdigit(*s)) ++s;
-    if(!*s) return false;
-    int n = 0;
-    while(isdigit(*s)) n = n*10 + (*s++ - '0');
-    return n >= low && n <= high;
-}
-
-static bool checkmesaversion(const char *s, int major, int minor, int patch)
-{
-    const char *v = strstr(s, "Mesa");
-    if(!v) return false;
-    int vmajor = 0, vminor = 0, vpatch = 0;
-    if(sscanf(v, "Mesa %d.%d.%d", &vmajor, &vminor, &vpatch) < 1) return false;
-    if(vmajor > major) return true; else if(vmajor < major) return false;
-    if(vminor > minor) return true; else if(vminor < minor) return false;
-    return vpatch >= patch;
-}
-
 VAR(dbgexts, 0, 0, 1);
 
 hashset<const char *> glexts;
