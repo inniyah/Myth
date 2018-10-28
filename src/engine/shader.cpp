@@ -151,7 +151,6 @@ static const char *finddecls(const char *line)
 static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *def, const char *name, bool msg = true)
 {
     const char *source = def + strspn(def, " \t\r\n");
-    char *modsource = NULL;
     const char *parts[16];
     int numparts = 0;
     parts[numparts++] = "#version 400\n";
@@ -183,7 +182,7 @@ static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *d
         "#define texture2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
         "#define shadow2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n";
 
-    parts[numparts++] = modsource ? modsource : source;
+    parts[numparts++] = source;
 
     obj = glCreateShader_(type);
     glShaderSource_(obj, numparts, (const GLchar **)parts, NULL);
@@ -197,8 +196,6 @@ static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *d
         obj = 0;
     }
     else if(dbgshader > 1 && msg) showglslinfo(type, obj, name, parts, numparts);
-
-    if(modsource) delete[] modsource;
 }
 
 VAR(dbgubo, 0, 0, 1);
