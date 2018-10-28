@@ -266,7 +266,6 @@ void glerror(const char *file, int line, GLenum error)
     printf("GL error: %s:%d: %s (%x)\n", file, line, desc, error);
 }
 
-VAR(mesa_texrectoffset_bug, 0, 0, 1);
 VAR(intel_texalpha_bug, 0, 0, 1);
 VAR(mesa_swap_bug, 0, 0, 1);
 VAR(usetexgather, 1, 0, 0);
@@ -699,17 +698,12 @@ void gl_checkextensions()
         msaalineardepth = glineardepth = 1; // reading back from depth-stencil still buggy on newer cards, and requires stencil for MSAA
         msaadepthstencil = gdepthstencil = 1; // some older AMD GPUs do not support reading from depth-stencil textures, so only use depth-stencil renderbuffer for now
     }
-    else if(nvidia)
-    {
-    }
     else if(intel)
     {
         smgather = 1; // native shadow filter is slow
         if(mesa)
         {
             batchsunlight = 0; // causes massive slowdown in linux driver
-            if(!checkmesaversion(version, 10, 0, 3))
-                mesa_texrectoffset_bug = 1; // mesa i965 driver has buggy textureOffset with texture rectangles
             msaalineardepth = 1; // MSAA depth texture access is buggy and resolves are slow
         }
         else

@@ -179,10 +179,7 @@ static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *d
         "#define texture2DRect(sampler, coords) texture(sampler, coords)\n"
         "#define texture2DRectProj(sampler, coords) textureProj(sampler, coords)\n"
         "#define shadow2DRect(sampler, coords) texture(sampler, coords)\n";
-    extern int mesa_texrectoffset_bug;
-    parts[numparts++] = mesa_texrectoffset_bug ?
-        "#define texture2DRectOffset(sampler, coords, offset) texture(sampler, coords + vec2(offset))\n"
-        "#define shadow2DRectOffset(sampler, coords, offset) texture(sampler, coords + vec2(offset))\n" :
+    parts[numparts++] =
         "#define texture2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
         "#define shadow2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n";
 
