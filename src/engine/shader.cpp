@@ -109,182 +109,17 @@ static void showglslinfo(GLenum type, GLuint obj, const char *name, const char *
     }
 }
 
-static const char *finddecls(const char *line)
-{
-    for(;;)
-    {
-        const char *start = line + strspn(line, " \t\r");
-        switch(*start)
-        {
-            case '\n':
-                line = start + 1;
-                continue;
-            case '#':
-                do
-                {
-                    start = strchr(start + 1, '\n');
-                    if(!start) return NULL;
-                } while(start[-1] == '\\');
-                line = start + 1;
-                continue;
-            case '/':
-                switch(start[1])
-                {
-                    case '/':
-                        start = strchr(start + 2, '\n');
-                        if(!start) return NULL;
-                        line = start + 1;
-                        continue;
-                    case '*':
-                        start = strstr(start + 2, "*/");
-                        if(!start) return NULL;
-                        line = start + 2;
-                        continue;
-                }
-                // fall-through
-            default:
-                return line;
-        }
-    }
-}
-
-extern int amd_eal_bug;
-
 static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *def, const char *name, bool msg = true)
 {
     const char *source = def + strspn(def, " \t\r\n");
-    char *modsource = NULL;
-    const char *parts[16];
-    int numparts = 0;
-    static const struct { int version; const char * const header; } glslversions[] =
-    {
-        { 400, "#version 400\n" },
-        { 330, "#version 330\n" },
-        { 150, "#version 150\n" },
-        { 140, "#version 140\n" },
-        { 130, "#version 130\n" },
-        { 120, "#version 120\n" }
+    const char *parts[] = {
+        "#version 400\n",
+        "#define textureRect(sampler, coords) texture(sampler, coords)\n"
+        "#define textureRectProj(sampler, coords) textureProj(sampler, coords)\n"
+        "#define textureRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n",
+        source
     };
-    loopi(sizeof(glslversions)/sizeof(glslversions[0])) if(glslversion >= glslversions[i].version)
-    {
-        parts[numparts++] = glslversions[i].header;
-        break;
-    }
-    if(glslversion < 140)
-    {
-        parts[numparts++] = "#extension GL_ARB_texture_rectangle : enable\n";
-        if(hasEGPU4)
-            parts[numparts++] = "#extension GL_EXT_gpu_shader4 : enable\n";
-    }
-    if(glslversion < 150 && hasTMS)
-        parts[numparts++] = "#extension GL_ARB_texture_multisample : enable\n";
-    if(glslversion >= 150 && glslversion < 330 && hasEAL && !amd_eal_bug)
-        parts[numparts++] = "#extension GL_ARB_explicit_attrib_location : enable\n";
-    if(glslversion < 400)
-    {
-        if(hasTG) parts[numparts++] = "#extension GL_ARB_texture_gather : enable\n";
-        if(hasGPU5) parts[numparts++] = "#extension GL_ARB_gpu_shader5 : enable\n";
-    }
-    if(glslversion >= 130)
-    {
-        if(type == GL_VERTEX_SHADER) parts[numparts++] =
-            "#define attribute in\n"
-            "#define varying out\n";
-        else if(type == GL_FRAGMENT_SHADER)
-        {
-            parts[numparts++] = "#define varying in\n";
-            parts[numparts++] = (glslversion >= 330 || (glslversion >= 150 && hasEAL)) && !amd_eal_bug ?
-                "#define fragdata(loc) layout(location = loc) out\n"
-                "#define fragblend(loc) layout(location = loc, index = 1) out\n" :
-                "#define fragdata(loc) out\n"
-                "#define fragblend(loc) out\n";
-            if(glslversion < 150)
-            {
-                const char *decls = finddecls(source);
-                if(decls)
-                {
-                    static const char * const prec = "precision highp float;\n";
-                    if(decls != source)
-                    {
-                        static const int preclen = strlen(prec);
-                        int beforelen = int(decls-source), afterlen = strlen(decls);
-                        modsource = newstring(beforelen + preclen + afterlen);
-                        memcpy(modsource, source, beforelen);
-                        memcpy(&modsource[beforelen], prec, preclen);
-                        memcpy(&modsource[beforelen + preclen], decls, afterlen);
-                        modsource[beforelen + preclen + afterlen] = '\0';
-                    }
-                    else parts[numparts++] = prec;
-                }
-            }
-        }
-        parts[numparts++] =
-            "#define texture1D(sampler, coords) texture(sampler, coords)\n"
-            "#define texture2D(sampler, coords) texture(sampler, coords)\n"
-            "#define texture2DOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-            "#define texture2DProj(sampler, coords) textureProj(sampler, coords)\n"
-            "#define shadow2D(sampler, coords) texture(sampler, coords)\n"
-            "#define shadow2DOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-            "#define texture3D(sampler, coords) texture(sampler, coords)\n"
-            "#define textureCube(sampler, coords) texture(sampler, coords)\n";
-        if(glslversion >= 140)
-        {
-            parts[numparts++] =
-                "#define texture2DRect(sampler, coords) texture(sampler, coords)\n"
-                "#define texture2DRectProj(sampler, coords) textureProj(sampler, coords)\n"
-                "#define shadow2DRect(sampler, coords) texture(sampler, coords)\n";
-            extern int mesa_texrectoffset_bug;
-            parts[numparts++] = mesa_texrectoffset_bug ?
-                "#define texture2DRectOffset(sampler, coords, offset) texture(sampler, coords + vec2(offset))\n"
-                "#define shadow2DRectOffset(sampler, coords, offset) texture(sampler, coords + vec2(offset))\n" :
-                "#define texture2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n"
-                "#define shadow2DRectOffset(sampler, coords, offset) textureOffset(sampler, coords, offset)\n";
-        }
-    }
-    if(glslversion < 130 && hasEGPU4) parts[numparts++] = "#define uint unsigned int\n";
-    else if(glslversion < 140 && !hasEGPU4)
-    {
-        if(glslversion < 130) parts[numparts++] = "#define flat\n";
-        parts[numparts++] =
-            "#define texture2DRectOffset(sampler, coords, offset) texture2DRect(sampler, coords + vec2(offset))\n"
-            "#define shadow2DRectOffset(sampler, coords, offset) shadow2DRect(sampler, coords + vec2(offset))\n";
-    }
-    if(glslversion < 130 && type == GL_FRAGMENT_SHADER)
-    {
-        if(hasEGPU4)
-        {
-            parts[numparts++] =
-                "#define fragdata(loc) varying out\n"
-                "#define fragblend(loc) varying out\n";
-        }
-        else
-        {
-            loopv(s.fragdatalocs)
-            {
-                FragDataLoc &d = s.fragdatalocs[i];
-                if(d.index) continue;
-                if(i >= 4) break;
-                static string defs[4];
-                const char *swizzle = "";
-                switch(d.format)
-                {
-                    case GL_UNSIGNED_INT_VEC2:
-                    case GL_INT_VEC2:
-                    case GL_FLOAT_VEC2: swizzle = ".rg"; break;
-                    case GL_UNSIGNED_INT_VEC3:
-                    case GL_INT_VEC3:
-                    case GL_FLOAT_VEC3: swizzle = ".rgb"; break;
-                    case GL_UNSIGNED_INT:
-                    case GL_INT:
-                    case GL_FLOAT: swizzle = ".r"; break;
-                }
-                formatstring(defs[i], "#define %s gl_FragData[%d]%s\n", d.name, d.loc, swizzle);
-                parts[numparts++] = defs[i];
-            }
-        }
-    }
-    parts[numparts++] = modsource ? modsource : source;
-
+    GLsizei numparts = sizeof(parts) / sizeof(void *);
     obj = glCreateShader_(type);
     glShaderSource_(obj, numparts, (const GLchar **)parts, NULL);
     glCompileShader_(obj);
@@ -297,8 +132,6 @@ static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *d
         obj = 0;
     }
     else if(dbgshader > 1 && msg) showglslinfo(type, obj, name, parts, numparts);
-
-    if(modsource) delete[] modsource;
 }
 
 VAR(dbgubo, 0, 0, 1);
@@ -306,7 +139,7 @@ VAR(dbgubo, 0, 0, 1);
 static void bindglsluniform(Shader &s, UniformLoc &u)
 {
     u.loc = glGetUniformLocation_(s.program, u.name);
-    if(!u.blockname || !hasUBO) return;
+    if(!u.blockname) return;
     GLuint bidx = glGetUniformBlockIndex_(s.program, u.blockname);
     GLuint uidx = GL_INVALID_INDEX;
     glGetUniformIndices_(s.program, 1, &u.name, &uidx);
@@ -362,15 +195,6 @@ static void linkglslprogram(Shader &s, bool msg = true)
             attribs |= 1<<a.loc;
         }
         loopi(gle::MAXATTRIBS) if(!(attribs&(1<<i))) glBindAttribLocation_(s.program, i, gle::attribnames[i]);
-        if(hasGPU4 && ((glslversion < 330 && (glslversion < 150 || !hasEAL)) || amd_eal_bug)) loopv(s.fragdatalocs)
-        {
-            FragDataLoc &d = s.fragdatalocs[i];
-            if(d.index)
-            {
-                if(maxdualdrawbufs) glBindFragDataLocationIndexed_(s.program, d.loc, d.index, d.name);
-            }
-            else glBindFragDataLocation_(s.program, d.loc, d.name);
-        }
         glLinkProgram_(s.program);
         glGetProgramiv_(s.program, GL_LINK_STATUS, &success);
     }
@@ -398,71 +222,6 @@ static void linkglslprogram(Shader &s, bool msg = true)
         glDeleteProgram_(s.program);
         s.program = 0;
     }
-}
-
-static void findfragdatalocs(Shader &s, char *ps, const char *macroname, int index)
-{
-    int macrolen = strlen(macroname); 
-    bool clear = glslversion < 130 && !hasEGPU4;
-    while((ps = strstr(ps, macroname)))
-    {
-        char *start = ps;
-        int loc = strtol(ps + macrolen, (char **)&ps, 0);
-        if(loc < 0 || loc > 3) continue;
-
-        ps += strspn(ps, ") \t\r\n");
-        const char *type = ps;
-        ps += strcspn(ps, "; \t\r\n");
-        GLenum format = GL_FLOAT_VEC4;
-        switch(type[0])
-        {
-            case 'v':
-                if(matchstring(type, ps-type, "vec3")) format = GL_FLOAT_VEC3;
-                else if(matchstring(type, ps-type, "vec2")) format = GL_FLOAT_VEC2;
-                break;
-            case 'f':
-                if(matchstring(type, ps-type, "float")) format = GL_FLOAT;
-                break;
-            case 'i':
-                if(matchstring(type, ps-type, "ivec4")) format = GL_INT_VEC4;
-                else if(matchstring(type, ps-type, "ivec3")) format = GL_INT_VEC3;
-                else if(matchstring(type, ps-type, "ivec2")) format = GL_INT_VEC2;
-                else if(matchstring(type, ps-type, "int")) format = GL_INT;
-                break;
-            case 'u':
-                if(matchstring(type, ps-type, "uvec4")) format = GL_UNSIGNED_INT_VEC4;
-                else if(matchstring(type, ps-type, "uvec3")) format = GL_UNSIGNED_INT_VEC3;
-                else if(matchstring(type, ps-type, "uvec2")) format = GL_UNSIGNED_INT_VEC2;
-                else if(matchstring(type, ps-type, "uint")) format = GL_UNSIGNED_INT;
-                break;
-        }
-
-        ps += strspn(ps, " \t\r\n");
-        const char *name = ps;
-        ps += strcspn(ps, "; \t\r\n");
-
-        if(ps > name)
-        {
-            char end = *ps;
-            *ps = '\0';
-            s.fragdatalocs.add(FragDataLoc(getshaderparamname(name), loc, format, index));
-            *ps = end;
-        }
-
-        if(clear)
-        {
-            ps += strspn(ps, "; \t\r\n");
-            memset(start, ' ', ps - start);
-        }
-    }
-}
-
-void findfragdatalocs(Shader &s, char *psstr)
-{
-    if(!psstr || ((glslversion >= 330 || (glslversion >= 150 && hasEAL)) && !amd_eal_bug)) return;
-
-    findfragdatalocs(s, psstr, "fragdata(", 0);
-    if(maxdualdrawbufs) findfragdatalocs(s, psstr, "fragblend(", 1);
 }
 
 int getlocalparam(const char *name)
@@ -819,7 +578,6 @@ Shader *newshader(int type, const char *name, const char *vs, const char *ps, Sh
     genuniformlocs(s, vs, ps, s.reusevs, s.reuseps);
     s.fragdatalocs.setsize(0);
     if(s.reuseps) s.fragdatalocs = s.reuseps->fragdatalocs;
-    else findfragdatalocs(s, s.psstr);
     if(!s.compile())
     {
         s.cleanup(true);
@@ -902,7 +660,7 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
         if(!strstr(vs, "lineardepth"))
         {
             vsbuf.put(vs, vsmain - vs);
-            const char *fogparams = "\nuniform vec2 lineardepthscale;\nvarying float lineardepth;\n";
+            const char *fogparams = "\nuniform vec2 lineardepthscale;\nout float lineardepth;\n";
             vsbuf.put(fogparams, strlen(fogparams));
             vsbuf.put(vsmain, vsend - vsmain);
             const char *vsfog = "\nlineardepth = dot(lineardepthscale, gl_Position.zw);\n";
@@ -916,7 +674,7 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
         psbuf.put(ps, psmain - ps);
         if(!strstr(ps, "lineardepth"))
         {
-            const char *foginterp = "\nvarying float lineardepth;\n";
+            const char *foginterp = "\nin float lineardepth;\n";
             psbuf.put(foginterp, strlen(foginterp));
         }
         const char *fogparams =
@@ -978,56 +736,50 @@ void setupshaders()
     maxvsuniforms = val/4;
     glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &val);
     maxfsuniforms = val/4;
-    if(hasGPU4)
-    {
-        glGetIntegerv(GL_MIN_PROGRAM_TEXEL_OFFSET, &val);
-        mintexoffset = val;
-        glGetIntegerv(GL_MAX_PROGRAM_TEXEL_OFFSET, &val);
-        maxtexoffset = val;
-    }
-    else mintexoffset = maxtexoffset = 0;
-    if(glslversion >= 140 || hasEGPU4)
-    {
-        mintexrectoffset = mintexoffset;
-        maxtexrectoffset = maxtexoffset;
-    }
-    else mintexrectoffset = maxtexrectoffset = 0;
+
+    glGetIntegerv(GL_MIN_PROGRAM_TEXEL_OFFSET, &val);
+    mintexoffset = val;
+    glGetIntegerv(GL_MAX_PROGRAM_TEXEL_OFFSET, &val);
+    maxtexoffset = val;
+
+    mintexrectoffset = mintexoffset;
+    maxtexrectoffset = maxtexoffset;
 
     standardshaders = true;
     nullshader = newshader(0, "<init>null",
-        "attribute vec4 vvertex;\n"
+        "in vec4 vvertex;\n"
         "void main(void) {\n"
         "   gl_Position = vvertex;\n"
         "}\n",
-        "fragdata(0) vec4 fragcolor;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "   fragcolor = vec4(1.0, 0.0, 1.0, 1.0);\n"
         "}\n");
     hudshader = newshader(0, "<init>hud",
-        "attribute vec4 vvertex, vcolor;\n"
-        "attribute vec2 vtexcoord0;\n"
+        "in vec4 vvertex, vcolor;\n"
+        "in vec2 vtexcoord0;\n"
         "uniform mat4 hudmatrix;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
+        "out vec2 texcoord0;\n"
+        "out vec4 colorscale;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    texcoord0 = vtexcoord0;\n"
         "    colorscale = vcolor;\n"
         "}\n",
         "uniform sampler2D tex0;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec2 texcoord0;\n"
+        "in vec4 colorscale;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
-        "    vec4 color = texture2D(tex0, texcoord0);\n"
+        "    vec4 color = texture(tex0, texcoord0);\n"
         "    fragcolor = colorscale * color;\n"
         "}\n");
     hudtextshader = newshader(0, "<init>hudtext",
-        "attribute vec4 vvertex, vcolor;\n"
-        "attribute vec2 vtexcoord0;\n"
+        "in vec4 vvertex, vcolor;\n"
+        "in vec2 vtexcoord0;\n"
         "uniform mat4 hudmatrix;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
+        "out vec2 texcoord0;\n"
+        "out vec4 colorscale;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    texcoord0 = vtexcoord0;\n"
@@ -1035,25 +787,25 @@ void setupshaders()
         "}\n",
         "uniform sampler2D tex0;\n"
         "uniform vec4 textparams;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec2 texcoord0;\n"
+        "in vec4 colorscale;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
-        "    float dist = texture2D(tex0, texcoord0).r;\n"
+        "    float dist = texture(tex0, texcoord0).r;\n"
         "    float border = smoothstep(textparams.x, textparams.y, dist);\n"
         "    float outline = smoothstep(textparams.z, textparams.w, dist);\n"
         "    fragcolor = vec4(colorscale.rgb * outline, colorscale.a * border);\n"
         "}\n");
     hudnotextureshader = newshader(0, "<init>hudnotexture",
-        "attribute vec4 vvertex, vcolor;\n"
+        "in vec4 vvertex, vcolor;\n"
         "uniform mat4 hudmatrix;"
-        "varying vec4 color;\n"
+        "out vec4 color;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    color = vcolor;\n"
         "}\n",
-        "varying vec4 color;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec4 color;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "    fragcolor = color;\n"
         "}\n");

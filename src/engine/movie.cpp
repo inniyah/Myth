@@ -1017,7 +1017,7 @@ namespace recorder
         if(usefbo)
         {
             uint tw = screenw, th = screenh;
-            if(hasFBB && movieaccelblit) { tw = max(tw/2, m.w); th = max(th/2, m.h); }
+            if(movieaccelblit) { tw = max(tw/2, m.w); th = max(th/2, m.h); }
             if(tw != scalew || th != scaleh)
             {
                 if(!scalefb) glGenFramebuffers_(1, &scalefb);
