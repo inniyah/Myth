@@ -109,45 +109,6 @@ static void showglslinfo(GLenum type, GLuint obj, const char *name, const char *
     }
 }
 
-static const char *finddecls(const char *line)
-{
-    for(;;)
-    {
-        const char *start = line + strspn(line, " \t\r");
-        switch(*start)
-        {
-            case '\n':
-                line = start + 1;
-                continue;
-            case '#':
-                do
-                {
-                    start = strchr(start + 1, '\n');
-                    if(!start) return NULL;
-                } while(start[-1] == '\\');
-                line = start + 1;
-                continue;
-            case '/':
-                switch(start[1])
-                {
-                    case '/':
-                        start = strchr(start + 2, '\n');
-                        if(!start) return NULL;
-                        line = start + 1;
-                        continue;
-                    case '*':
-                        start = strstr(start + 2, "*/");
-                        if(!start) return NULL;
-                        line = start + 2;
-                        continue;
-                }
-                // fall-through
-            default:
-                return line;
-        }
-    }
-}
-
 static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *def, const char *name, bool msg = true)
 {
     const char *source = def + strspn(def, " \t\r\n");
@@ -155,16 +116,6 @@ static void compileglslshader(Shader &s, GLenum type, GLuint &obj, const char *d
     int numparts = 0;
     parts[numparts++] = "#version 400\n";
 
-    if(type == GL_VERTEX_SHADER) parts[numparts++] =
-        "#define attribute in\n"
-        "#define varying out\n";
-    else if(type == GL_FRAGMENT_SHADER)
-    {
-        parts[numparts++] = "#define varying in\n";
-        parts[numparts++] =
-            "#define fragdata(loc) layout(location = loc) out\n"
-            "#define fragblend(loc) layout(location = loc, index = 1) out\n";
-    }
     parts[numparts++] =
         "#define texture1D(sampler, coords) texture(sampler, coords)\n"
         "#define texture2D(sampler, coords) texture(sampler, coords)\n"
@@ -724,7 +675,7 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
         if(!strstr(vs, "lineardepth"))
         {
             vsbuf.put(vs, vsmain - vs);
-            const char *fogparams = "\nuniform vec2 lineardepthscale;\nvarying float lineardepth;\n";
+            const char *fogparams = "\nuniform vec2 lineardepthscale;\nout float lineardepth;\n";
             vsbuf.put(fogparams, strlen(fogparams));
             vsbuf.put(vsmain, vsend - vsmain);
             const char *vsfog = "\nlineardepth = dot(lineardepthscale, gl_Position.zw);\n";
@@ -738,7 +689,7 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
         psbuf.put(ps, psmain - ps);
         if(!strstr(ps, "lineardepth"))
         {
-            const char *foginterp = "\nvarying float lineardepth;\n";
+            const char *foginterp = "\nin float lineardepth;\n";
             psbuf.put(foginterp, strlen(foginterp));
         }
         const char *fogparams =
@@ -811,39 +762,39 @@ void setupshaders()
 
     standardshaders = true;
     nullshader = newshader(0, "<init>null",
-        "attribute vec4 vvertex;\n"
+        "in vec4 vvertex;\n"
         "void main(void) {\n"
         "   gl_Position = vvertex;\n"
         "}\n",
-        "fragdata(0) vec4 fragcolor;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "   fragcolor = vec4(1.0, 0.0, 1.0, 1.0);\n"
         "}\n");
     hudshader = newshader(0, "<init>hud",
-        "attribute vec4 vvertex, vcolor;\n"
-        "attribute vec2 vtexcoord0;\n"
+        "in vec4 vvertex, vcolor;\n"
+        "in vec2 vtexcoord0;\n"
         "uniform mat4 hudmatrix;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
+        "out vec2 texcoord0;\n"
+        "out vec4 colorscale;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    texcoord0 = vtexcoord0;\n"
         "    colorscale = vcolor;\n"
         "}\n",
         "uniform sampler2D tex0;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec2 texcoord0;\n"
+        "in vec4 colorscale;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "    vec4 color = texture2D(tex0, texcoord0);\n"
         "    fragcolor = colorscale * color;\n"
         "}\n");
     hudtextshader = newshader(0, "<init>hudtext",
-        "attribute vec4 vvertex, vcolor;\n"
-        "attribute vec2 vtexcoord0;\n"
+        "in vec4 vvertex, vcolor;\n"
+        "in vec2 vtexcoord0;\n"
         "uniform mat4 hudmatrix;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
+        "out vec2 texcoord0;\n"
+        "out vec4 colorscale;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    texcoord0 = vtexcoord0;\n"
@@ -851,9 +802,9 @@ void setupshaders()
         "}\n",
         "uniform sampler2D tex0;\n"
         "uniform vec4 textparams;\n"
-        "varying vec2 texcoord0;\n"
-        "varying vec4 colorscale;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec2 texcoord0;\n"
+        "in vec4 colorscale;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "    float dist = texture2D(tex0, texcoord0).r;\n"
         "    float border = smoothstep(textparams.x, textparams.y, dist);\n"
@@ -861,15 +812,15 @@ void setupshaders()
         "    fragcolor = vec4(colorscale.rgb * outline, colorscale.a * border);\n"
         "}\n");
     hudnotextureshader = newshader(0, "<init>hudnotexture",
-        "attribute vec4 vvertex, vcolor;\n"
+        "in vec4 vvertex, vcolor;\n"
         "uniform mat4 hudmatrix;"
-        "varying vec4 color;\n"
+        "out vec4 color;\n"
         "void main(void) {\n"
         "    gl_Position = hudmatrix * vvertex;\n"
         "    color = vcolor;\n"
         "}\n",
-        "varying vec4 color;\n"
-        "fragdata(0) vec4 fragcolor;\n"
+        "in vec4 color;\n"
+        "layout(location = 0) out vec4 fragcolor;\n"
         "void main(void) {\n"
         "    fragcolor = color;\n"
         "}\n");
