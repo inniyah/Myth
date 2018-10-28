@@ -556,20 +556,10 @@ void setupscreen()
     SDL_SetWindowMinimumSize(screen, SCR_MINW, SCR_MINH);
     SDL_SetWindowMaximumSize(screen, SCR_MAXW, SCR_MAXH);
 
-#ifdef __APPLE__
-    static const int glversions[] = { 32, 20 };
-#else
-    static const int glversions[] = { 40, 33, 32, 31, 30, 20 };
-#endif
-    loopi(sizeof(glversions)/sizeof(glversions[0]))
-    {
-        glcompat = glversions[i] <= 30 ? 1 : 0;
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, glversions[i] / 10);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, glversions[i] % 10);
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, glversions[i] >= 32 ? SDL_GL_CONTEXT_PROFILE_CORE : 0); 
-        glcontext = SDL_GL_CreateContext(screen);
-        if(glcontext) break;
-    }
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    glcontext = SDL_GL_CreateContext(screen);
     if(!glcontext) fatal("failed to create OpenGL context: %s", SDL_GetError());
 
     SDL_GetWindowSize(screen, &screenw, &screenh);
