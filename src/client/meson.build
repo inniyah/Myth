@@ -56,6 +56,7 @@ threads_dep = dependency('threads')
 sdl2_dep = dependency('sdl2')
 sdl2_image_dep = dependency('SDL2_image')
 sdl2_mixer_dep = dependency('SDL2_mixer')
+libenet_dep = dependency('libenet')
 zlib_dep = dependency('zlib')
 gl_dep = dependency('gl')
 rt_dep = meson.get_compiler('cpp').find_library('rt')
@@ -63,7 +64,7 @@ rt_dep = meson.get_compiler('cpp').find_library('rt')
 executable('native_client',
     client_src,
     dependencies: [
-        threads_dep, libenet, sdl2_dep, sdl2_image_dep,
+        threads_dep, libenet_dep, sdl2_dep, sdl2_image_dep,
         sdl2_mixer_dep, zlib_dep, gl_dep, rt_dep
     ],
     include_directories: octacore_includes,

@@ -7,12 +7,13 @@ client_src = [
 ]
 
 threads_dep = dependency('threads')
+libenet_dep = dependency('libenet')
 zlib_dep = dependency('zlib')
 
 executable('native_master',
     client_src,
     dependencies: [
-        threads_dep, libenet, zlib_dep
+        threads_dep, libenet_dep, zlib_dep
     ],
     include_directories: octacore_includes,
     cpp_args: ['-DSTANDALONE'],

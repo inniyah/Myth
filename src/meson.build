@@ -1,8 +1,7 @@
 octacore_includes = [
-    include_directories('shared', 'engine', 'game', 'enet/include')
+    include_directories('shared', 'engine', 'game')
 ]
 
-subdir('enet')
 subdir('client')
 subdir('server')
 subdir('master')
