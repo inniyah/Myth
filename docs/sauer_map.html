@@ -1,0 +1,202 @@
+<html>
+<head><title>Sauerbraten map format documentation</title></head>
+<body>
+<h1>Sauerbraten map format documentation</h1>
+<b>Feel free to use this documentation in any way whatsoever. No permission, attribution or payment necessary.</b><br>
+
+<h2>Projects</h2>
+<b>[2015-02-11]</b> Benjamin Summers is working on a Haskell library to read, write, and generate Sauerbraten maps: <a href="https://github.com/bsummer4/ogz">https://github.com/bsummer4/ogz</a>.<br>
+Are you working on a project using this documentation? Get in touch - <a href="mailto:james@incoherency.co.uk">james@incoherency.co.uk</a> - and I'll mention it here.<br>
+
+<h2>Introduction</h2>
+Firstly, this documentation is for the version 29 map format, and it may change in the future.<br>
+The map file is gzip'd, but as this is fairly trivial to do, I shall describe the non-compressed part.<br>
+Note that all integer values are stored in little-endian.<br>
+The maps are organised in to several sections, as follows, which are concatenated together and then gzip'd to produce an OGZ map file.
+<ul>
+<li>Header</li>
+<li>Variables</li>
+<li>Gameident</li>
+<li>Some information about 'extras'</li>
+<li>Texture MRU</li>
+<li>Entities</li>
+<li>Map geometry (octree)</li>
+<li>Lightmaps, PVS, blendmap</li>
+</ul>
+
+<h2>Header</h2>
+The header is a 36-byte structure containing some useful information about the map. Here is the structure definition from src/engine/world.h:
+<tt><pre>struct octaheader
+{
+    char magic[4];              // "OCTA"
+    int version;                // any &gt;8bit quantity is little endian
+    int headersize;             // sizeof(header)
+    int worldsize;
+    int numents;
+    int numpvs;
+    int lightmaps;
+    int blendmap;
+    int numvars;
+};</pre></tt>
+This structure is written straight into the first 36 bytes of the uncompressed map file. The magic field must be the 4-byte string (not zero-terminated) "OCTA" in order for the map to load correctly. For the format described herein, version must be 29, and headersize must be 36. The worldsize is the length of one side of the cube that contains the map (so that we know how big each cube of the octree is). If worldsize is not a power of 2, you will get some very strange effects. Numents is just the number of entities contained in the Entities section. Numpvs, lightmaps, and blendmap are not discussed in this documentation, so I just set them all to 0 and forget about them (you can run calclight from within edit mode to get these filled in properly). Numvars is the number of variables in the Variables section.
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>magic</th><th>version</th><th>headersize</th><th>worldsize</th><th>numents</th><th>numpvs</th><th>lightmaps</th><th>blendmap</th><th>numvars</th></tr>
+<tr><td>OCTA</td><td>29</td><td>36</td><td>1024</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>4f 43 54 41</td><td>1d 00 00 00</td><td>24 00 00 00</td><td>00 04 00 00</td><td>01 00 00 00</td><td>00 00 00 00</td><td>00 00 00 00</td><td>00 00 00 00</td><td>01 00 00 00</td></tr>
+</table>
+
+
+<h2>Variables</h2>
+This section is a series of map variables. There are 3 basic types that can come in this section:
+<ul>
+<li><b>VAR (0):</b> An integer variable.</li>
+<li><b>FVAR (1):</b> A float.</li>
+<li><b>SVAR (2):</b> A string.</li>
+</ul>
+All variables contain a single byte to specify the type (either 0, 1, or 2, as above), followed by a 2-byte value (of type unsigned short) to specify the length of the variable name, followed by the variable name (not zero-terminated), finally followed by the value of the variable. For an int variable, this is a 4-byte value containing the int, for a float it is a 4-byte value containing the float, and for a string it is a 2-byte unsigned short followed by the non-zero-terminated string.
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>type</th><th colspan="2">name</th><th colspan="2">value</th></tr>
+<tr><td>SVAR</td><td>6</td><td>skybox</td><td>15</td><td>ik2k/env/iklake</td></tr>
+<tr><td>02</td><td>06 00</td><td>73 6b 79 62 6f 78</td><td>0f 00</td><td>69 6b 32 6b 2f 65 6e 76 2f 69 6b 6c 61 6b 65</td></tr>
+</table>
+
+<h2>Gameident</h2>
+This is a string to identify which game the map is intended for. It consists of a single byte to give the length of the string, followed by a string of that length, plus a zero-terminating byte. For normal Sauerbraten, this string is just "fps".
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>length</th><th>string</th></tr>
+<tr><td>3</td><td>fps</td></tr>
+<tr><td>03</td><td>66 70 73 00</td></tr>
+</table>
+
+<h2>Some information about 'extras'</h2>
+I have no idea what this section is for, but what I gather from the Sauerbraten code is that there is an unsigned short value "extraentinfosize", followed by an unsigned short "extras.length". I don't know under what circumstances these could be non-zero (perhaps they're legacy?), so I just leave them as 0.
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>extraentinfosize</th><th>extras.length</th></tr>
+<tr><td>0</td><td>0</td></tr>
+<tr><td>00 00</td><td>00 00</td></tr>
+</table>
+
+<h2>Texture MRU</h2>
+This is the contents of the Most-Recently-Used cache of texture indices. It conssists of an unsigned short quantity "texmru.length", which specifies the number of entries in the MRU, followed by that many unsigned short values which are the values in the cache. I don't know if this information is useful for anything other than getting recently-used textures to appear first when a mapper scrolls through the textures. I set texmru.length to 0 (followed by a 0-length array of texture indices, i.e. no array) and everything appears to work fine. If you want, you can fill it with texture indices (like I have in the example below).
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>texmru.length</th><th>texmru</th></tr>
+<tr><td>5</td><td>2, 4, 3, 5, 7</td></tr>
+<tr><td>05 00</td><td>02 00 04 00 03 00 05 00 07 00</td></tr>
+</table>
+
+<h2>Entities</h2>
+This section consists of a number of entities concatenated together. The number of entities present is given in the "numents" field of the header. Here is the structure definition from src/shared/ents.h:
+<tt><pre>enum { ET_EMPTY=0, ET_LIGHT, ET_MAPMODEL, ET_PLAYERSTART, ET_ENVMAP, ET_PARTICLES, ET_SOUND, ET_SPOTLIGHT, ET_GAMESPECIFIC };
+
+struct entity                                   // persistent map entity
+{
+    vec o;                                      // position
+    short attr1, attr2, attr3, attr4, attr5;
+    uchar type;                                 // type is one of the above
+    uchar reserved;
+};</pre></tt>
+The "o" field is of a structure containing three 4-byte floats to specify the x, y, and z co-ordinates (in that order), and the "type" field is as in the following table. The Sauerbraten editing reference can give a lot more information for the meaning of the attribute values.
+<table border>
+<tr><th>type</th><th>name</th><th>attributes</th></tr>
+<tr><td>0</td><td>ET_EMPTY</td><td></td></tr>
+<tr><td>1</td><td>ET_LIGHT</td><td></td></tr>
+<tr><td>2</td><td>ET_MAPMODEL</td><td><b>attr1</b> specifies the angle in degrees in the XY plane that the model is rotated by. <b>attr2</b> specifies the model number. <b>attr3</b> and <b>attr4</b> control trigger behaviour.</tr>
+<tr><td>3</td><td>ET_PLAYERSTART</td><td><b>attr1</b> gives the angle in degrees in the XY plane that the player is looking when he spawns. <b>attr2</b> specifies the team for which this is a spawn point in team modes, either 1 or 2 (or 0 if it is for non-team modes).</td></tr>
+<tr><td>4</td><td>ET_ENVMAP</td><td><b>attr1</b> specifies the radius of the environment map.</td></tr>
+<tr><td>5</td><td>ET_PARTICLES</td><td></td></tr>
+<tr><td>6</td><td>ET_SOUND</td><td><b>attr1</b> specifies the sound index. <b>attr2</b> specifies the radius in which a player must be in order to hear the sound. <b>attr3</b>, if non-zero, specifies the size within which the volume is maximal, and will start tapering when outside this size.</td></tr>
+<tr><td>7</td><td>ET_SPOTLIGHT</td><td></td></tr>
+<tr><td>8</td><td>ET_GAMESPECIFIC</td><td>Game specific; unused in Sauerbraten</td></tr>
+</table>
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>position</th><th>attributes</th><th>type</th><th>reserved</th></tr>
+<tr><td>972.0, 972.0, 516.0</td><td>336, 0, 0, 0, 0</td><td>ET_PLAYERSTART</td><td>0</td></tr>
+<tr><td>00 00 73 44 00 00 73 44 00 00 01 44</td><td>50 01 00 00 00 00 00 00 00 00</td><td>03</td><td>00</td></tr>
+</table>
+
+<h2>Map geometry (octree)</h2>
+The octree is stored in the file by recursing through the octree and writing out data for each cube as it is encountered. An important thing to note is that there is an implicit cube-split. That is, there must be data in the map file for 8 cubes, rather than just 1, because when loading the map, Sauerbraten generates a root cube, and then loads it's 8 children from the map file. The bottom 4 cubes come first, and then the top 4. There are 5 types of cube that can be present in this section, as in the table below. Each cube is stored in the file as a single byte to identify the type of cube, followed by 6 unsigned short's to specify texture indices (for all cubes except OCTSAV_CHILDREN), followed by a single-byte mask. The mask is described in more detail below. Finally, if the cube is OCTSAV_NORMAL, 12 bytes describing the 24 edge deformations are stored. According to the comments, there are 24 4-bit values which "denote the range". 
+<table border>
+<tr><th>type</th><th>name</th><th>data</th><th>description</th></tr>
+<tr><td>0</td><td>OCTSAV_CHILDREN</td><td>No more data.</td><td>Indicates that instead of moving on to the next child for the current parent cube, the map loader should recurse down and load 8 children for this cube.</td></tr>
+<tr><td>1</td><td>OCTSAV_EMPTY</td><td>6 textures (though they are never visible) and a mask.</td><td>Indicates a cube of empty space.</td></tr>
+<tr><td>2</td><td>OCTSAV_SOLID</td><td>6 textures and a mask.</td><td>A cube of solid space.</td></tr>
+<tr><td>3</td><td>OCTSAV_NORMAL</td><td>6 textures, a mask, and 24 edges.</td><td><b>TODO: Find out about this.</b> This is basically a cube that has been deformed by moving its corners.</td></tr>
+<tr><td>4</td><td>OCTSAV_LODCUBE</td><td>6 textures and a mask.</td><td>This is the same as OCTSAV_CHILDREN, except it has its own textures, which presumably means that Sauerbraten will draw this instead of child cubes when the viewer is far enough away.</td></tr>
+</table>
+The mask is used to set extra properties of the cube. The most useful thing to do is to set the high bit to 1. If the high bit of the mask is set, it indicates that the byte immediately after the mask describes the material that the "empty" space should be made of, and some other properties, as follows:
+<table border>
+<tr><th>bits</th><th>material/properties</th></tr>
+<tr><td><tt>......00</tt></td><td>Air</td></tr>
+<tr><td><tt>......01</tt></td><td>Water</td></tr>
+<tr><td><tt>......10</tt></td><td>Lava</td></tr>
+<tr><td><tt>......11</tt></td><td>Glass</td></tr>
+<tr><td><tt>...01...</tt></td><td>No clip (no collision)</td></tr>
+<tr><td><tt>...10...</tt></td><td>Clip (full cube collision)</td></tr>
+<tr><td><tt>...11...</tt></td><td>Game-specific clip</td></tr>
+<tr><td><tt>..1.....</tt></td><td>Death</td></tr>
+<tr><td><tt>1.......</tt></td><td>Edit-only surface</td></tr>
+</table>
+If the lower 6 bits of the mask are set, then Sauerbraten does some unintelligible business with surfaces and lighting. If this is important to you, examine src/engine/worldio.cpp, from around line 201.<br>
+In the example below, a minimal world consisting of 8 cubes is produced.
+<br><br>
+<b>Example:</b>
+<table border>
+<tr><th>type</th><th>textures</th><th>mask</th></tr>
+<tr><td>OCTSAV_SOLID</td><td>2, 3, 4, 5, 6, 7</td><td>0</td></tr>
+<tr><td>02</td><td>02 00 03 00 04 00 05 00 06 00 07 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_SOLID</td><td>2, 3, 4, 5, 6, 7</td><td>0</td></tr>
+<tr><td>02</td><td>02 00 03 00 04 00 05 00 06 00 07 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_SOLID</td><td>2, 3, 4, 5, 6, 7</td><td>0</td></tr>
+<tr><td>02</td><td>02 00 03 00 04 00 05 00 06 00 07 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_SOLID</td><td>2, 3, 4, 5, 6, 7</td><td>0</td></tr>
+<tr><td>02</td><td>02 00 03 00 04 00 05 00 06 00 07 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_EMPTY</td><td>0, 0, 0, 0, 0, 0</td><td>0</td></tr>
+<tr><td>01</td><td>00 00 00 00 00 00 00 00 00 00 00 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_EMPTY</td><td>0, 0, 0, 0, 0, 0</td><td>0</td></tr>
+<tr><td>01</td><td>00 00 00 00 00 00 00 00 00 00 00 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_EMPTY</td><td>0, 0, 0, 0, 0, 0</td><td>0</td></tr>
+<tr><td>01</td><td>00 00 00 00 00 00 00 00 00 00 00 00</td><td>00</td></tr>
+<tr><td colspan="3"></td></tr>
+<tr><td>OCTSAV_EMPTY</td><td>0, 0, 0, 0, 0, 0</td><td>0</td></tr>
+<tr><td>01</td><td>00 00 00 00 00 00 00 00 00 00 00 00</td><td>00</td></tr>
+</table>
+
+<h2>Lightmaps, PVS, blendmap</h2>
+This section contains some information (which I personally don't need) presumably about lightmaps, the PVS, and something about a blend map. If lightmaps, numpvs, and blendmap are all set to 0 in the header, then this section is not present (i.e. has length 0).
+
+<h2>Finished map file</h2>
+If we now concatenate all of the sections together, we end up with the following map data:
+<br><br>
+<table border>
+<tr><th>section</th><th>data</th></tr>
+<tr><td><b>header</b></td><td>4f 43 54 41 1d 00 00 00 24 00 00 00 00 04 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00</td></tr>
+<tr><td><b>variables</b></td><td>02	06 00 73 6b 79 62 6f 78 0f 00 69 6b 32 6b 2f 65 6e 76 2f 69 6b 6c 61 6b 65</td></tr>
+<tr><td><b>gameident</b></td><td>03	66 70 73 00</td></tr>
+<tr><td><b>extras information</b></td><td>00 00 00 00</td></tr>
+<tr><td><b>texture mru</b></td><td>05 00 02 00 04 00 03 00 05 00 07 00</td></tr>
+<tr><td><b>entities</b></td><td>00 00 73 44 00 00 73 44 00 00 01 44 50 01 00 00 00 00 00 00 00 00 03 00</td></tr>
+<tr><td><b>octree</b></td><td>02 02 00 03 00 04 00 05 00 06 00 07 00 00 02 02 00 03 00 04 00 05 00 06 00 07 00 00 02 02 00 03 00 04 00 05 00 06 00 07 00 00 02 02 00 03 00 04 00 05 00 06 00 07 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00</td></tr>
+<tr><td><b>lightmaps, pvs, blendmap</b></td><td></td></tr>
+</table>
+which you can download as <a href="example.oct">example.oct</a>, and gzip to get a finished map like <a href="example.ogz">example.ogz</a>. This will be an empty map (more or less the same as what you get with /newmap), but because of the ET_PLAYERSTART the player will start in a corner of the map.
+</body>
+</html>

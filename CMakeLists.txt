@@ -2,8 +2,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(OctaCore)
 
-include(FindPkgConfig)
-
 # Build options.
 option(OCTACORE_BUILD_CLIENT "Build the game client" ON)
 option(OCTACORE_BUILD_SERVER "Build the game server" ON)
@@ -11,13 +9,15 @@ option(OCTACORE_BUILD_SERVER "Build the game server" ON)
 # Generate compile commands (compile_commands.json) for clang tooling etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(PkgConfig)
+
 pkg_search_module(ZLIB REQUIRED zlib)
 pkg_search_module(SDL2 REQUIRED sdl2)
 pkg_search_module(ENET REQUIRED libenet)
 
 if(OCTACORE_BUILD_CLIENT)
   # Add OpenGL.
-  find_package(OpenGL REQUIRED)
+  pkg_search_module(OPENGL REQUIRED gl)
 
   # Platform specific libraries.
   if(UNIX AND NOT APPLE)
@@ -28,7 +28,7 @@ endif()
 # Additional compiler flags.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Silence warnings from Clang.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-exception-spec")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wno-missing-exception-spec")
 endif()
 
 if(OCTACORE_BUILD_CLIENT)
@@ -90,19 +90,26 @@ if(OCTACORE_BUILD_CLIENT)
       ${CMAKE_CURRENT_SOURCE_DIR}/shared
       )
   set(CLIENT_LIBRARIES
-      ${ENET_LIBRARIES}
-      ${OPENGL_LIBRARIES}
-      ${ZLIB_LIBRARIES}
       ${PLATFORM_LIBRARIES}
+      ${ENET_LIBRARIES}
+      ${ZLIB_LIBRARIES}
+      ${OPENGL_LIBRARIES}
       ${SDL2_LIBRARIES}
       SDL2_image
       SDL2_mixer
       )
   add_executable(native_client ${CLIENT_SOURCES})
+  target_compile_options(native_client PUBLIC
+    ${ENET_CFLAGS_OTHER}
+    ${ZLIB_CFLAGS_OTHER}
+    ${OPENGL_CFLAGS_OTHER}
+    ${SDL2_CFLAGS_OTHER}
+    )
   target_include_directories(native_client SYSTEM PUBLIC
     ${ENET_INCLUDE_DIRS}
-    ${SDL2_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
     )
   target_include_directories(native_client PRIVATE ${CLIENT_INCLUDES})
   target_link_libraries(native_client ${CLIENT_LIBRARIES})
@@ -133,7 +140,13 @@ if(OCTACORE_BUILD_SERVER)
       ${ZLIB_LIBRARIES}
       )
   add_executable(native_server ${SERVER_SOURCES})
-  target_compile_definitions(native_server PRIVATE -DSTANDALONE)
+  target_compile_definitions(native_server PRIVATE
+    -DSTANDALONE
+    )
+  target_compile_options(native_client PUBLIC
+    ${ENET_CFLAGS_OTHER}
+    ${ZLIB_CFLAGS_OTHER}
+    )
   target_include_directories(native_server SYSTEM PUBLIC
     ${ENET_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
@@ -157,7 +170,13 @@ if(OCTACORE_BUILD_SERVER)
       ${ZLIB_LIBRARIES}
       )
   add_executable(native_master ${MASTER_SOURCES})
-  target_compile_definitions(native_master PRIVATE -DSTANDALONE)
+  target_compile_definitions(native_master PRIVATE
+    -DSTANDALONE
+    )
+  target_compile_options(native_client PUBLIC
+    ${ENET_CFLAGS_OTHER}
+    ${ZLIB_CFLAGS_OTHER}
+    )
   target_include_directories(native_master SYSTEM PUBLIC
     ${ENET_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
