@@ -2,8 +2,8 @@ struct iqm;
 
 struct iqmheader
 {
-    char magic[16];
-    uint version;
+    char magic[16]; /**< The string "INTERQUAKEMODEL\0", 0 terminated, acts as the magic identifier for this format. */
+    uint version; /**< The version number must be 2. */
     uint filesize;
     uint flags;
     uint num_text, ofs_text;
@@ -15,7 +15,7 @@ struct iqmheader
     uint num_anims, ofs_anims;
     uint num_frames, num_framechannels, ofs_frames, ofs_bounds;
     uint num_comment, ofs_comment;
-    uint num_extensions, ofs_extensions;
+    uint num_extensions, ofs_extensions; /**< These are stored as a linked list, not as a contiguous array. */
 };
 
 struct iqmmesh
@@ -87,13 +87,23 @@ struct iqmanim
 
 struct iqmvertexarray
 {
-    uint type;
+    uint type; /**< Type or custom name. */
     uint flags;
-    uint format;
-    uint size;
+    uint format; /**< Component format. */
+    uint size; /**< Number of components. */
+    /**
+      * Offset to array of tightly packed components, with num_vertexes * size total entries.
+      * It must be aligned to max(sizeof(format), 4).
+      */
     uint offset;
 };
 
+/**
+ * The Inter-Quake Model (IQM) format is a binary skeletal-animation format designed for extensibility, efficiency, and ease of loading. It is intended to
+ * serve as a replacement for the aging MD5 and SMD skeletal-animation formats used in Quake-derived and Quake-like 3D engines. It has a companion export-only
+ * format, Inter-Quake Export (IQE), which is an extremely easy to export ASCII format that compiles to IQM, while supporting all IQM features, and is
+ * inspired by the OBJ format.
+ */
 struct iqm : skelloader<iqm>
 {
     iqm(const char *name) : skelloader(name) {}

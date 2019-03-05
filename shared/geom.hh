@@ -1,11 +1,20 @@
 struct vec;
 struct vec4;
 
+/**
+ *  A 2D Vector class.
+ */
 struct vec2
 {
     union
     {
-        struct { float x, y; };
+       /** 
+         * The identifiers x and y can be used to access either of those dimensions directly.
+         */
+        struct { float x /** Spatial coordinate X. */, y /** Spatial coordinate Y. */; };
+       /** 
+         * The identifier v can be used to access all of the values as an array of length 2.
+         */
         float v[2];
     };
 
@@ -76,12 +85,26 @@ struct ivec;
 struct usvec;
 struct svec;
 
+/**
+ *  A 3D Vector class.
+ */
 struct vec
 {
     union
     {
-        struct { float x, y, z; };
-        struct { float r, g, b; };
+        /** 
+         * The identifiers x, y and z can be used to access either of those dimensions directly
+         * if the vector is assumed to refer to spacial coordinates.
+         */
+        struct { float x /** Spatial coordinate X. */, y /** Spatial coordinate Y. */, z /** Spatial coordinate Z. */; };
+        /** 
+         * The identifiers r, g and b can be used to access either of those dimensions directly
+         * if the vector is assumed to refer to a color space.
+         */
+        struct { float r /** Red component. */, g /** Green component. */, b /** Blue component. */; };
+        /** 
+         * The identifier v can be used to access all of the values as an array of length 3.
+         */
         float v[3];
     };
 
@@ -284,12 +307,26 @@ static inline uint hthash(const vec &k)
     return v + (v>>12);
 }
 
+/**
+ *  A 4D Vector class or a Quaternion.
+ */
 struct vec4
 {
     union
     {
-        struct { float x, y, z, w; };
-        struct { float r, g, b, a; };
+        /** 
+         * The identifiers x, y, z and w can be used to access either of those dimensions directly
+         * if the vector is interpreted as a quaternion.
+         */
+        struct { float x /** Coordinate X. */, y /** Coordinate Y. */, z /** Coordinate Z. */, w /** Coordinate W. */; };
+        /** 
+         * The identifiers r, g, b and can be used to access either of those dimensions directly
+         * if the vector is assumed to refer to a color space, plus the transparency.
+         */
+        struct { float r /** Red component. */, g /** Green component. */, b /** Blue component. */, a /** Alpha (transparency). */; };
+        /** 
+         * The identifier v can be used to access all of the values as an array of length 4.
+         */
         float v[4];
     };
 
