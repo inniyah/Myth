@@ -503,7 +503,7 @@ void texcrop(ImageData &s, int x, int y, int w, int h)
     s.replace(d);
 }
 
-void texmad(ImageData &s, const vec &mul, const vec &add)
+void texmad(ImageData &s, const vec3 &mul, const vec3 &add)
 {
     if(s.bpp < 3 && (mul.x != mul.y || mul.y != mul.z || add.x != add.y || add.y != add.z))
         swizzleimage(s);
@@ -513,22 +513,22 @@ void texmad(ImageData &s, const vec &mul, const vec &add)
     );
 }
 
-void texcolorify(ImageData &s, const vec &color, vec weights)
+void texcolorify(ImageData &s, const vec3 &color, vec3 weights)
 {
     if(s.bpp < 3) return;
-    if(weights.iszero()) weights = vec(0.21f, 0.72f, 0.07f);
+    if(weights.iszero()) weights = vec3(0.21f, 0.72f, 0.07f);
     writetex(s,
         float lum = dst[0]*weights.x + dst[1]*weights.y + dst[2]*weights.z;
         loopk(3) dst[k] = uchar(clamp(lum*color[k], 0.0f, 255.0f));
     );
 }
 
-void texcolormask(ImageData &s, const vec &color1, const vec &color2)
+void texcolormask(ImageData &s, const vec3 &color1, const vec3 &color2)
 {
     if(s.bpp < 4) return;
     ImageData d(s.w, s.h, 3);
     readwritetex(d, s,
-        vec color;
+        vec3 color;
         color.lerp(color2, color1, src[3]/255.0f);
         loopk(3) dst[k] = uchar(clamp(color[k]*src[k], 0.0f, 255.0f));
     );
@@ -1309,7 +1309,7 @@ void texnormal(ImageData &s, int emphasis)
     uchar *src = s.data, *dst = d.data;
     loop(y, s.h) loop(x, s.w)
     {
-        vec normal(0.0f, 0.0f, 255.0f/emphasis);
+        vec3 normal(0.0f, 0.0f, 255.0f/emphasis);
         normal.x += src[y*s.pitch + ((x+s.w-1)%s.w)*s.bpp];
         normal.x -= src[y*s.pitch + ((x+1)%s.w)*s.bpp];
         normal.y += src[((y+s.h-1)%s.h)*s.pitch + x*s.bpp];
@@ -1378,7 +1378,7 @@ static void blurtexture(int w, int h, uchar *dst, const uchar *src, int margin)
             }
             if(normals)
             {
-                vec v(dr-0x7F80, dg-0x7F80, db-0x7F80);
+                vec3 v(dr-0x7F80, dg-0x7F80, db-0x7F80);
                 float mag = 127.5f/v.magnitude();
                 dst[0] = uchar(v.x*mag + 127.5f);
                 dst[1] = uchar(v.y*mag + 127.5f);
@@ -1457,9 +1457,9 @@ SDL_Surface *loadsurface(const char *name)
     return fixsurfaceformat(s);
 }
 
-static vec parsevec(const char *arg)
+static vec3 parsevec(const char *arg)
 {
-    vec v(0, 0, 0);
+    vec3 v(0, 0, 0);
     int i = 0;
     for(; arg[0] && (!i || arg[0]=='/') && i<3; arg += strcspn(arg, "/,><"), i++)
     {
@@ -1546,7 +1546,7 @@ static bool texturedata(ImageData &d, const char *tname, bool msg = true, int *c
         if(d.compressed) goto compressed;
         if(matchstring(cmd, len, "mad")) texmad(d, parsevec(arg[0]), parsevec(arg[1]));
         else if(matchstring(cmd, len, "colorify")) texcolorify(d, parsevec(arg[0]), parsevec(arg[1]));
-        else if(matchstring(cmd, len, "colormask")) texcolormask(d, parsevec(arg[0]), *arg[1] ? parsevec(arg[1]) : vec(1, 1, 1));
+        else if(matchstring(cmd, len, "colormask")) texcolormask(d, parsevec(arg[0]), *arg[1] ? parsevec(arg[1]) : vec3(1, 1, 1));
         else if(matchstring(cmd, len, "normal"))
         {
             int emphasis = atoi(arg[0]);
@@ -2380,7 +2380,7 @@ void texcolor(float *r, float *g, float *b)
 {
     if(!defslot) return;
     Slot &s = *defslot;
-    s.variants->colorscale = vec(clamp(*r, 0.0f, 2.0f), clamp(*g, 0.0f, 2.0f), clamp(*b, 0.0f, 2.0f));
+    s.variants->colorscale = vec3(clamp(*r, 0.0f, 2.0f), clamp(*g, 0.0f, 2.0f), clamp(*b, 0.0f, 2.0f));
     propagatevslot(s.variants, 1<<VSLOT_COLOR);
 }
 COMMAND(texcolor, "fff");
@@ -2391,9 +2391,9 @@ void texrefract(float *k, float *r, float *g, float *b)
     Slot &s = *defslot;
     s.variants->refractscale = clamp(*k, 0.0f, 1.0f);
     if(s.variants->refractscale > 0 && (*r > 0 || *g > 0 || *b > 0))
-        s.variants->refractcolor = vec(clamp(*r, 0.0f, 1.0f), clamp(*g, 0.0f, 1.0f), clamp(*b, 0.0f, 1.0f));
+        s.variants->refractcolor = vec3(clamp(*r, 0.0f, 1.0f), clamp(*g, 0.0f, 1.0f), clamp(*b, 0.0f, 1.0f));
     else
-        s.variants->refractcolor = vec(1, 1, 1);
+        s.variants->refractcolor = vec3(1, 1, 1);
     propagatevslot(s.variants, 1<<VSLOT_REFRACT);
 }
 COMMAND(texrefract, "ffff");
@@ -2415,7 +2415,7 @@ void decaldepth(float *depth, float *fade)
 }
 COMMAND(decaldepth, "ff");
 
-static void addglow(ImageData &c, ImageData &g, const vec &glowcolor)
+static void addglow(ImageData &c, ImageData &g, const vec3 &glowcolor)
 {
     if(g.bpp < 3)
     {
@@ -2671,7 +2671,7 @@ Texture *Slot::loadthumbnail()
     linkslotshader(*this, false);
     linkvslotshader(vslot, false);
     vector<char> name;
-    if(vslot.colorscale == vec(1, 1, 1)) addname(name, *this, sts[0], false, "<thumbnail>");
+    if(vslot.colorscale == vec3(1, 1, 1)) addname(name, *this, sts[0], false, "<thumbnail>");
     else
     {
         defformatstring(prefix, "<thumbnail:%.2f/%.2f/%.2f>", vslot.colorscale.x, vslot.colorscale.y, vslot.colorscale.z);
@@ -2690,7 +2690,7 @@ Texture *Slot::loadthumbnail()
     VSlot *layer = vslot.layer ? &lookupvslot(vslot.layer, false) : NULL;
     if(layer)
     {
-        if(layer->colorscale == vec(1, 1, 1)) addname(name, *layer->slot, layer->slot->sts[0], true, "<layer>");
+        if(layer->colorscale == vec3(1, 1, 1)) addname(name, *layer->slot, layer->slot->sts[0], true, "<layer>");
         else
         {
             defformatstring(prefix, "<layer:%.2f/%.2f/%.2f>", layer->colorscale.x, layer->colorscale.y, layer->colorscale.z);
@@ -2712,7 +2712,7 @@ Texture *Slot::loadthumbnail()
         if(!s.data) t = thumbnail = notexture;
         else
         {
-            if(vslot.colorscale != vec(1, 1, 1)) texmad(s, vslot.colorscale, vec(0, 0, 0));
+            if(vslot.colorscale != vec3(1, 1, 1)) texmad(s, vslot.colorscale, vec3(0, 0, 0));
             int xs = s.w, ys = s.h;
             if(s.w > 128 || s.h > 128) scaleimage(s, min(s.w, 128), min(s.h, 128));
             if(g.data)
@@ -2722,13 +2722,13 @@ Texture *Slot::loadthumbnail()
             }
             if(l.data)
             {
-                if(layer->colorscale != vec(1, 1, 1)) texmad(l, layer->colorscale, vec(0, 0, 0));
+                if(layer->colorscale != vec3(1, 1, 1)) texmad(l, layer->colorscale, vec3(0, 0, 0));
                 if(l.w != s.w/2 || l.h != s.h/2) scaleimage(l, s.w/2, s.h/2);
                 blitthumbnail(s, l, s.w-l.w, s.h-l.h);
             }
             if(d.data)
             {
-                if(vslot.colorscale != vec(1, 1, 1)) texmad(d, vslot.colorscale, vec(0, 0, 0));
+                if(vslot.colorscale != vec3(1, 1, 1)) texmad(d, vslot.colorscale, vec3(0, 0, 0));
                 if(d.w != s.w/2 || d.h != s.h/2) scaleimage(d, s.w/2, s.h/2);
                 blitthumbnail(s, d, 0, 0);
             }
@@ -2887,7 +2887,7 @@ VARP(aaenvmap, 0, 1, 1);
 struct envmap
 {
     int radius, size, blur;
-    vec o;
+    vec3 o;
     GLuint tex;
 
     envmap() : radius(-1), size(0), blur(0), o(0, 0, 0), tex(0) {}
@@ -2909,7 +2909,7 @@ void clearenvmaps()
 static GLuint emfbo[3] = { 0, 0, 0 }, emtex[2] = { 0, 0 };
 static int emtexsize = -1;
 
-GLuint genenvmap(const vec &o, int envmapsize, int blur, bool onlysky)
+GLuint genenvmap(const vec3 &o, int envmapsize, int blur, bool onlysky)
 {
     int rendersize = 1<<(envmapsize+aaenvmap), sizelimit = min(hwcubetexsize, min(gw, gh));
     if(maxtexsize) sizelimit = min(sizelimit, maxtexsize);
@@ -3036,7 +3036,7 @@ void genenvmaps()
     emtexsize = -1;
 }
 
-ushort closestenvmap(const vec &o)
+ushort closestenvmap(const vec3 &o)
 {
     ushort minemid = EMID_SKY;
     float mindist = 1e16f;
@@ -3055,7 +3055,7 @@ ushort closestenvmap(const vec &o)
 
 ushort closestenvmap(int orient, const ivec &co, int size)
 {
-    vec loc(co);
+    vec3 loc(co);
     int dim = dimension(orient);
     if(dimcoord(orient)) loc[dim] += size;
     loc[R[dim]] += size/2;

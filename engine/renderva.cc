@@ -26,14 +26,14 @@ float vfcDnear[5], vfcDfar[5];
 
 vtxarray *visibleva = NULL;
 
-bool isfoggedsphere(float rad, const vec &cv)
+bool isfoggedsphere(float rad, const vec3 &cv)
 {
     loopi(4) if(vfcP[i].dist(cv) < -rad) return true;
     float dist = vfcP[4].dist(cv);
     return dist < -rad || dist > vfcDfog + rad;
 }
 
-int isvisiblesphere(float rad, const vec &cv)
+int isvisiblesphere(float rad, const vec3 &cv)
 {
     int v = VFC_FULL_VISIBLE;
     float dist;
@@ -106,7 +106,7 @@ int isvisiblebb(const ivec &bo, const ivec &br)
     return v;
 }
 
-static inline float vadist(vtxarray *va, const vec &p)
+static inline float vadist(vtxarray *va, const vec3 &p)
 {
     return p.dist_to_bb(va->bbmin, va->bbmax);
 }
@@ -200,7 +200,7 @@ void calcvfcD()
     }
 }
 
-void setvfcP(const vec &bbmin, const vec &bbmax)
+void setvfcP(const vec3 &bbmin, const vec3 &bbmax)
 {
     vec4 px = camprojmatrix.rowx(), py = camprojmatrix.rowy(), pz = camprojmatrix.rowz(), pw = camprojmatrix.roww();
     vfcP[0] = plane(vec4(pw).mul(-bbmin.x).add(px)).normalize(); // left plane
@@ -384,8 +384,8 @@ static void setupbb()
     {
         glGenBuffers_(1, &bbvbo);
         gle::bindvbo(bbvbo);
-        vec verts[8];
-        loopi(8) verts[i] = vec(i&1, (i>>1)&1, (i>>2)&1);
+        vec3 verts[8];
+        loopi(8) verts[i] = vec3(i&1, (i>>1)&1, (i>>2)&1);
         glBufferData_(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
         gle::clearvbo();
     }
@@ -423,7 +423,7 @@ void startbb(bool mask)
     setupbb();
     gle::bindvbo(bbvbo);
     gle::bindebo(bbebo);
-    gle::vertexpointer(sizeof(vec), (const vec *)0);
+    gle::vertexpointer(sizeof(vec3), (const vec3 *)0);
     gle::enablevertex();
     SETSHADER(bbquery);
     if(mask)
@@ -711,9 +711,9 @@ void renderblendbrush(GLuint tex, float x, float y, float w, float h)
     gle::disablevertex();
 }
 
-int calcbbsidemask(const ivec &bbmin, const ivec &bbmax, const vec &lightpos, float lightradius, float bias)
+int calcbbsidemask(const ivec &bbmin, const ivec &bbmax, const vec3 &lightpos, float lightradius, float bias)
 {
-    vec pmin = vec(bbmin).sub(lightpos).div(lightradius), pmax = vec(bbmax).sub(lightpos).div(lightradius);
+    vec3 pmin = vec3(bbmin).sub(lightpos).div(lightradius), pmax = vec3(bbmax).sub(lightpos).div(lightradius);
     int mask = 0x3F;
     float dp1 = pmax.x + pmax.y, dn1 = pmax.x - pmin.y, ap1 = fabs(dp1), an1 = fabs(dn1),
           dp2 = pmin.x + pmin.y, dn2 = pmin.x - pmax.y, ap2 = fabs(dp2), an2 = fabs(dn2);
@@ -751,7 +751,7 @@ int calcbbsidemask(const ivec &bbmin, const ivec &bbmax, const vec &lightpos, fl
     return mask;
 }
 
-int calcspheresidemask(const vec &p, float radius, float bias)
+int calcspheresidemask(const vec3 &p, float radius, float bias)
 {
     // p is in the cubemap's local coordinate system
     // bias = border/(size - border)
@@ -769,7 +769,7 @@ int calcspheresidemask(const vec &p, float radius, float bias)
     return mask;
 }
 
-int calctrisidemask(const vec &p1, const vec &p2, const vec &p3, float bias)
+int calctrisidemask(const vec3 &p1, const vec3 &p2, const vec3 &p3, float bias)
 {
     // p1, p2, p3 are in the cubemap's local coordinate system
     // bias = border/(size - border)
@@ -820,7 +820,7 @@ int calctrisidemask(const vec &p1, const vec &p2, const vec &p3, float bias)
 }
 
 
-int cullfrustumsides(const vec &lightpos, float lightradius, float size, float border)
+int cullfrustumsides(const vec3 &lightpos, float lightradius, float size, float border)
 {
     int sides = 0x3F, masks[6] = { 3<<4, 3<<4, 3<<0, 3<<0, 3<<2, 3<<2 };
     float scale = (size - 2*border)/size, bias = border / (float)(size - border);
@@ -828,7 +828,7 @@ int cullfrustumsides(const vec &lightpos, float lightradius, float size, float b
     scale = 2 / (scale*scale + 2);
     loopi(5) if(vfcP[i].dist(lightpos) <= -0.03125f)
     {
-        vec n = vec(vfcP[i]).div(lightradius);
+        vec3 n = vec3(vfcP[i]).div(lightradius);
         float len = scale*n.squaredlen();
         if(n.x*n.x > len) sides &= n.x < 0 ? ~(1<<0) : ~(2 << 0);
         if(n.y*n.y > len) sides &= n.y < 0 ? ~(1<<2) : ~(2 << 2);
@@ -836,7 +836,7 @@ int cullfrustumsides(const vec &lightpos, float lightradius, float size, float b
     }
     if (vfcP[4].dist(lightpos) >= vfcDfog + 0.03125f)
     {
-        vec n = vec(vfcP[4]).div(lightradius);
+        vec3 n = vec3(vfcP[4]).div(lightradius);
         float len = scale*n.squaredlen();
         if(n.x*n.x > len) sides &= n.x >= 0 ? ~(1<<0) : ~(2 << 0);
         if(n.y*n.y > len) sides &= n.y >= 0 ? ~(1<<2) : ~(2 << 2);
@@ -845,7 +845,7 @@ int cullfrustumsides(const vec &lightpos, float lightradius, float size, float b
     // this next test usually clips off more sides than the former, but occasionally clips fewer/different ones, so do both and combine results
     // check if frustum corners/origin cross plane sides
     // infinite version, assumes frustum corners merely give direction and extend to infinite distance
-    vec p = vec(camera1->o).sub(lightpos).div(lightradius);
+    vec3 p = vec3(camera1->o).sub(lightpos).div(lightradius);
     float dp = p.x + p.y, dn = p.x - p.y, ap = fabs(dp), an = fabs(dn);
     masks[0] |= ap <= bias*an ? 0x3F : (dp >= 0 ? (1<<0)|(1<<2) : (2<<0)|(2<<2));
     masks[1] |= an <= bias*ap ? 0x3F : (dn >= 0 ? (1<<0)|(2<<2) : (2<<0)|(1<<2));
@@ -857,7 +857,7 @@ int cullfrustumsides(const vec &lightpos, float lightradius, float size, float b
     masks[5] |= an <= bias*ap ? 0x3F : (dn >= 0 ? (1<<4)|(2<<0) : (2<<4)|(1<<0));
     loopi(4)
     {
-        vec n;
+        vec3 n;
         switch(i)
         {
             case 0: n.cross(vfcP[0], vfcP[2]); break;
@@ -882,7 +882,7 @@ VAR(smbbcull, 0, 1, 1);
 VAR(smdistcull, 0, 1, 1);
 VAR(smnodraw, 0, 0, 1);
 
-vec shadoworigin(0, 0, 0), shadowdir(0, 0, 0);
+vec3 shadoworigin(0, 0, 0), shadowdir(0, 0, 0);
 float shadowradius = 0, shadowbias = 0;
 int shadowside = 0, shadowspot = 0;
 
@@ -1112,10 +1112,10 @@ struct renderstate
     int alphaing;
     GLuint vbuf;
     bool vattribs, vquery;
-    vec colorscale;
+    vec3 colorscale;
     float alphascale;
     float refractscale;
-    vec refractcolor;
+    vec3 refractcolor;
     bool blend;
     int blendx, blendy;
     int globals, tmu;
@@ -1856,13 +1856,13 @@ void rendergeom()
     }
 }
 
-int dynamicshadowvabounds(int mask, vec &bbmin, vec &bbmax)
+int dynamicshadowvabounds(int mask, vec3 &bbmin, vec3 &bbmax)
 {
     int vis = 0;
     for(vtxarray *va = shadowva; va; va = va->rnext) if(va->shadowmask&mask && va->dyntexs)
     {
-        bbmin.min(vec(va->geommin));
-        bbmax.max(vec(va->geommax));
+        bbmin.min(vec3(va->geommin));
+        bbmax.max(vec3(va->geommax));
         vis++;
     }
     return vis;
@@ -2106,7 +2106,7 @@ bool renderexplicitsky(bool outline)
 struct decalrenderer
 {
     GLuint vbuf;
-    vec colorscale;
+    vec3 colorscale;
     int globals, tmu;
     GLuint textures[7];
     DecalSlot *slot;
@@ -2452,9 +2452,9 @@ void renderdecals()
 
 struct shadowmesh
 {
-    vec origin;
+    vec3 origin;
     float radius;
-    vec spotloc;
+    vec3 spotloc;
     int spotangle;
     int type;
     int draws[6];
@@ -2471,7 +2471,7 @@ struct shadowverts
 {
     static const int SIZE = 1<<13;
     int table[SIZE];
-    vector<vec> verts;
+    vector<vec3> verts;
     vector<int> chain;
 
     shadowverts() { clear(); }
@@ -2483,7 +2483,7 @@ struct shadowverts
         verts.setsize(0);
     }
 
-    int add(const vec &v)
+    int add(const vec3 &v)
     {
         uint h = hthash(v)&(SIZE-1);
         for(int i = table[h]; i>=0; i = chain[i]) if(verts[i] == v) return i;
@@ -2547,7 +2547,7 @@ static void flushshadowmeshdraws(shadowmesh &m, int sides, shadowdrawinfo draws[
     delete[] indexes;
 
     gle::bindvbo(vbuf);
-    glBufferData_(GL_ARRAY_BUFFER, shadowverts.verts.length()*sizeof(vec), shadowverts.verts.getbuf(), GL_STATIC_DRAW);
+    glBufferData_(GL_ARRAY_BUFFER, shadowverts.verts.length()*sizeof(vec3), shadowverts.verts.getbuf(), GL_STATIC_DRAW);
     gle::clearvbo();
     shadowverts.clear();
 
@@ -2555,19 +2555,19 @@ static void flushshadowmeshdraws(shadowmesh &m, int sides, shadowdrawinfo draws[
     shadowvbos.add(vbuf);
 }
 
-static inline void addshadowmeshtri(shadowmesh &m, int sides, shadowdrawinfo draws[6], const vec &v0, const vec &v1, const vec &v2)
+static inline void addshadowmeshtri(shadowmesh &m, int sides, shadowdrawinfo draws[6], const vec3 &v0, const vec3 &v1, const vec3 &v2)
 {
     extern int smcullside;
-    vec l0 = vec(v0).sub(shadoworigin);
-    float side = l0.scalartriple(vec(v1).sub(v0), vec(v2).sub(v0));
+    vec3 l0 = vec3(v0).sub(shadoworigin);
+    float side = l0.scalartriple(vec3(v1).sub(v0), vec3(v2).sub(v0));
     if(smcullside ? side > 0 : side < 0) return;
-    vec l1 = vec(v1).sub(shadoworigin), l2 = vec(v2).sub(shadoworigin);
+    vec3 l1 = vec3(v1).sub(shadoworigin), l2 = vec3(v2).sub(shadoworigin);
     if(l0.squaredlen() > shadowradius*shadowradius && l1.squaredlen() > shadowradius*shadowradius && l2.squaredlen() > shadowradius*shadowradius)
         return;
     int sidemask = 0;
     switch(m.type)
     {
-        case SM_SPOT: sidemask = bbinsidespot(shadoworigin, shadowdir, shadowspot, ivec(vec(v0).min(v1).min(v2)), ivec(vec(v0).max(v1).max(v2).add(1))) ? 1 : 0; break;
+        case SM_SPOT: sidemask = bbinsidespot(shadoworigin, shadowdir, shadowspot, ivec(vec3(v0).min(v1).min(v2)), ivec(vec3(v0).max(v1).max(v2).add(1))) ? 1 : 0; break;
         case SM_CUBEMAP: sidemask = calctrisidemask(l0.div(shadowradius), l1.div(shadowradius), l2.div(shadowradius), shadowbias); break;
     }
     if(!sidemask) return;
@@ -2640,7 +2640,7 @@ static void genshadowmesh(int idx, extentity &e)
     shadowmapping = m.type;
     shadoworigin = m.origin;
     shadowradius = m.radius;
-    shadowdir = m.type == SM_SPOT ? vec(m.spotloc).sub(m.origin).normalize() : vec(0, 0, 0);
+    shadowdir = m.type == SM_SPOT ? vec3(m.spotloc).sub(m.origin).normalize() : vec3(0, 0, 0);
     shadowspot = m.spotangle;
 
     findshadowvas();
@@ -2724,7 +2724,7 @@ void rendershadowmesh(shadowmesh *m)
     {
         shadowdraw &d = shadowdraws[draw];
         if(ebuf != d.ebuf) { gle::bindebo(d.ebuf); ebuf = d.ebuf; }
-        if(vbuf != d.vbuf) { gle::bindvbo(d.vbuf); vbuf = d.vbuf; gle::vertexpointer(sizeof(vec), 0); }
+        if(vbuf != d.vbuf) { gle::bindvbo(d.vbuf); vbuf = d.vbuf; gle::vertexpointer(sizeof(vec3), 0); }
         drawtris(3*d.tris, (ushort *)0 + d.offset, d.minvert, d.maxvert);
         xtravertsva += 3*d.tris;
         draw = d.next;

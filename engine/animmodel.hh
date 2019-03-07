@@ -74,7 +74,7 @@ struct animmodel : model
     struct shaderparams
     {
         float spec, gloss, glow, glowdelta, glowpulse, fullbright, envmapmin, envmapmax, scrollu, scrollv, alphatest;
-        vec color;
+        vec3 color;
 
         shaderparams() : spec(1.0f), gloss(1), glow(3.0f), glowdelta(0), glowpulse(0), fullbright(0), envmapmin(0), envmapmax(0), scrollu(0), scrollv(0), alphatest(0.9f), color(1, 1, 1) {}
     };
@@ -309,7 +309,7 @@ struct animmodel : model
             DELETEA(name);
         }
 
-        virtual void calcbb(vec &bbmin, vec &bbmax, const matrix4x3 &m) {}
+        virtual void calcbb(vec3 &bbmin, vec3 &bbmax, const matrix4x3 &m) {}
 
         virtual void genBIH(BIH::mesh &m) {}
         void genBIH(skin &s, vector<BIH::mesh> &bih, const matrix4x3 &t)
@@ -342,7 +342,7 @@ struct animmodel : model
 
         struct smoothdata
         {
-            vec norm;
+            vec3 norm;
             int next;
 
             smoothdata() : norm(0, 0, 0), next(-1) {}
@@ -352,7 +352,7 @@ struct animmodel : model
         {
             if(!numverts) return;
             smoothdata *smooth = new smoothdata[numverts];
-            hashtable<vec, int> share;
+            hashtable<vec3, int> share;
             loopi(numverts)
             {
                 V &v = verts[i];
@@ -363,14 +363,14 @@ struct animmodel : model
             {
                 T &t = tris[i];
                 int v1 = t.vert[0], v2 = t.vert[1], v3 = t.vert[2];
-                vec norm;
+                vec3 norm;
                 norm.cross(verts[v1].pos, verts[v2].pos, verts[v3].pos);
                 if(!areaweight) norm.normalize();
                 smooth[v1].norm.add(norm);
                 smooth[v2].norm.add(norm);
                 smooth[v3].norm.add(norm);
             }
-            loopi(numverts) verts[i].norm = vec(0, 0, 0);
+            loopi(numverts) verts[i].norm = vec3(0, 0, 0);
             loopi(numverts)
             {
                 const smoothdata &n = smooth[i];
@@ -397,12 +397,12 @@ struct animmodel : model
         template<class V, class T> void buildnorms(V *verts, int numverts, T *tris, int numtris, bool areaweight)
         {
             if(!numverts) return;
-            loopi(numverts) verts[i].norm = vec(0, 0, 0);
+            loopi(numverts) verts[i].norm = vec3(0, 0, 0);
             loopi(numtris)
             {
                 T &t = tris[i];
                 V &v1 = verts[t.vert[0]], &v2 = verts[t.vert[1]], &v3 = verts[t.vert[2]];
-                vec norm;
+                vec3 norm;
                 norm.cross(v1.pos, v2.pos, v3.pos);
                 if(!areaweight) norm.normalize();
                 v1.norm.add(norm);
@@ -429,7 +429,7 @@ struct animmodel : model
             else if(q.w < 0) q.neg();
         }
 
-        template<class V> static inline void calctangent(V &v, const vec &n, const vec &t, float bt)
+        template<class V> static inline void calctangent(V &v, const vec3 &n, const vec3 &t, float bt)
         {
             matrix3 m;
             m.c = n;
@@ -442,24 +442,24 @@ struct animmodel : model
 
         template<class V, class TC, class T> void calctangents(V *verts, TC *tcverts, int numverts, T *tris, int numtris, bool areaweight)
         {
-            vec *tangent = new vec[2*numverts], *bitangent = tangent+numverts;
-            memset(tangent, 0, 2*numverts*sizeof(vec));
+            vec3 *tangent = new vec3[2*numverts], *bitangent = tangent+numverts;
+            memset(tangent, 0, 2*numverts*sizeof(vec3));
             loopi(numtris)
             {
                 const T &t = tris[i];
-                const vec &e0 = verts[t.vert[0]].pos;
-                vec e1 = vec(verts[t.vert[1]].pos).sub(e0), e2 = vec(verts[t.vert[2]].pos).sub(e0);
+                const vec3 &e0 = verts[t.vert[0]].pos;
+                vec3 e1 = vec3(verts[t.vert[1]].pos).sub(e0), e2 = vec3(verts[t.vert[2]].pos).sub(e0);
 
                 const vec2 &tc0 = tcverts[t.vert[0]].tc,
                            &tc1 = tcverts[t.vert[1]].tc,
                            &tc2 = tcverts[t.vert[2]].tc;
                 float u1 = tc1.x - tc0.x, v1 = tc1.y - tc0.y,
                       u2 = tc2.x - tc0.x, v2 = tc2.y - tc0.y;
-                vec u(e2), v(e2);
-                u.mul(v1).sub(vec(e1).mul(v2));
-                v.mul(u1).sub(vec(e1).mul(u2));
+                vec3 u(e2), v(e2);
+                u.mul(v1).sub(vec3(e1).mul(v2));
+                v.mul(u1).sub(vec3(e1).mul(u2));
 
-                if(vec().cross(e2, e1).dot(vec().cross(v, u)) >= 0)
+                if(vec3().cross(e2, e1).dot(vec3().cross(v, u)) >= 0)
                 {
                     u.neg();
                     v.neg();
@@ -480,7 +480,7 @@ struct animmodel : model
             loopi(numverts)
             {
                 V &v = verts[i];
-                const vec &t = tangent[i],
+                const vec3 &t = tangent[i],
                           &bt = bitangent[i];
                 matrix3 m;
                 m.c = v.norm;
@@ -528,7 +528,7 @@ struct animmodel : model
             } \
         } while(0)
 
-        void calcbb(vec &bbmin, vec &bbmax, const matrix4x3 &t)
+        void calcbb(vec3 &bbmin, vec3 &bbmax, const matrix4x3 &t)
         {
             looprendermeshes(mesh, m, m.calcbb(bbmin, bbmax, t));
         }
@@ -551,8 +551,8 @@ struct animmodel : model
 
         virtual void cleanup() {}
         virtual void preload(part *p) {}
-        virtual void render(const animstate *as, float pitch, const vec &axis, const vec &forward, dynent *d, part *p) {}
-        virtual void intersect(const animstate *as, float pitch, const vec &axis, const vec &forward, dynent *d, part *p, const vec &o, const vec &ray) {}
+        virtual void render(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, part *p) {}
+        virtual void intersect(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, part *p, const vec3 &o, const vec3 &ray) {}
 
         void bindpos(GLuint ebuf, GLuint vbuf, void *v, int stride, int type, int size)
         {
@@ -569,7 +569,7 @@ struct animmodel : model
                 lastvbuf = vbuf;
             }
         }
-        void bindpos(GLuint ebuf, GLuint vbuf, vec *v, int stride) { bindpos(ebuf, vbuf, v, stride, GL_FLOAT, 3); }
+        void bindpos(GLuint ebuf, GLuint vbuf, vec3 *v, int stride) { bindpos(ebuf, vbuf, v, stride, GL_FLOAT, 3); }
         void bindpos(GLuint ebuf, GLuint vbuf, hvec4 *v, int stride) { bindpos(ebuf, vbuf, v, stride, GL_HALF_FLOAT, 4); }
 
         void bindtc(void *v, int stride)
@@ -623,8 +623,8 @@ struct animmodel : model
     {
         part *p;
         int tag, anim, basetime;
-        vec translate;
-        vec *pos;
+        vec3 translate;
+        vec3 *pos;
         matrix4 matrix;
 
         linkedpart() : p(NULL), tag(-1), anim(-1), basetime(0), translate(0, 0, 0), pos(NULL) {}
@@ -661,7 +661,7 @@ struct animmodel : model
             pitchscale = pitchoffset = pitchmin = pitchmax = 0;
         }
 
-        void calcbb(vec &bbmin, vec &bbmax, const matrix4x3 &m)
+        void calcbb(vec3 &bbmin, vec3 &bbmax, const matrix4x3 &m)
         {
             matrix4x3 t = m;
             t.scale(model->scale);
@@ -703,7 +703,7 @@ struct animmodel : model
             }
         }
 
-        bool link(part *p, const char *tag, const vec &translate = vec(0, 0, 0), int anim = -1, int basetime = 0, vec *pos = NULL)
+        bool link(part *p, const char *tag, const vec3 &translate = vec3(0, 0, 0), int anim = -1, int basetime = 0, vec3 *pos = NULL)
         {
             int i = meshes ? meshes->findtag(tag) : -1;
             if(i<0)
@@ -861,13 +861,13 @@ struct animmodel : model
             return true;
         }
 
-        void intersect(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d, const vec &o, const vec &ray)
+        void intersect(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, const vec3 &o, const vec3 &ray)
         {
             animstate as[MAXANIMPARTS];
             intersect(anim, basetime, basetime2, pitch, axis, forward, d, o, ray, as);
         }
 
-        void intersect(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d, const vec &o, const vec &ray, animstate *as)
+        void intersect(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, const vec3 &o, const vec3 &ray, animstate *as)
         {
             if((anim&ANIM_REUSE) != ANIM_REUSE) loopi(numanimparts)
             {
@@ -891,7 +891,7 @@ struct animmodel : model
 
             float resize = model->scale * sizescale;
             int oldpos = matrixpos;
-            vec oaxis, oforward, oo, oray;
+            vec3 oaxis, oforward, oo, oray;
             matrixstack[matrixpos].transposedtransformnormal(axis, oaxis);
             float pitchamount = pitchscale*pitch + pitchoffset;
             if(pitchmin || pitchmax) pitchamount = clamp(pitchamount, pitchmin, pitchmax);
@@ -947,13 +947,13 @@ struct animmodel : model
             matrixpos = oldpos;
         }
 
-        void render(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d)
+        void render(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d)
         {
             animstate as[MAXANIMPARTS];
             render(anim, basetime, basetime2, pitch, axis, forward, d, as);
         }
 
-        void render(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d, animstate *as)
+        void render(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, animstate *as)
         {
             if((anim&ANIM_REUSE) != ANIM_REUSE) loopi(numanimparts)
             {
@@ -977,7 +977,7 @@ struct animmodel : model
 
             float resize = model->scale * sizescale;
             int oldpos = matrixpos;
-            vec oaxis, oforward;
+            vec3 oaxis, oforward;
             matrixstack[matrixpos].transposedtransformnormal(axis, oaxis);
             float pitchamount = pitchscale*pitch + pitchoffset;
             if(pitchmin || pitchmax) pitchamount = clamp(pitchamount, pitchmin, pitchmax);
@@ -1011,7 +1011,7 @@ struct animmodel : model
                 {
                     GLOBALPARAM(modelworld, matrix3(matrixstack[matrixpos]));
 
-                    vec modelcamera;
+                    vec3 modelcamera;
                     matrixstack[matrixpos].transposedtransform(camera1->o, modelcamera);
                     modelcamera.div(resize);
                     GLOBALPARAM(modelcamera, modelcamera);
@@ -1092,7 +1092,7 @@ struct animmodel : model
 
     virtual int linktype(animmodel *m, part *p) const { return LINK_TAG; }
 
-    void intersect(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d, modelattach *a, const vec &o, const vec &ray)
+    void intersect(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, modelattach *a, const vec3 &o, const vec3 &ray)
     {
         int numtags = 0;
         if(a)
@@ -1108,7 +1108,7 @@ struct animmodel : model
                 switch(linktype(m, p))
                 {
                     case LINK_TAG:
-                        p->index = link(p, a[i].tag, vec(0, 0, 0), a[i].anim, a[i].basetime, a[i].pos) ? index : -1;
+                        p->index = link(p, a[i].tag, vec3(0, 0, 0), a[i].anim, a[i].basetime, a[i].pos) ? index : -1;
                         break;
 
                     case LINK_COOP:
@@ -1167,9 +1167,9 @@ struct animmodel : model
     static int intersectresult, intersectmode;
     static float intersectdist, intersectscale;
 
-    int intersect(int anim, int basetime, int basetime2, const vec &pos, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec &o, const vec &ray, float &dist, int mode)
+    int intersect(int anim, int basetime, int basetime2, const vec3 &pos, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec3 &o, const vec3 &ray, float &dist, int mode)
     {
-        vec axis(1, 0, 0), forward(0, 1, 0);
+        vec3 axis(1, 0, 0), forward(0, 1, 0);
 
         matrixpos = 0;
         matrixstack[0].identity();
@@ -1184,8 +1184,8 @@ struct animmodel : model
             matrixstack[0].rotate_around_z(yaw*RAD);
             bool usepitch = pitched();
             if(roll && !usepitch) matrixstack[0].rotate_around_y(-roll*RAD);
-            matrixstack[0].transformnormal(vec(axis), axis);
-            matrixstack[0].transformnormal(vec(forward), forward);
+            matrixstack[0].transformnormal(vec3(axis), axis);
+            matrixstack[0].transformnormal(vec3(forward), forward);
             if(roll && usepitch) matrixstack[0].rotate_around_y(-roll*RAD);
             if(offsetyaw) matrixstack[0].rotate_around_z(offsetyaw*RAD);
             if(offsetpitch) matrixstack[0].rotate_around_x(offsetpitch*RAD);
@@ -1208,7 +1208,7 @@ struct animmodel : model
         return intersectresult;
     }
 
-    void render(int anim, int basetime, int basetime2, float pitch, const vec &axis, const vec &forward, dynent *d, modelattach *a)
+    void render(int anim, int basetime, int basetime2, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, modelattach *a)
     {
         int numtags = 0;
         if(a)
@@ -1221,14 +1221,14 @@ struct animmodel : model
                 animmodel *m = (animmodel *)a[i].m;
                 if(!m)
                 {
-                    if(a[i].pos) link(NULL, a[i].tag, vec(0, 0, 0), 0, 0, a[i].pos);
+                    if(a[i].pos) link(NULL, a[i].tag, vec3(0, 0, 0), 0, 0, a[i].pos);
                     continue;
                 }
                 part *p = m->parts[0];
                 switch(linktype(m, p))
                 {
                     case LINK_TAG:
-                        p->index = link(p, a[i].tag, vec(0, 0, 0), a[i].anim, a[i].basetime, a[i].pos) ? index : -1;
+                        p->index = link(p, a[i].tag, vec3(0, 0, 0), a[i].anim, a[i].basetime, a[i].pos) ? index : -1;
                         break;
 
                     case LINK_COOP:
@@ -1288,9 +1288,9 @@ struct animmodel : model
         }
     }
 
-    void render(int anim, int basetime, int basetime2, const vec &o, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec4 &color)
+    void render(int anim, int basetime, int basetime2, const vec3 &o, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec4 &color)
     {
-        vec axis(1, 0, 0), forward(0, 1, 0);
+        vec3 axis(1, 0, 0), forward(0, 1, 0);
 
         matrixpos = 0;
         matrixstack[0].identity();
@@ -1305,8 +1305,8 @@ struct animmodel : model
             matrixstack[0].rotate_around_z(yaw*RAD);
             bool usepitch = pitched();
             if(roll && !usepitch) matrixstack[0].rotate_around_y(-roll*RAD);
-            matrixstack[0].transformnormal(vec(axis), axis);
-            matrixstack[0].transformnormal(vec(forward), forward);
+            matrixstack[0].transformnormal(vec3(axis), axis);
+            matrixstack[0].transformnormal(vec3(forward), forward);
             if(roll && usepitch) matrixstack[0].rotate_around_y(-roll*RAD);
             if(offsetyaw) matrixstack[0].rotate_around_z(offsetyaw*RAD);
             if(offsetpitch) matrixstack[0].rotate_around_x(offsetpitch*RAD);
@@ -1443,7 +1443,7 @@ struct animmodel : model
         return bih;
     }
 
-    bool link(part *p, const char *tag, const vec &translate = vec(0, 0, 0), int anim = -1, int basetime = 0, vec *pos = NULL)
+    bool link(part *p, const char *tag, const vec3 &translate = vec3(0, 0, 0), int anim = -1, int basetime = 0, vec3 *pos = NULL)
     {
         if(parts.empty()) return false;
         return parts[0]->link(p, tag, translate, anim, basetime, pos);
@@ -1575,16 +1575,16 @@ struct animmodel : model
         loopv(parts) loopvj(parts[i]->skins) parts[i]->skins[j].cullface = cullface;
     }
 
-    void setcolor(const vec &color)
+    void setcolor(const vec3 &color)
     {
         if(parts.empty()) loaddefaultparts();
         loopv(parts) loopvj(parts[i]->skins) parts[i]->skins[j].color = color;
     }
 
-    void calcbb(vec &center, vec &radius)
+    void calcbb(vec3 &center, vec3 &radius)
     {
         if(parts.empty()) return;
-        vec bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
+        vec3 bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
         matrix4x3 m;
         initmatrix(m);
         parts[0]->calcbb(bbmin, bbmax, m);
@@ -1807,7 +1807,7 @@ template<class MDL, class MESH> struct modelcommands
 
     static void setcolor(char *meshname, float *r, float *g, float *b)
     {
-        loopskins(meshname, s, s.color = vec(*r, *g, *b));
+        loopskins(meshname, s, s.color = vec3(*r, *g, *b));
     }
 
     static void setenvmap(char *meshname, char *envmap)
@@ -1862,7 +1862,7 @@ template<class MDL, class MESH> struct modelcommands
     {
         if(!MDL::loading) { conoutf("not loading an %s", MDL::formatname()); return; }
         if(!MDL::loading->parts.inrange(*parent) || !MDL::loading->parts.inrange(*child)) { conoutf("no models loaded to link"); return; }
-        if(!MDL::loading->parts[*parent]->link(MDL::loading->parts[*child], tagname, vec(*x, *y, *z))) conoutf("could not link model %s", MDL::loading->name);
+        if(!MDL::loading->parts[*parent]->link(MDL::loading->parts[*child], tagname, vec3(*x, *y, *z))) conoutf("could not link model %s", MDL::loading->name);
     }
 
     template<class F> void modelcommand(F *fun, const char *suffix, const char *args)

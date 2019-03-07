@@ -239,13 +239,13 @@ namespace game
         }
         if(mainpass && !(flags&MDL_ONLYSHADOW))
         {
-            d->muzzle = vec(-1, -1, -1);
+            d->muzzle = vec3(-1, -1, -1);
             if(guns[d->gunselect].vwep) a[ai++] = modelattach("tag_muzzle", &d->muzzle);
         }
         const char *mdlname = mdl.model[validteam(team) ? team : 0];
         float yaw = testanims && d==player1 ? 0 : d->yaw,
               pitch = testpitch && d==player1 ? testpitch : d->pitch;
-        vec o = d->feetpos();
+        vec3 o = d->feetpos();
         int basetime = 0;
         if(animoverride) anim = (animoverride<0 ? ANIM_ALL : animoverride)|ANIM_LOOP;
         else if(d->state==CS_DEAD)
@@ -307,7 +307,7 @@ namespace game
         else flags |= MDL_CULL_DIST;
         if(!mainpass) flags &= ~(MDL_FULLBRIGHT | MDL_CULL_VFC | MDL_CULL_OCCLUDED | MDL_CULL_QUERY | MDL_CULL_DIST);
         float trans = d->state == CS_LAGGED ? 0.5f : 1.0f;
-        rendermodel(mdlname, anim, o, yaw, pitch, 0, flags, d, a[0].tag ? a : NULL, basetime, 0, fade, vec4(vec::hexcolor(color), trans));
+        rendermodel(mdlname, anim, o, yaw, pitch, 0, flags, d, a[0].tag ? a : NULL, basetime, 0, fade, vec4(vec3::hexcolor(color), trans));
     }
 
     static inline void renderplayer(gameent *d, float fade = 1, int flags = 0)
@@ -368,7 +368,7 @@ namespace game
     FVAR(swayup, -1, 0.15f, 1);
 
     float swayfade = 0, swayspeed = 0, swaydist = 0;
-    vec swaydir(0, 0, 0);
+    vec3 swaydir(0, 0, 0);
 
     void swayhudgun(int curtime)
     {
@@ -391,9 +391,9 @@ namespace game
 
             float k = pow(0.7f, curtime/10.0f);
             swaydir.mul(k);
-            vec vel(d->vel);
+            vec3 vel(d->vel);
             vel.add(d->falling);
-            swaydir.add(vec(vel).mul((1-k)/(15*max(vel.magnitude(), d->maxspeed))));
+            swaydir.add(vec3(vel).mul((1-k)/(15*max(vel.magnitude(), d->maxspeed))));
         }
     }
 
@@ -407,7 +407,7 @@ namespace game
         const char *file = guns[d->gunselect].file;
         if(!file) return;
 
-        vec sway;
+        vec3 sway;
         vecfromyawpitch(d->yaw, 0, 0, 1, sway);
         float steps = swaydist/swaystep*M_PI;
         sway.mul(swayside*cosf(steps));
@@ -420,9 +420,9 @@ namespace game
             color = getplayercolor(d, team);
         defformatstring(gunname, "%s/%s", mdl.hudguns[team], file);
         modelattach a[2];
-        d->muzzle = vec(-1, -1, -1);
+        d->muzzle = vec3(-1, -1, -1);
         a[0] = modelattach("tag_muzzle", &d->muzzle);
-        rendermodel(gunname, anim, sway, d->yaw, d->pitch, 0, MDL_NOBATCH, NULL, a, basetime, 0, 1, vec4(vec::hexcolor(color), 1));
+        rendermodel(gunname, anim, sway, d->yaw, d->pitch, 0, MDL_NOBATCH, NULL, a, basetime, 0, 1, vec4(vec3::hexcolor(color), 1));
         if(d->muzzle.x >= 0) d->muzzle = calcavatarpos(d->muzzle, 12);
     }
 
@@ -431,7 +431,7 @@ namespace game
         gameent *d = hudplayer();
         if(d->state==CS_SPECTATOR || d->state==CS_EDITING || !hudgun || editmode)
         {
-            d->muzzle = player1->muzzle = vec(-1, -1, -1);
+            d->muzzle = player1->muzzle = vec3(-1, -1, -1);
             return;
         }
 
@@ -460,20 +460,20 @@ namespace game
         float height = previewent->eyeheight + previewent->aboveeye,
               zrad = height/2;
         vec2 xyrad = vec2(previewent->xradius, previewent->yradius).max(height/4);
-        previewent->o = calcmodelpreviewpos(vec(xyrad, zrad), previewent->yaw).addz(previewent->eyeheight - zrad);
+        previewent->o = calcmodelpreviewpos(vec3(xyrad, zrad), previewent->yaw).addz(previewent->eyeheight - zrad);
         previewent->gunselect = validgun(weap) ? weap : GUN_RAIL;
         const playermodelinfo *mdlinfo = getplayermodelinfo(model);
         if(!mdlinfo) return;
         renderplayer(previewent, *mdlinfo, getplayercolor(team, color), team, 1, 0, false);
     }
 
-    vec hudgunorigin(int gun, const vec &from, const vec &to, gameent *d)
+    vec3 hudgunorigin(int gun, const vec3 &from, const vec3 &to, gameent *d)
     {
         if(d->muzzle.x >= 0) return d->muzzle;
-        vec offset(from);
+        vec3 offset(from);
         if(d!=hudplayer() || isthirdperson())
         {
-            vec front, right;
+            vec3 front, right;
             vecfromyawpitch(d->yaw, d->pitch, 1, 0, front);
             offset.add(front.mul(d->radius));
             offset.z += (d->aboveeye + d->eyeheight)*0.75f - d->eyeheight;
@@ -482,13 +482,13 @@ namespace game
             offset.add(front);
             return offset;
         }
-        offset.add(vec(to).sub(from).normalize().mul(2));
+        offset.add(vec3(to).sub(from).normalize().mul(2));
         if(hudgun)
         {
-            offset.sub(vec(camup).mul(1.0f));
-            offset.add(vec(camright).mul(0.8f));
+            offset.sub(vec3(camup).mul(1.0f));
+            offset.add(vec3(camright).mul(0.8f));
         }
-        else offset.sub(vec(camup).mul(0.8f));
+        else offset.sub(vec3(camup).mul(0.8f));
         return offset;
     }
 

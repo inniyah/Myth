@@ -4,7 +4,7 @@
 namespace game
 {
     static const int OFFSETMILLIS = 500;
-    vec rays[MAXRAYS];
+    vec3 rays[MAXRAYS];
 
     struct hitmsg
     {
@@ -114,22 +114,22 @@ namespace game
         playsound(S_NOAMMO);
     });
 
-    void offsetray(const vec &from, const vec &to, int spread, float range, vec &dest)
+    void offsetray(const vec3 &from, const vec3 &to, int spread, float range, vec3 &dest)
     {
-        vec offset;
-        do offset = vec(rndscale(1), rndscale(1), rndscale(1)).sub(0.5f);
+        vec3 offset;
+        do offset = vec3(rndscale(1), rndscale(1), rndscale(1)).sub(0.5f);
         while(offset.squaredlen() > 0.5f*0.5f);
         offset.mul((to.dist(from)/1024)*spread);
         offset.z /= 2;
-        dest = vec(offset).add(to);
+        dest = vec3(offset).add(to);
         if(dest != from)
         {
-            vec dir = vec(dest).sub(from).normalize();
+            vec3 dir = vec3(dest).sub(from).normalize();
             raycubepos(from, dir, dest, range, RAY_CLIPMAT|RAY_ALPHAPOLY);
         }
     }
 
-    void createrays(int atk, const vec &from, const vec &to)             // create random spread of rays
+    void createrays(int atk, const vec3 &from, const vec3 &to)             // create random spread of rays
     {
         loopi(attacks[atk].rays) offsetray(from, to, attacks[atk].spread, attacks[atk].range, rays[i]);
     }
@@ -143,7 +143,7 @@ namespace game
         bool local;
         gameent *owner;
         int bouncetype, variant;
-        vec offset;
+        vec3 offset;
         int offsetmillis;
         int id;
 
@@ -155,7 +155,7 @@ namespace game
 
     vector<bouncer *> bouncers;
 
-    void newbouncer(const vec &from, const vec &to, bool local, int id, gameent *owner, int type, int lifetime, int speed)
+    void newbouncer(const vec3 &from, const vec3 &to, bool local, int id, gameent *owner, int type, int lifetime, int speed)
     {
         bouncer &bnc = *bouncers.add(new bouncer);
         bnc.o = from;
@@ -174,7 +174,7 @@ namespace game
             case BNC_GIBS: bnc.variant = rnd(3); break;
         }
 
-        vec dir(to);
+        vec3 dir(to);
         dir.sub(from).safenormalize();
         bnc.vel = dir;
         bnc.vel.mul(speed);
@@ -188,13 +188,13 @@ namespace game
         bnc.resetinterp();
     }
 
-    void bounced(physent *d, const vec &surface)
+    void bounced(physent *d, const vec3 &surface)
     {
         if(d->type != ENT_BOUNCE) return;
         bouncer *b = (bouncer *)d;
         if(b->bouncetype != BNC_GIBS || b->bounces >= 2) return;
         b->bounces++;
-        addstain(STAIN_BLOOD, vec(b->o).sub(vec(surface).mul(b->radius)), surface, 2.96f/b->bounces, bvec(0x60, 0xFF, 0xFF), rnd(4));
+        addstain(STAIN_BLOOD, vec3(b->o).sub(vec3(surface).mul(b->radius)), surface, 2.96f/b->bounces, bvec(0x60, 0xFF, 0xFF), rnd(4));
     }
 
     void updatebouncers(int time)
@@ -202,7 +202,7 @@ namespace game
         loopv(bouncers)
         {
             bouncer &bnc = *bouncers[i];
-            vec old(bnc.o);
+            vec3 old(bnc.o);
             bool stopped = false;
             // cheaper variable rate physics for debris, gibs, etc.
             for(int rtime = time; rtime > 0;)
@@ -232,7 +232,7 @@ namespace game
 
     struct projectile
     {
-        vec dir, o, from, to, offset;
+        vec3 dir, o, from, to, offset;
         float speed;
         gameent *owner;
         int atk;
@@ -244,10 +244,10 @@ namespace game
 
     void clearprojectiles() { projs.shrink(0); }
 
-    void newprojectile(const vec &from, const vec &to, float speed, bool local, int id, gameent *owner, int atk)
+    void newprojectile(const vec3 &from, const vec3 &to, float speed, bool local, int id, gameent *owner, int atk)
     {
         projectile &p = projs.add();
-        p.dir = vec(to).sub(from).safenormalize();
+        p.dir = vec3(to).sub(from).safenormalize();
         p.o = from;
         p.from = from;
         p.to = to;
@@ -272,7 +272,7 @@ namespace game
 
     void damageeffect(int damage, gameent *d, bool thirdperson)
     {
-        vec p = d->o;
+        vec3 p = d->o;
         p.z += 0.6f*(d->eyeheight + d->aboveeye) - d->eyeheight;
         if(blood) particle_splash(PART_BLOOD, max(damage/10, rnd(3)+1), 1000, p, 0x60FFFF, 2.96f);
 #if 0
@@ -280,25 +280,25 @@ namespace game
 #endif
     }
 
-    void spawnbouncer(const vec &p, const vec &vel, gameent *d, int type)
+    void spawnbouncer(const vec3 &p, const vec3 &vel, gameent *d, int type)
     {
-        vec to(rnd(100)-50, rnd(100)-50, rnd(100)-50);
+        vec3 to(rnd(100)-50, rnd(100)-50, rnd(100)-50);
         if(to.iszero()) to.z += 1;
         to.normalize();
         to.add(p);
         newbouncer(p, to, true, 0, d, type, rnd(1000)+1000, rnd(100)+20);
     }
 
-    void gibeffect(int damage, const vec &vel, gameent *d)
+    void gibeffect(int damage, const vec3 &vel, gameent *d)
     {
 #if 0
         if(!blood || !maxgibs || damage < 0) return;
-        vec from = d->abovehead();
+        vec3 from = d->abovehead();
         loopi(rnd(maxgibs)+1) spawnbouncer(from, vel, d, BNC_GIBS);
 #endif
     }
 
-    void hit(int damage, dynent *d, gameent *at, const vec &vel, int atk, float info1, int info2 = 1)
+    void hit(int damage, dynent *d, gameent *at, const vec3 &vel, int atk, float info1, int info2 = 1)
     {
         if(at==player1 && d!=at)
         {
@@ -322,7 +322,7 @@ namespace game
             h.lifesequence = f->lifesequence;
             h.info1 = int(info1*DMF);
             h.info2 = info2;
-            h.dir = f==at ? ivec(0, 0, 0) : ivec(vec(vel).mul(DNF));
+            h.dir = f==at ? ivec(0, 0, 0) : ivec(vec3(vel).mul(DNF));
             if(at==player1)
             {
                 damageeffect(damage, f);
@@ -337,27 +337,27 @@ namespace game
         }
     }
 
-    void hitpush(int damage, dynent *d, gameent *at, vec &from, vec &to, int atk, int rays)
+    void hitpush(int damage, dynent *d, gameent *at, vec3 &from, vec3 &to, int atk, int rays)
     {
-        hit(damage, d, at, vec(to).sub(from).safenormalize(), atk, from.dist(to), rays);
+        hit(damage, d, at, vec3(to).sub(from).safenormalize(), atk, from.dist(to), rays);
     }
 
-    float projdist(dynent *o, vec &dir, const vec &v, const vec &vel)
+    float projdist(dynent *o, vec3 &dir, const vec3 &v, const vec3 &vel)
     {
-        vec middle = o->o;
+        vec3 middle = o->o;
         middle.z += (o->aboveeye-o->eyeheight)/2;
-        dir = vec(middle).sub(v).add(vec(vel).mul(5)).safenormalize();
+        dir = vec3(middle).sub(v).add(vec3(vel).mul(5)).safenormalize();
 
         float low = min(o->o.z - o->eyeheight + o->radius, middle.z),
               high = max(o->o.z + o->aboveeye - o->radius, middle.z);
-        vec closest(o->o.x, o->o.y, clamp(v.z, low, high));
+        vec3 closest(o->o.x, o->o.y, clamp(v.z, low, high));
         return max(closest.dist(v) - o->radius, 0.0f);
     }
 
-    void radialeffect(dynent *o, const vec &v, const vec &vel, int qdam, gameent *at, int atk)
+    void radialeffect(dynent *o, const vec3 &v, const vec3 &vel, int qdam, gameent *at, int atk)
     {
         if(o->state!=CS_ALIVE) return;
-        vec dir;
+        vec3 dir;
         float dist = projdist(o, dir, v, vel);
         if(dist<attacks[atk].exprad)
         {
@@ -367,18 +367,18 @@ namespace game
         }
     }
 
-    void explode(bool local, gameent *owner, const vec &v, const vec &vel, dynent *safe, int damage, int atk)
+    void explode(bool local, gameent *owner, const vec3 &v, const vec3 &vel, dynent *safe, int damage, int atk)
     {
         particle_splash(PART_SPARK, 200, 300, v, 0x50CFE5, 0.45f);
         playsound(S_PULSEEXPLODE, &v);
         particle_fireball(v, 1.15f*attacks[atk].exprad, PART_PULSE_BURST, int(attacks[atk].exprad*20), 0x50CFE5, 4.0f);
-        vec debrisorigin = vec(v).sub(vec(vel).mul(5));
-        adddynlight(safe ? v : debrisorigin, 2*attacks[atk].exprad, vec(1.0f, 3.0f, 4.0f), 350, 40, 0, attacks[atk].exprad/2, vec(0.5f, 1.5f, 2.0f));
+        vec3 debrisorigin = vec3(v).sub(vec3(vel).mul(5));
+        adddynlight(safe ? v : debrisorigin, 2*attacks[atk].exprad, vec3(1.0f, 3.0f, 4.0f), 350, 40, 0, attacks[atk].exprad/2, vec3(0.5f, 1.5f, 2.0f));
 #if 0
         int numdebris = maxdebris > MINDEBRIS ? rnd(maxdebris-MINDEBRIS)+MINDEBRIS : min(maxdebris, MINDEBRIS);
         if(numdebris)
         {
-            vec debrisvel = vec(vel).neg();
+            vec3 debrisvel = vec3(vel).neg();
             loopi(numdebris)
                 spawnbouncer(debrisorigin, debrisvel, owner, BNC_DEBRIS);
         }
@@ -393,15 +393,15 @@ namespace game
         }
     }
 
-    void pulsestain(const projectile &p, const vec &pos)
+    void pulsestain(const projectile &p, const vec3 &pos)
     {
-        vec dir = vec(p.dir).neg();
+        vec3 dir = vec3(p.dir).neg();
         float rad = attacks[p.atk].exprad*0.75f;
         addstain(STAIN_PULSE_SCORCH, pos, dir, rad);
         addstain(STAIN_PULSE_GLOW, pos, dir, rad, 0x50CFE5);
     }
 
-    void projsplash(projectile &p, const vec &v, dynent *safe)
+    void projsplash(projectile &p, const vec3 &v, dynent *safe)
     {
         explode(p.local, p.owner, v, p.dir, safe, attacks[p.atk].damage, p.atk);
         pulsestain(p, v);
@@ -418,7 +418,7 @@ namespace game
                     projectile &p = projs[i];
                     if(p.atk == atk && p.owner == d && p.id == id && !p.local)
                     {
-                        vec pos = vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)).add(p.o);
+                        vec3 pos = vec3(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)).add(p.o);
                         explode(p.local, p.owner, pos, p.dir, NULL, 0, atk);
                         pulsestain(p, pos);
                         projs.remove(i);
@@ -431,12 +431,12 @@ namespace game
         }
     }
 
-    bool projdamage(dynent *o, projectile &p, const vec &v)
+    bool projdamage(dynent *o, projectile &p, const vec3 &v)
     {
         if(o->state!=CS_ALIVE) return false;
         if(!intersect(o, p.o, v, attacks[p.atk].margin)) return false;
         projsplash(p, v, o);
-        vec dir;
+        vec3 dir;
         projdist(o, dir, v, p.dir);
         hit(attacks[p.atk].damage, o, p.owner, dir, p.atk, 0);
         return true;
@@ -450,15 +450,15 @@ namespace game
         {
             projectile &p = projs[i];
             p.offsetmillis = max(p.offsetmillis-time, 0);
-            vec dv;
+            vec3 dv;
             float dist = p.to.dist(p.o, dv);
             dv.mul(time/max(dist*1000/p.speed, float(time)));
-            vec v = vec(p.o).add(dv);
+            vec3 v = vec3(p.o).add(dv);
             bool exploded = false;
             hits.setsize(0);
             if(p.local)
             {
-                vec halfdv = vec(dv).mul(0.5f), bo = vec(p.o).add(halfdv);
+                vec3 halfdv = vec3(dv).mul(0.5f), bo = vec3(p.o).add(halfdv);
                 float br = max(fabs(halfdv.x), fabs(halfdv.y)) + 1 + attacks[p.atk].margin;
                 loopj(numdynents())
                 {
@@ -480,14 +480,14 @@ namespace game
                 }
                 else
                 {
-                    vec pos = vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)).add(v);
+                    vec3 pos = vec3(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)).add(v);
                     particle_splash(PART_PULSE_FRONT, 1, 1, pos, 0x50CFE5, 2.4f, 150, 20);
                     if(p.owner != noside)
                     {
-                        float len = min(20.0f, vec(p.offset).add(p.from).dist(pos));
-                        vec dir = vec(dv).normalize(),
-                            tail = vec(dir).mul(-len).add(pos),
-                            head = vec(dir).mul(2.4f).add(pos);
+                        float len = min(20.0f, vec3(p.offset).add(p.from).dist(pos));
+                        vec3 dir = vec3(dv).normalize(),
+                            tail = vec3(dir).mul(-len).add(pos),
+                            head = vec3(dir).mul(2.4f).add(pos);
                         particle_flare(tail, head, 1, PART_PULSE_SIDE, 0x50CFE5, 2.5f);
                     }
                 }
@@ -503,18 +503,18 @@ namespace game
         }
     }
 
-    void railhit(const vec &from, const vec &to, bool stain = true)
+    void railhit(const vec3 &from, const vec3 &to, bool stain = true)
     {
-        vec dir = vec(from).sub(to).safenormalize();
+        vec3 dir = vec3(from).sub(to).safenormalize();
         if(stain)
         {
             addstain(STAIN_RAIL_HOLE, to, dir, 2.0f);
             addstain(STAIN_RAIL_GLOW, to, dir, 2.5f, 0x50CFE5);
         }
-        adddynlight(vec(to).madd(dir, 4), 10, vec(0.25f, 0.75f, 1.0f), 225, 75);
+        adddynlight(vec3(to).madd(dir, 4), 10, vec3(0.25f, 0.75f, 1.0f), 225, 75);
     }
 
-    void shoteffects(int atk, const vec &from, const vec &to, gameent *d, bool local, int id, int prevaction)     // create visual effect from a shot
+    void shoteffects(int atk, const vec3 &from, const vec3 &to, gameent *d, bool local, int id, int prevaction)     // create visual effect from a shot
     {
         int gun = attacks[atk].gun;
         switch(atk)
@@ -530,7 +530,7 @@ namespace game
                 particle_flare(hudgunorigin(gun, from, to, d), to, 500, PART_RAIL_TRAIL, 0x50CFE5, 0.5f);
                 if(d->muzzle.x >= 0)
                     particle_flare(d->muzzle, d->muzzle, 140, PART_RAIL_MUZZLE_FLASH, 0x50CFE5, 2.75f, d);
-                adddynlight(hudgunorigin(gun, d->o, to, d), 35, vec(0.25f, 0.75f, 1.0f), 75, 75, DL_FLASH, 0, vec(0, 0, 0), d);
+                adddynlight(hudgunorigin(gun, d->o, to, d), 35, vec3(0.25f, 0.75f, 1.0f), 75, 75, DL_FLASH, 0, vec3(0, 0, 0), d);
                 if(!local) railhit(from, to);
                 break;
 
@@ -542,7 +542,7 @@ namespace game
         else playsound(attacks[atk].sound, &d->o);
     }
 
-    void particletrack(physent *owner, vec &o, vec &d)
+    void particletrack(physent *owner, vec3 &o, vec3 &d)
     {
         if(owner->type!=ENT_PLAYER) return;
         gameent *pl = (gameent *)owner;
@@ -558,26 +558,26 @@ namespace game
         }
     }
 
-    void dynlighttrack(physent *owner, vec &o, vec &hud)
+    void dynlighttrack(physent *owner, vec3 &o, vec3 &hud)
     {
         if(owner->type!=ENT_PLAYER) return;
         gameent *pl = (gameent *)owner;
         if(pl->muzzle.x < 0 || pl->lastattack < 0 || attacks[pl->lastattack].gun != pl->gunselect) return;
         o = pl->muzzle;
-        hud = owner == hudplayer() ? vec(pl->o).add(vec(0, 0, 2)) : pl->muzzle;
+        hud = owner == hudplayer() ? vec3(pl->o).add(vec3(0, 0, 2)) : pl->muzzle;
     }
 
     float intersectdist = 1e16f;
 
-    bool intersect(dynent *d, const vec &from, const vec &to, float margin, float &dist)   // if lineseg hits entity bounding box
+    bool intersect(dynent *d, const vec3 &from, const vec3 &to, float margin, float &dist)   // if lineseg hits entity bounding box
     {
-        vec bottom(d->o), top(d->o);
+        vec3 bottom(d->o), top(d->o);
         bottom.z -= d->eyeheight + margin;
         top.z += d->aboveeye + margin;
         return linecylinderintersect(from, to, bottom, top, d->radius + margin, dist);
     }
 
-    dynent *intersectclosest(const vec &from, const vec &to, gameent *at, float margin, float &bestdist)
+    dynent *intersectclosest(const vec3 &from, const vec3 &to, gameent *at, float margin, float &bestdist)
     {
         dynent *best = NULL;
         bestdist = 1e16f;
@@ -596,12 +596,12 @@ namespace game
         return best;
     }
 
-    void shorten(const vec &from, vec &target, float dist)
+    void shorten(const vec3 &from, vec3 &target, float dist)
     {
         target.sub(from).mul(min(1.0f, dist)).add(from);
     }
 
-    void raydamage(vec &from, vec &to, gameent *d, int atk)
+    void raydamage(vec3 &from, vec3 &to, gameent *d, int atk)
     {
         dynent *o;
         float dist;
@@ -640,7 +640,7 @@ namespace game
         else if(attacks[atk].action!=ACT_MELEE) railhit(from, to);
     }
 
-    void shoot(gameent *d, const vec &targ)
+    void shoot(gameent *d, const vec3 &targ)
     {
         int prevaction = d->lastaction, attacktime = lastmillis-prevaction;
         if(attacktime<d->gunwait) return;
@@ -662,18 +662,18 @@ namespace game
         }
         d->ammo[gun] -= attacks[atk].use;
 
-        vec from = d->o, to = targ, dir = vec(to).sub(from).safenormalize();
+        vec3 from = d->o, to = targ, dir = vec3(to).sub(from).safenormalize();
         float dist = to.dist(from);
         if(!(d->physstate >= PHYS_SLOPE && d->crouching && d->crouched()))
         {
-            vec kickback = vec(dir).mul(attacks[atk].kickamount*-2.5f);
+            vec3 kickback = vec3(dir).mul(attacks[atk].kickamount*-2.5f);
             d->vel.add(kickback);
         }
         float shorten = attacks[atk].range && dist > attacks[atk].range ? attacks[atk].range : 0,
               barrier = raycube(d->o, dir, dist, RAY_CLIPMAT|RAY_ALPHAPOLY);
         if(barrier > 0 && barrier < dist && (!shorten || barrier < shorten))
             shorten = barrier;
-        if(shorten) to = vec(dir).mul(shorten).add(from);
+        if(shorten) to = vec3(dir).mul(shorten).add(from);
 
         if(attacks[atk].rays > 1) createrays(atk, from, to);
         else if(attacks[atk].spread) offsetray(from, to, attacks[atk].spread, attacks[atk].range, to);
@@ -703,9 +703,9 @@ namespace game
         {
             projectile &p = projs[i];
             if(p.atk!=ATK_PULSE_SHOOT) continue;
-            vec pos(p.o);
-            pos.add(vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
-            adddynlight(pos, 20, vec(0.25f, 0.75f, 1.0f));
+            vec3 pos(p.o);
+            pos.add(vec3(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
+            adddynlight(pos, 20, vec3(0.25f, 0.75f, 1.0f));
         }
     }
 
@@ -728,9 +728,9 @@ namespace game
         loopv(bouncers)
         {
             bouncer &bnc = *bouncers[i];
-            vec pos(bnc.o);
-            pos.add(vec(bnc.offset).mul(bnc.offsetmillis/float(OFFSETMILLIS)));
-            vec vel(bnc.vel);
+            vec3 pos(bnc.o);
+            pos.add(vec3(bnc.offset).mul(bnc.offsetmillis/float(OFFSETMILLIS)));
+            vec3 vel(bnc.vel);
             if(vel.magnitude() <= 25.0f) yaw = bnc.lastyaw;
             else
             {

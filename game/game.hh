@@ -372,7 +372,7 @@ struct gameent : dynent, gamestate
     ai::aiinfo *ai;
     int ownernum, lastnode;
 
-    vec muzzle;
+    vec3 muzzle;
 
     gameent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), frags(0), flags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), team(0), playermodel(-1), playercolor(0), ai(NULL), ownernum(-1), muzzle(-1, -1, -1)
     {
@@ -385,9 +385,9 @@ struct gameent : dynent, gamestate
         if(ai) delete ai;
     }
 
-    void hitpush(int damage, const vec &dir, gameent *actor, int atk)
+    void hitpush(int damage, const vec3 &dir, gameent *actor, int atk)
     {
-        vec push(dir);
+        vec3 push(dir);
         push.mul((actor==this && attacks[atk].exprad ? EXP_SELFPUSH : 1.0f)*attacks[atk].hitpush*damage/weight);
         vel.add(push);
     }
@@ -555,15 +555,15 @@ namespace game
 
     // weapon
     extern int getweapon(const char *name);
-    extern void shoot(gameent *d, const vec &targ);
-    extern void shoteffects(int atk, const vec &from, const vec &to, gameent *d, bool local, int id, int prevaction);
-    extern void explode(bool local, gameent *owner, const vec &v, const vec &vel, dynent *safe, int dam, int atk);
+    extern void shoot(gameent *d, const vec3 &targ);
+    extern void shoteffects(int atk, const vec3 &from, const vec3 &to, gameent *d, bool local, int id, int prevaction);
+    extern void explode(bool local, gameent *owner, const vec3 &v, const vec3 &vel, dynent *safe, int dam, int atk);
     extern void explodeeffects(int atk, gameent *d, bool local, int id = 0);
     extern void damageeffect(int damage, gameent *d, bool thirdperson = true);
-    extern void gibeffect(int damage, const vec &vel, gameent *d);
+    extern void gibeffect(int damage, const vec3 &vel, gameent *d);
     extern float intersectdist;
-    extern bool intersect(dynent *d, const vec &from, const vec &to, float margin = 0, float &dist = intersectdist);
-    extern dynent *intersectclosest(const vec &from, const vec &to, gameent *at, float margin = 0, float &dist = intersectdist);
+    extern bool intersect(dynent *d, const vec3 &from, const vec3 &to, float margin = 0, float &dist = intersectdist);
+    extern dynent *intersectclosest(const vec3 &from, const vec3 &to, gameent *at, float margin = 0, float &dist = intersectdist);
     extern void clearbouncers();
     extern void updatebouncers(int curtime);
     extern void removebouncers(gameent *owner);
@@ -603,7 +603,7 @@ namespace game
     extern int chooserandomplayermodel(int seed);
     extern void syncplayer();
     extern void swayhudgun(int curtime);
-    extern vec hudgunorigin(int gun, const vec &from, const vec &to, gameent *d);
+    extern vec3 hudgunorigin(int gun, const vec3 &from, const vec3 &to, gameent *d);
 }
 
 namespace server

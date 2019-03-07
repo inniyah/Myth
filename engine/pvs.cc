@@ -950,7 +950,7 @@ static int lockedwaterplanes[MAXWATERPVS];
 static uchar *curpvs = NULL, *lockedpvs = NULL;
 static int curwaterpvs = 0, lockedwaterpvs = 0;
 
-static inline pvsdata *lookupviewcell(const vec &p)
+static inline pvsdata *lookupviewcell(const vec3 &p)
 {
     uint x = uint(floor(p.x)), y = uint(floor(p.y)), z = uint(floor(p.z));
     if(!viewcells || (x|y|z)>=uint(worldsize)) return NULL;
@@ -987,7 +987,7 @@ VARF(lockpvs, 0, 0, 1, lockpvs_(lockpvs!=0));
 VARN(pvs, usepvs, 0, 1, 1);
 VARN(waterpvs, usewaterpvs, 0, 1, 1);
 
-void setviewcell(const vec &p)
+void setviewcell(const vec3 &p)
 {
     if(!usepvs) curpvs = NULL;
     else if(lockedpvs)
@@ -1229,10 +1229,10 @@ bool pvsoccluded(const ivec &bbmin, const ivec &bbmax)
     return curpvs!=NULL && pvsoccluded(curpvs, bbmin, bbmax);
 }
 
-bool pvsoccludedsphere(const vec &center, float radius)
+bool pvsoccludedsphere(const vec3 &center, float radius)
 {
     if(curpvs==NULL) return false;
-    ivec bbmin(vec(center).sub(radius)), bbmax(vec(center).add(radius+1));
+    ivec bbmin(vec3(center).sub(radius)), bbmax(vec3(center).add(radius+1));
     return pvsoccluded(curpvs, bbmin, bbmax);
 }
 

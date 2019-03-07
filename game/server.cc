@@ -53,13 +53,13 @@ namespace server
         int lifesequence;
         int rays;
         float dist;
-        vec dir;
+        vec3 dir;
     };
 
     struct shotevent : timedevent
     {
         int id, atk;
-        vec from, to;
+        vec3 from, to;
         vector<hitinfo> hits;
 
         void process(clientinfo *ci);
@@ -116,7 +116,7 @@ namespace server
 
     struct servstate : gamestate
     {
-        vec o;
+        vec3 o;
         int state, editstate;
         int lastdeath, deadflush, lastspawn, lifesequence;
         int lastshot;
@@ -155,7 +155,7 @@ namespace server
         void respawn()
         {
             gamestate::respawn();
-            o = vec(-1e10f, -1e10f, -1e10f);
+            o = vec3(-1e10f, -1e10f, -1e10f);
             deadflush = 0;
             lastspawn = -1;
             lastshot = 0;
@@ -815,7 +815,7 @@ namespace server
         virtual void entergame(clientinfo *ci) {}
         virtual void leavegame(clientinfo *ci, bool disconnecting = false) {}
 
-        virtual void moved(clientinfo *ci, const vec &oldpos, bool oldclip, const vec &newpos, bool newclip) {}
+        virtual void moved(clientinfo *ci, const vec3 &oldpos, bool oldclip, const vec3 &newpos, bool newclip) {}
         virtual bool canspawn(clientinfo *ci, bool connecting = false) { return true; }
         virtual void spawned(clientinfo *ci) {}
         virtual int fragvalue(clientinfo *victim, clientinfo *actor)
@@ -2066,7 +2066,7 @@ namespace server
 
     void startintermission() { gamelimit = min(gamelimit, gamemillis); checkintermission(); }
 
-    void dodamage(clientinfo *target, clientinfo *actor, int damage, int atk, const vec &hitpush = vec(0, 0, 0))
+    void dodamage(clientinfo *target, clientinfo *actor, int damage, int atk, const vec3 &hitpush = vec3(0, 0, 0))
     {
         servstate &ts = target->state;
         ts.dodamage(damage);
@@ -2075,7 +2075,7 @@ namespace server
         if(target==actor) target->setpushed();
         else if(!hitpush.iszero())
         {
-            ivec v(vec(hitpush).rescale(DNF));
+            ivec v(vec3(hitpush).rescale(DNF));
             sendf(ts.health<=0 ? -1 : target->ownernum, 1, "ri7", N_HITPUSH, target->clientnum, atk, damage, v.x, v.y, v.z);
             target->setpushed();
         }
@@ -2837,7 +2837,7 @@ namespace server
                 uint flags = getuint(p);
                 clientinfo *cp = getinfo(pcn);
                 if(cp && pcn != sender && cp->ownernum != sender) cp = NULL;
-                vec pos;
+                vec3 pos;
                 loopk(3)
                 {
                     int n = p.get(); n |= p.get()<<8; if(flags&(1<<k)) { n |= p.get()<<16; if(n&0x800000) n |= ~0U<<24; }
@@ -2846,7 +2846,7 @@ namespace server
                 loopk(3) p.get();
                 int mag = p.get(); if(flags&(1<<3)) mag |= p.get()<<8;
                 int dir = p.get(); dir |= p.get()<<8;
-                vec vel = vec((dir%360)*RAD, (clamp(dir/360, 0, 180)-90)*RAD).mul(mag/DVELF);
+                vec3 vel = vec3((dir%360)*RAD, (clamp(dir/360, 0, 180)-90)*RAD).mul(mag/DVELF);
                 if(flags&(1<<4))
                 {
                     p.get(); if(flags&(1<<5)) p.get();

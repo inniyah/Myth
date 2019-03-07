@@ -2,7 +2,7 @@ struct md5;
 
 struct md5joint
 {
-    vec pos;
+    vec3 pos;
     quat orient;
 };
 
@@ -10,7 +10,7 @@ struct md5weight
 {
     int joint;
     float bias;
-    vec pos;
+    vec3 pos;
 };
 
 struct md5vert
@@ -58,12 +58,12 @@ struct md5 : skelloader<md5>
             loopi(numverts)
             {
                 md5vert &v = vertinfo[i];
-                vec pos(0, 0, 0);
+                vec3 pos(0, 0, 0);
                 loopk(v.count)
                 {
                     md5weight &w = weightinfo[v.start+k];
                     md5joint &j = joints[w.joint];
-                    vec wpos = j.orient.rotate(w.pos);
+                    vec3 wpos = j.orient.rotate(w.pos);
                     wpos.add(j.pos);
                     wpos.mul(w.bias);
                     pos.add(wpos);

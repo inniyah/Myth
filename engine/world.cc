@@ -11,29 +11,29 @@ VARNR(emptymap, _emptymap, 1, 0, 0);
 VAR(octaentsize, 0, 64, 1024);
 VAR(entselradius, 0, 2, 10);
 
-static inline void transformbb(const entity &e, vec &center, vec &radius)
+static inline void transformbb(const entity &e, vec3 &center, vec3 &radius)
 {
     if(e.attr5 > 0) { float scale = e.attr5/100.0f; center.mul(scale); radius.mul(scale); }
     rotatebb(center, radius, e.attr2, e.attr3, e.attr4);
 }
 
-static inline void mmboundbox(const entity &e, model *m, vec &center, vec &radius)
+static inline void mmboundbox(const entity &e, model *m, vec3 &center, vec3 &radius)
 {
     m->boundbox(center, radius);
     transformbb(e, center, radius);
 }
 
-static inline void mmcollisionbox(const entity &e, model *m, vec &center, vec &radius)
+static inline void mmcollisionbox(const entity &e, model *m, vec3 &center, vec3 &radius)
 {
     m->collisionbox(center, radius);
     transformbb(e, center, radius);
 }
 
-static inline void decalboundbox(const entity &e, DecalSlot &s, vec &center, vec &radius)
+static inline void decalboundbox(const entity &e, DecalSlot &s, vec3 &center, vec3 &radius)
 {
     float size = max(float(e.attr5), 1.0f);
-    center = vec(0, s.depth * size/2, 0);
-    radius = vec(size/2, s.depth * size/2, size/2);
+    center = vec3(0, s.depth * size/2, 0);
+    radius = vec3(size/2, s.depth * size/2, size/2);
     rotatebb(center, radius, e.attr2, e.attr3, e.attr4);
 }
 
@@ -46,29 +46,29 @@ bool getentboundingbox(const extentity &e, ivec &o, ivec &r)
         case ET_DECAL:
             {
                 DecalSlot &s = lookupdecalslot(e.attr1, false);
-                vec center, radius;
+                vec3 center, radius;
                 decalboundbox(e, s, center, radius);
                 center.add(e.o);
                 radius.max(entselradius);
-                o = ivec(vec(center).sub(radius));
-                r = ivec(vec(center).add(radius).add(1));
+                o = ivec(vec3(center).sub(radius));
+                r = ivec(vec3(center).add(radius).add(1));
                 break;
             }
         case ET_MAPMODEL:
             if(model *m = loadmapmodel(e.attr1))
             {
-                vec center, radius;
+                vec3 center, radius;
                 mmboundbox(e, m, center, radius);
                 center.add(e.o);
                 radius.max(entselradius);
-                o = ivec(vec(center).sub(radius));
-                r = ivec(vec(center).add(radius).add(1));
+                o = ivec(vec3(center).sub(radius));
+                r = ivec(vec3(center).add(radius).add(1));
                 break;
             }
         // invisible mapmodels use entselradius
         default:
-            o = ivec(vec(e.o).sub(entselradius));
-            r = ivec(vec(e.o).add(entselradius+1));
+            o = ivec(vec3(e.o).sub(entselradius));
+            r = ivec(vec3(e.o).add(entselradius+1));
             break;
     }
     return true;
@@ -272,18 +272,18 @@ void entitiesinoctanodes()
     loopv(ents) modifyoctaent(MODOE_ADD, i, *ents[i]);
 }
 
-static inline void findents(octaentities &oe, int low, int high, bool notspawned, const vec &pos, const vec &invradius, vector<int> &found)
+static inline void findents(octaentities &oe, int low, int high, bool notspawned, const vec3 &pos, const vec3 &invradius, vector<int> &found)
 {
     vector<extentity *> &ents = entities::getents();
     loopv(oe.other)
     {
         int id = oe.other[i];
         extentity &e = *ents[id];
-        if(e.type >= low && e.type <= high && (e.spawned() || notspawned) && vec(e.o).sub(pos).mul(invradius).squaredlen() <= 1) found.add(id);
+        if(e.type >= low && e.type <= high && (e.spawned() || notspawned) && vec3(e.o).sub(pos).mul(invradius).squaredlen() <= 1) found.add(id);
     }
 }
 
-static inline void findents(cube *c, const ivec &o, int size, const ivec &bo, const ivec &br, int low, int high, bool notspawned, const vec &pos, const vec &invradius, vector<int> &found)
+static inline void findents(cube *c, const ivec &o, int size, const ivec &bo, const ivec &br, int low, int high, bool notspawned, const vec3 &pos, const vec3 &invradius, vector<int> &found)
 {
     loopoctabox(o, size, bo, br)
     {
@@ -296,11 +296,11 @@ static inline void findents(cube *c, const ivec &o, int size, const ivec &bo, co
     }
 }
 
-void findents(int low, int high, bool notspawned, const vec &pos, const vec &radius, vector<int> &found)
+void findents(int low, int high, bool notspawned, const vec3 &pos, const vec3 &radius, vector<int> &found)
 {
-    vec invradius(1/radius.x, 1/radius.y, 1/radius.z);
-    ivec bo(vec(pos).sub(radius).sub(1)),
-         br(vec(pos).add(radius).add(1));
+    vec3 invradius(1/radius.x, 1/radius.y, 1/radius.z);
+    ivec bo(vec3(pos).sub(radius).sub(1)),
+         br(vec3(pos).add(radius).add(1));
     int diff = (bo.x^br.x) | (bo.y^br.y) | (bo.z^br.z) | octaentsize,
         scale = worldscale-1;
     if(diff&~((1<<scale)-1) || uint(bo.x|bo.y|bo.z|br.x|br.y|br.z) >= uint(worldsize))
@@ -347,7 +347,7 @@ bool noentedit()
     return !entediting;
 }
 
-bool pointinsel(const selinfo &sel, const vec &o)
+bool pointinsel(const selinfo &sel, const vec3 &o)
 {
     return(o.x <= sel.o.x+sel.s.x*sel.grid
         && o.x >= sel.o.x
@@ -485,12 +485,12 @@ void attachentities()
 #define groupeditundo(f){ makeundoent(); groupeditpure(f); }
 #define groupedit(f)    { addimplicit(groupeditundo(f)); }
 
-vec getselpos()
+vec3 getselpos()
 {
     vector<extentity *> &ents = entities::getents();
     if(entgroup.length() && ents.inrange(entgroup[0])) return ents[entgroup[0]]->o;
     if(ents.inrange(enthover)) return ents[enthover]->o;
-    return vec(sel.o);
+    return vec3(sel.o);
 }
 
 undoblock *copyundoents(undoblock *u)
@@ -534,7 +534,7 @@ void entrotate(int *cw)
     int d = dimension(sel.orient);
     int dd = (*cw<0) == dimcoord(sel.orient) ? R[d] : C[d];
     float mid = sel.s[dd]*sel.grid/2+sel.o[dd];
-    vec s(sel.o.v);
+    vec3 s(sel.o.v);
     groupeditundo(
         e.o[dd] -= (e.o[dd]-mid)*2;
         e.o.sub(s);
@@ -543,7 +543,7 @@ void entrotate(int *cw)
     );
 }
 
-void entselectionbox(const entity &e, vec &eo, vec &es)
+void entselectionbox(const entity &e, vec3 &eo, vec3 &es)
 {
     model *m = NULL;
     const char *mname = entities::entmodel(e);
@@ -571,7 +571,7 @@ void entselectionbox(const entity &e, vec &eo, vec &es)
     }
     else
     {
-        es = vec(entselradius);
+        es = vec3(entselradius);
         eo = e.o;
     }
     eo.sub(es);
@@ -581,20 +581,20 @@ void entselectionbox(const entity &e, vec &eo, vec &es)
 VAR(entselsnap, 0, 0, 1);
 VAR(entmovingshadow, 0, 1, 1);
 
-extern void boxs(int orient, vec o, const vec &s, float size);
-extern void boxs(int orient, vec o, const vec &s);
-extern void boxs3D(const vec &o, vec s, int g);
-extern bool editmoveplane(const vec &o, const vec &ray, int d, float off, vec &handle, vec &dest, bool first);
+extern void boxs(int orient, vec3 o, const vec3 &s, float size);
+extern void boxs(int orient, vec3 o, const vec3 &s);
+extern void boxs3D(const vec3 &o, vec3 s, int g);
+extern bool editmoveplane(const vec3 &o, const vec3 &ray, int d, float off, vec3 &handle, vec3 &dest, bool first);
 
 int entmoving = 0;
 
-void entdrag(const vec &ray)
+void entdrag(const vec3 &ray)
 {
     if(noentedit() || !haveselent()) return;
 
     float r = 0, c = 0;
-    static vec dest, handle;
-    vec eo, es;
+    static vec3 dest, handle;
+    vec3 eo, es;
     int d = dimension(entorient),
         dc= dimcoord(entorient);
 
@@ -627,7 +627,7 @@ void renderentring(const extentity &e, float radius, int axis)
     gle::begin(GL_LINE_LOOP);
     loopi(15)
     {
-        vec p(e.o);
+        vec3 p(e.o);
         const vec2 &sc = sincos360[i*(360/15)];
         p[axis>=2 ? 1 : 0] += radius*sc.x;
         p[axis>=1 ? 2 : 1] += radius*sc.y;
@@ -652,11 +652,11 @@ void renderentattachment(const extentity &e)
     xtraverts += gle::end();
 }
 
-void renderentarrow(const extentity &e, const vec &dir, float radius)
+void renderentarrow(const extentity &e, const vec3 &dir, float radius)
 {
     if(radius <= 0) return;
     float arrowsize = min(radius/8, 0.5f);
-    vec target = vec(dir).mul(radius).add(e.o), arrowbase = vec(dir).mul(radius - arrowsize).add(e.o), spoke;
+    vec3 target = vec3(dir).mul(radius).add(e.o), arrowbase = vec3(dir).mul(radius - arrowsize).add(e.o), spoke;
     spoke.orthogonal(dir);
     spoke.normalize();
     spoke.mul(arrowsize);
@@ -670,14 +670,14 @@ void renderentarrow(const extentity &e, const vec &dir, float radius)
 
     gle::begin(GL_TRIANGLE_FAN);
     gle::attrib(target);
-    loopi(5) gle::attrib(vec(spoke).rotate(2*M_PI*i/4.0f, dir).add(arrowbase));
+    loopi(5) gle::attrib(vec3(spoke).rotate(2*M_PI*i/4.0f, dir).add(arrowbase));
     xtraverts += gle::end();
 }
 
-void renderentcone(const extentity &e, const vec &dir, float radius, float angle)
+void renderentcone(const extentity &e, const vec3 &dir, float radius, float angle)
 {
     if(radius <= 0) return;
-    vec spot = vec(dir).mul(radius*cosf(angle*RAD)).add(e.o), spoke;
+    vec3 spot = vec3(dir).mul(radius*cosf(angle*RAD)).add(e.o), spoke;
     spoke.orthogonal(dir);
     spoke.normalize();
     spoke.mul(radius*sinf(angle*RAD));
@@ -688,16 +688,16 @@ void renderentcone(const extentity &e, const vec &dir, float radius, float angle
     loopi(8)
     {
         gle::attrib(e.o);
-        gle::attrib(vec(spoke).rotate(2*M_PI*i/8.0f, dir).add(spot));
+        gle::attrib(vec3(spoke).rotate(2*M_PI*i/8.0f, dir).add(spot));
     }
     xtraverts += gle::end();
 
     gle::begin(GL_LINE_LOOP);
-    loopi(8) gle::attrib(vec(spoke).rotate(2*M_PI*i/8.0f, dir).add(spot));
+    loopi(8) gle::attrib(vec3(spoke).rotate(2*M_PI*i/8.0f, dir).add(spot));
     xtraverts += gle::end();
 }
 
-void renderentbox(const extentity &e, const vec &center, const vec &radius, int yaw, int pitch, int roll)
+void renderentbox(const extentity &e, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll)
 {
     matrix4x3 orient;
     orient.identity();
@@ -709,8 +709,8 @@ void renderentbox(const extentity &e, const vec &center, const vec &radius, int 
 
     gle::defvertex();
 
-    vec front[4] = { vec(-radius.x, -radius.y, -radius.z), vec( radius.x, -radius.y, -radius.z), vec( radius.x, -radius.y,  radius.z), vec(-radius.x, -radius.y,  radius.z) },
-        back[4] = { vec(-radius.x, radius.y, -radius.z), vec( radius.x, radius.y, -radius.z), vec( radius.x, radius.y,  radius.z), vec(-radius.x, radius.y,  radius.z) };
+    vec3 front[4] = { vec3(-radius.x, -radius.y, -radius.z), vec3( radius.x, -radius.y, -radius.z), vec3( radius.x, -radius.y,  radius.z), vec3(-radius.x, -radius.y,  radius.z) },
+        back[4] = { vec3(-radius.x, radius.y, -radius.z), vec3( radius.x, radius.y, -radius.z), vec3( radius.x, radius.y,  radius.z), vec3(-radius.x, radius.y,  radius.z) };
     loopi(4)
     {
         front[i] = orient.transform(front[i]);
@@ -754,7 +754,7 @@ void renderentradius(extentity &e, bool color)
                 if(color) gle::colorf(0, 1, 1);
                 float radius = e.attached->attr1;
                 if(radius <= 0) break;
-                vec dir = vec(e.o).sub(e.attached->o).normalize();
+                vec3 dir = vec3(e.o).sub(e.attached->o).normalize();
                 float angle = clamp(int(e.attr1), 1, 89);
                 renderentattachment(e);
                 renderentcone(*e.attached, dir, radius, angle);
@@ -778,7 +778,7 @@ void renderentradius(extentity &e, bool color)
         {
             if(color) gle::colorf(0, 1, 1);
             entities::entradius(e, color);
-            vec dir;
+            vec3 dir;
             vecfromyawpitch(e.attr2, e.attr3, 1, 0, dir);
             renderentarrow(e, dir, 4);
             break;
@@ -788,7 +788,7 @@ void renderentradius(extentity &e, bool color)
         {
             if(color) gle::colorf(0, 1, 1);
             entities::entradius(e, color);
-            vec dir;
+            vec3 dir;
             vecfromyawpitch(e.attr1, 0, 1, 0, dir);
             renderentarrow(e, dir, 4);
             break;
@@ -799,7 +799,7 @@ void renderentradius(extentity &e, bool color)
             if(color) gle::colorf(0, 1, 1);
             DecalSlot &s = lookupdecalslot(e.attr1, false);
             float size = max(float(e.attr5), 1.0f);
-            renderentbox(e, vec(0, s.depth * size/2, 0), vec(size/2, s.depth * size/2, size/2), e.attr2, e.attr3, e.attr4);
+            renderentbox(e, vec3(0, s.depth * size/2, 0), vec3(size/2, s.depth * size/2, size/2), e.attr2, e.attr3, e.attr4);
             break;
         }
 
@@ -813,7 +813,7 @@ void renderentradius(extentity &e, bool color)
     }
 }
 
-static void renderentbox(const vec &eo, vec es)
+static void renderentbox(const vec3 &eo, vec3 es)
 {
     es.add(eo);
 
@@ -836,10 +836,10 @@ static void renderentbox(const vec &eo, vec es)
     gle::attrib(eo.x, es.y, eo.z); gle::attrib(eo.x, es.y, es.z);
 }
 
-void renderentselection(const vec &o, const vec &ray, bool entmoving)
+void renderentselection(const vec3 &o, const vec3 &ray, bool entmoving)
 {
     if(noentedit() || (entgroup.empty() && enthover < 0)) return;
-    vec eo, es;
+    vec3 eo, es;
 
     if(entgroup.length())
     {
@@ -860,7 +860,7 @@ void renderentselection(const vec &o, const vec &ray, bool entmoving)
         boxs3D(eo, es, 1);
         if(entmoving && entmovingshadow==1)
         {
-            vec a, b;
+            vec3 a, b;
             gle::colorub(20, 20, 20);
             (a = eo).x = eo.x - fmod(eo.x, worldsize); (b = es).x = a.x + worldsize; boxs3D(a, b, 1);
             (a = eo).y = eo.y - fmod(eo.y, worldsize); (b = es).y = a.x + worldsize; boxs3D(a, b, 1);
@@ -959,7 +959,7 @@ void entautoview(int *dir)
 {
     if(!haveselent()) return;
     static int s = 0;
-    vec v(player->o);
+    vec3 v(player->o);
     v.sub(worldpos);
     v.normalize();
     v.mul(entautoviewdist);
@@ -996,14 +996,14 @@ VAR(entdrop, 0, 2, 3);
 
 bool dropentity(entity &e, int drop = -1)
 {
-    vec radius(4.0f, 4.0f, 4.0f);
+    vec3 radius(4.0f, 4.0f, 4.0f);
     if(drop<0) drop = entdrop;
     if(e.type == ET_MAPMODEL)
     {
         model *m = loadmapmodel(e.attr1);
         if(m)
         {
-            vec center;
+            vec3 center;
             mmboundbox(e, m, center, radius);
             radius.x += fabs(center.x);
             radius.y += fabs(center.y);
@@ -1024,7 +1024,7 @@ bool dropentity(entity &e, int drop = -1)
             cx = (sel.cx ? 1 : -1) * sel.grid / 2;
             cy = (sel.cy ? 1 : -1) * sel.grid / 2;
         }
-        e.o = vec(sel.o);
+        e.o = vec3(sel.o);
         int d = dimension(sel.orient), dc = dimcoord(sel.orient);
         e.o[R[d]] += sel.grid / 2 + cx;
         e.o[C[d]] += sel.grid / 2 + cy;
@@ -1056,7 +1056,7 @@ COMMAND(attachent, "");
 
 static int keepents = 0;
 
-extentity *newentity(bool local, const vec &o, int type, int v1, int v2, int v3, int v4, int v5, int &idx, bool fix = true)
+extentity *newentity(bool local, const vec3 &o, int type, int v1, int v2, int v3, int v4, int v5, int &idx, bool fix = true)
 {
     vector<extentity *> &ents = entities::getents();
     if(local)
@@ -1135,7 +1135,7 @@ void entcopy()
     entcopygrid = sel.grid;
     entcopybuf.shrink(0);
     addimplicit({
-        loopv(entgroup) entfocus(entgroup[i], entcopybuf.add(e).o.sub(vec(sel.o)));
+        loopv(entgroup) entfocus(entgroup[i], entcopybuf.add(e).o.sub(vec3(sel.o)));
     });
 }
 
@@ -1147,7 +1147,7 @@ void entpaste()
     loopv(entcopybuf)
     {
         const entity &c = entcopybuf[i];
-        vec o = vec(c.o).mul(m).add(vec(sel.o));
+        vec3 o = vec3(c.o).mul(m).add(vec3(sel.o));
         int idx;
         extentity *e = newentity(true, o, ET_EMPTY, c.attr1, c.attr2, c.attr3, c.attr4, c.attr5, idx);
         if(!e) continue;
@@ -1495,7 +1495,7 @@ void shrinkmap()
 
     ivec offset(octant, ivec(0, 0, 0), worldsize);
     vector<extentity *> &ents = entities::getents();
-    loopv(ents) ents[i]->o.sub(vec(offset));
+    loopv(ents) ents[i]->o.sub(vec3(offset));
 
     shrinkblendmap(octant);
 
@@ -1517,7 +1517,7 @@ void mapname()
 
 COMMAND(mapname, "");
 
-void mpeditent(int i, const vec &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local)
+void mpeditent(int i, const vec3 &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local)
 {
     if(i < 0 || i >= MAXENTS) return;
     vector<extentity *> &ents = entities::getents();

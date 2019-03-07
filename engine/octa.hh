@@ -70,10 +70,10 @@ static const surfaceinfo bottomsurface = {0, LAYER_BOTTOM};
 
 struct grasstri
 {
-    vec v[4];
+    vec3 v[4];
     int numv;
     plane surface;
-    vec center;
+    vec3 center;
     float radius;
     float minz, maxz;
     ushort texture, blend;
@@ -155,7 +155,7 @@ struct cube;
 
 struct clipplanes
 {
-    vec o, r, v[8];
+    vec3 o, r, v[8];
     plane p[12];
     uchar side[12];
     uchar size, visible;

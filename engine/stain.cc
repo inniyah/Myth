@@ -2,7 +2,7 @@
 
 struct stainvert
 {
-    vec pos;
+    vec3 pos;
     bvec4 color;
     vec2 tc;
 };
@@ -415,11 +415,11 @@ struct stainrenderer
     }
 
     ivec bbmin, bbmax;
-    vec staincenter, stainnormal, staintangent, stainbitangent;
+    vec3 staincenter, stainnormal, staintangent, stainbitangent;
     float stainradius, stainu, stainv;
     bvec4 staincolor;
 
-    void addstain(const vec &center, const vec &dir, float radius, const bvec &color, int info)
+    void addstain(const vec3 &center, const vec3 &dir, float radius, const bvec &color, int info)
     {
         if(dir.iszero()) return;
 
@@ -433,7 +433,7 @@ struct stainrenderer
 #if 0
         staintangent.orthogonal(dir);
 #else
-        staintangent = vec(dir.z, -dir.x, dir.y);
+        staintangent = vec3(dir.z, -dir.x, dir.y);
         staintangent.project(dir);
 #endif
         if(flags&SF_ROTATE) staintangent.rotate(sincos360[rnd(360)], dir);
@@ -471,12 +471,12 @@ struct stainrenderer
 
     void gentris(cube &cu, int orient, const ivec &o, int size, materialsurface *mat = NULL, int vismask = 0)
     {
-        vec pos[MAXFACEVERTS+4];
+        vec3 pos[MAXFACEVERTS+4];
         int numverts = 0, numplanes = 1;
-        vec planes[2];
+        vec3 planes[2];
         if(mat)
         {
-            planes[0] = vec(0, 0, 0);
+            planes[0] = vec3(0, 0, 0);
             switch(orient)
             {
             #define GENFACEORIENT(orient, v0, v1, v2, v3) \
@@ -485,7 +485,7 @@ struct stainrenderer
                     v0 v1 v2 v3 \
                     break;
             #define GENFACEVERT(orient, vert, x,y,z, xv,yv,zv) \
-                    pos[numverts++] = vec(x xv, y yv, z zv);
+                    pos[numverts++] = vec3(x xv, y yv, z zv);
                 GENFACEVERTS(o.x, o.x, o.y, o.y, o.z, o.z, , + mat->csize, , + mat->rsize, + 0.1f, - 0.1f);
             #undef GENFACEORIENT
             #undef GENFACEVERT
@@ -496,7 +496,7 @@ struct stainrenderer
         {
             vertinfo *verts = cu.ext->verts() + cu.ext->surfaces[orient].verts;
             ivec vo = ivec(o).mask(~0xFFF).shl(3);
-            loopj(numverts) pos[j] = vec(verts[j].getxyz().add(vo)).mul(1/8.0f);
+            loopj(numverts) pos[j] = vec3(verts[j].getxyz().add(vo)).mul(1/8.0f);
             planes[0].cross(pos[0], pos[1], pos[2]).normalize();
             if(numverts >= 4 && !(cu.merged&(1<<orient)) && !flataxisface(cu, orient) && faceconvexity(verts, numverts, size))
             {
@@ -510,11 +510,11 @@ struct stainrenderer
             ivec v[4];
             genfaceverts(cu, orient, v);
             int vis = 3, convex = faceconvexity(v, vis), order = convex < 0 ? 1 : 0;
-            vec vo(o);
-            pos[numverts++] = vec(v[order]).mul(size/8.0f).add(vo);
-            if(vis&1) pos[numverts++] = vec(v[order+1]).mul(size/8.0f).add(vo);
-            pos[numverts++] = vec(v[order+2]).mul(size/8.0f).add(vo);
-            if(vis&2) pos[numverts++] = vec(v[(order+3)&3]).mul(size/8.0f).add(vo);
+            vec3 vo(o);
+            pos[numverts++] = vec3(v[order]).mul(size/8.0f).add(vo);
+            if(vis&1) pos[numverts++] = vec3(v[order+1]).mul(size/8.0f).add(vo);
+            pos[numverts++] = vec3(v[order+2]).mul(size/8.0f).add(vo);
+            if(vis&2) pos[numverts++] = vec3(v[(order+3)&3]).mul(size/8.0f).add(vo);
             planes[0].cross(pos[0], pos[1], pos[2]).normalize();
             if(convex) { planes[1].cross(pos[0], pos[2], pos[3]).normalize(); numplanes++; }
         }
@@ -523,28 +523,28 @@ struct stainrenderer
         stainbuffer &buf = verts[mat || cu.material&MAT_ALPHA ? STAINBUF_TRANSPARENT : STAINBUF_OPAQUE];
         loopl(numplanes)
         {
-            const vec &n = planes[l];
+            const vec3 &n = planes[l];
             float facing = n.dot(stainnormal);
             if(facing <= 0) continue;
-            vec p = vec(pos[0]).sub(staincenter);
+            vec3 p = vec3(pos[0]).sub(staincenter);
 #if 0
             // intersect ray along stain normal with plane
             float dist = n.dot(p) / facing;
             if(fabs(dist) > stainradius) continue;
-            vec pcenter = vec(stainnormal).mul(dist).add(staincenter);
+            vec3 pcenter = vec3(stainnormal).mul(dist).add(staincenter);
 #else
             // travel back along plane normal from the stain center
             float dist = n.dot(p);
             if(fabs(dist) > stainradius) continue;
-            vec pcenter = vec(n).mul(dist).add(staincenter);
+            vec3 pcenter = vec3(n).mul(dist).add(staincenter);
 #endif
-            vec ft, fb;
+            vec3 ft, fb;
             ft.orthogonal(n);
             ft.normalize();
             fb.cross(ft, n);
-            vec pt = vec(ft).mul(ft.dot(staintangent)).add(vec(fb).mul(fb.dot(staintangent))).normalize(),
-                pb = vec(ft).mul(ft.dot(stainbitangent)).add(vec(fb).mul(fb.dot(stainbitangent))).project(pt).normalize();
-            vec v1[MAXFACEVERTS+4], v2[MAXFACEVERTS+4];
+            vec3 pt = vec3(ft).mul(ft.dot(staintangent)).add(vec3(fb).mul(fb.dot(staintangent))).normalize(),
+                pb = vec3(ft).mul(ft.dot(stainbitangent)).add(vec3(fb).mul(fb.dot(stainbitangent))).project(pt).normalize();
+            vec3 v1[MAXFACEVERTS+4], v2[MAXFACEVERTS+4];
             float ptc = pt.dot(pcenter), pbc = pb.dot(pcenter);
             int numv;
             if(numplanes >= 2)
@@ -630,31 +630,31 @@ struct stainrenderer
         }
     }
 
-    void genmmtri(const vec v[3])
+    void genmmtri(const vec3 v[3])
     {
-        vec n;
+        vec3 n;
         n.cross(v[0], v[1], v[2]).normalize();
         float facing = n.dot(stainnormal);
         if(facing <= 0) return;
 
-        vec p = vec(v[0]).sub(staincenter);
+        vec3 p = vec3(v[0]).sub(staincenter);
 #if 0
         float dist = n.dot(p) / facing;
         if(fabs(dist) > stainradius) return;
-        vec pcenter = vec(stainnormal).mul(dist).add(staincenter);
+        vec3 pcenter = vec3(stainnormal).mul(dist).add(staincenter);
 #else
         float dist = n.dot(p);
         if(fabs(dist) > stainradius) return;
-        vec pcenter = vec(n).mul(dist).add(staincenter);
+        vec3 pcenter = vec3(n).mul(dist).add(staincenter);
 #endif
 
-        vec ft, fb;
+        vec3 ft, fb;
         ft.orthogonal(n);
         ft.normalize();
         fb.cross(ft, n);
-        vec pt = vec(ft).mul(ft.dot(staintangent)).add(vec(fb).mul(fb.dot(staintangent))).normalize(),
-            pb = vec(ft).mul(ft.dot(stainbitangent)).add(vec(fb).mul(fb.dot(stainbitangent))).project(pt).normalize();
-        vec v1[3+4], v2[3+4];
+        vec3 pt = vec3(ft).mul(ft.dot(staintangent)).add(vec3(fb).mul(fb.dot(staintangent))).normalize(),
+            pb = vec3(ft).mul(ft.dot(stainbitangent)).add(vec3(fb).mul(fb.dot(stainbitangent))).project(pt).normalize();
+        vec3 v1[3+4], v2[3+4];
         float ptc = pt.dot(pcenter), pbc = pb.dot(pcenter);
         int numv = polyclip(v, 3, pt, ptc - stainradius, ptc + stainradius, v1);
         if(numv<3) return;
@@ -692,10 +692,10 @@ struct stainrenderer
             model *m = loadmapmodel(e.attr1);
             if(!m) continue;
 
-            vec center, radius;
+            vec3 center, radius;
             float rejectradius = m->collisionbox(center, radius), scale = e.attr5 > 0 ? e.attr5/100.0f : 1;
             center.mul(scale);
-            if(staincenter.reject(vec(e.o).add(center), stainradius + rejectradius*scale)) continue;
+            if(staincenter.reject(vec3(e.o).add(center), stainradius + rejectradius*scale)) continue;
 
             if(m->animated() || (!m->bih && !m->setBIH())) continue; 
 
@@ -805,14 +805,14 @@ void cleanupstains()
 
 VARP(maxstaindistance, 1, 512, 10000);
 
-void addstain(int type, const vec &center, const vec &surface, float radius, const bvec &color, int info)
+void addstain(int type, const vec3 &center, const vec3 &surface, float radius, const bvec &color, int info)
 {
     if(!showstains || type<0 || (size_t)type>=sizeof(stains)/sizeof(stains[0]) || center.dist(camera1->o) - radius > maxstaindistance) return;
     stainrenderer &d = stains[type];
     d.addstain(center, surface, radius, color, info);
 }
 
-void genstainmmtri(stainrenderer *s, const vec v[3])
+void genstainmmtri(stainrenderer *s, const vec3 v[3])
 {
     s->genmmtri(v);
 }

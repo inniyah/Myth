@@ -176,7 +176,7 @@ namespace game
         float k = 1.0f - float(lastmillis - d->smoothmillis)/smoothmove;
         if(k>0)
         {
-            d->o.add(vec(d->deltapos).mul(k));
+            d->o.add(vec3(d->deltapos).mul(k));
             d->yaw += d->deltayaw*k;
             if(d->yaw<0) d->yaw += 360;
             else if(d->yaw>=360) d->yaw -= 360;
@@ -593,7 +593,7 @@ namespace game
         else if(floorlevel<0) { if(d==player1 || d->type!=ENT_PLAYER || ((gameent *)d)->ai) msgsound(S_LAND, d); }
     }
 
-    void dynentcollide(physent *d, physent *o, const vec &dir)
+    void dynentcollide(physent *d, physent *o, const vec3 &dir)
     {
     }
 
@@ -776,7 +776,7 @@ namespace game
         }
     }
 
-    int selectcrosshair(vec &col)
+    int selectcrosshair(vec3 &col)
     {
         gameent *d = hudplayer();
         if(d->state==CS_SPECTATOR || d->state==CS_DEAD || UI::uivisible("scoreboard")) return -1;
@@ -792,7 +792,7 @@ namespace game
             {
                 crosshair = 1;
 
-                col = vec::hexcolor(teamtextcolor[d->team]);
+                col = vec3::hexcolor(teamtextcolor[d->team]);
             }
         }
 

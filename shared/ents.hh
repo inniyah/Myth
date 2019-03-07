@@ -7,7 +7,7 @@ enum { ET_EMPTY=0, ET_LIGHT, ET_MAPMODEL, ET_PLAYERSTART, ET_ENVMAP, ET_PARTICLE
 
 struct entity                                   // persistent map entity
 {
-    vec o;                                      // position
+    vec3 o;                                      // position
     short attr1, attr2, attr3, attr4, attr5;
     uchar type;                                 // type is one of the above
     uchar reserved;
@@ -57,14 +57,14 @@ enum { COLLIDE_NONE = 0, COLLIDE_ELLIPSE, COLLIDE_OBB, COLLIDE_TRI };
 
 struct physent                                  // base entity type, can be affected by physics
 {
-    vec o, vel, falling;                        // origin, velocity
-    vec deltapos, newpos;                       // movement interpolation
+    vec3 o, vel, falling;                        // origin, velocity
+    vec3 deltapos, newpos;                       // movement interpolation
     float yaw, pitch, roll;
     float maxspeed;                             // cubes per second, 100 for player
     int timeinair;
     float radius, eyeheight, maxheight, aboveeye; // bounding box size
     float xradius, yradius, zmargin;
-    vec floor;                                  // the normal of floor the dynent is on
+    vec3 floor;                                  // the normal of floor the dynent is on
 
     int inwater;
     bool jumping;
@@ -87,7 +87,7 @@ struct physent                                  // base entity type, can be affe
     void resetinterp()
     {
         newpos = o;
-        deltapos = vec(0, 0, 0);
+        deltapos = vec3(0, 0, 0);
     }
 
     void reset()
@@ -98,12 +98,12 @@ struct physent                                  // base entity type, can be affe
         jumping = false;
         strafe = move = crouching = 0;
         physstate = PHYS_FALL;
-        vel = falling = vec(0, 0, 0);
-        floor = vec(0, 0, 1);
+        vel = falling = vec3(0, 0, 0);
+        floor = vec3(0, 0, 1);
     }
 
-    vec feetpos(float offset = 0) const { return vec(o).addz(offset - eyeheight); }
-    vec headpos(float offset = 0) const { return vec(o).addz(offset); }
+    vec3 feetpos(float offset = 0) const { return vec3(o).addz(offset - eyeheight); }
+    vec3 headpos(float offset = 0) const { return vec3(o).addz(offset); }
 
     bool crouched() const { return fabs(eyeheight - maxheight*CROUCHHEIGHT) < 1e-4f; }
 };
@@ -196,7 +196,7 @@ struct dynent : physent                         // animated characters, or chara
         loopi(MAXANIMPARTS) animinterp[i].reset();
     }
 
-    vec abovehead() { return vec(o).addz(aboveeye+4); }
+    vec3 abovehead() { return vec3(o).addz(aboveeye+4); }
 };
 
 

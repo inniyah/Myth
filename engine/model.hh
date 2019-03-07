@@ -6,19 +6,19 @@ struct model
     float spinyaw, spinpitch, spinroll, offsetyaw, offsetpitch, offsetroll;
     bool shadow, alphashadow, depthoffset;
     float scale;
-    vec translate;
+    vec3 translate;
     BIH *bih;
-    vec bbcenter, bbradius, bbextend, collidecenter, collideradius;
+    vec3 bbcenter, bbradius, bbextend, collidecenter, collideradius;
     float rejectradius, eyeheight, collidexyradius, collideheight;
     char *collidemodel;
     int collide, batch;
 
     model(const char *name) : name(name ? newstring(name) : NULL), spinyaw(0), spinpitch(0), spinroll(0), offsetyaw(0), offsetpitch(0), offsetroll(0), shadow(true), alphashadow(true), depthoffset(false), scale(1.0f), translate(0, 0, 0), bih(0), bbcenter(0, 0, 0), bbradius(-1, -1, -1), bbextend(0, 0, 0), collidecenter(0, 0, 0), collideradius(-1, -1, -1), rejectradius(-1), eyeheight(0.9f), collidexyradius(0), collideheight(0), collidemodel(NULL), collide(COLLIDE_OBB), batch(-1) {}
     virtual ~model() { DELETEA(name); DELETEP(bih); }
-    virtual void calcbb(vec &center, vec &radius) = 0;
+    virtual void calcbb(vec3 &center, vec3 &radius) = 0;
     virtual void calctransform(matrix4x3 &m) = 0;
-    virtual int intersect(int anim, int basetime, int basetime2, const vec &pos, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec &o, const vec &ray, float &dist, int mode) = 0;
-    virtual void render(int anim, int basetime, int basetime2, const vec &o, float yaw, float pitch, float roll, dynent *d, modelattach *a = NULL, float size = 1, const vec4 &color = vec4(1, 1, 1, 1)) = 0;
+    virtual int intersect(int anim, int basetime, int basetime2, const vec3 &pos, float yaw, float pitch, float roll, dynent *d, modelattach *a, float size, const vec3 &o, const vec3 &ray, float &dist, int mode) = 0;
+    virtual void render(int anim, int basetime, int basetime2, const vec3 &o, float yaw, float pitch, float roll, dynent *d, modelattach *a = NULL, float size = 1, const vec4 &color = vec4(1, 1, 1, 1)) = 0;
     virtual bool load() = 0;
     virtual int type() const = 0;
     virtual BIH *setBIH() { return NULL; }
@@ -36,7 +36,7 @@ struct model
     virtual void setalphatest(float alpha) {}
     virtual void setfullbright(float fullbright) {}
     virtual void setcullface(int cullface) {}
-    virtual void setcolor(const vec &color) {}
+    virtual void setcolor(const vec3 &color) {}
 
     virtual void genshadowmesh(vector<triangle> &tris, const matrix4x3 &orient) {}
     virtual void preloadBIH() { if(!bih) setBIH(); }
@@ -47,7 +47,7 @@ struct model
     virtual void startrender() {}
     virtual void endrender() {}
 
-    void boundbox(vec &center, vec &radius)
+    void boundbox(vec3 &center, vec3 &radius)
     {
         if(bbradius.x < 0)
         {
@@ -58,7 +58,7 @@ struct model
         radius = bbradius;
     }
 
-    float collisionbox(vec &center, vec &radius)
+    float collisionbox(vec3 &center, vec3 &radius)
     {
         if(collideradius.x < 0)
         {
@@ -79,16 +79,16 @@ struct model
         return rejectradius;
     }
 
-    float boundsphere(vec &center)
+    float boundsphere(vec3 &center)
     {
-        vec radius;
+        vec3 radius;
         boundbox(center, radius);
         return radius.magnitude();
     }
 
     float above()
     {
-        vec center, radius;
+        vec3 center, radius;
         boundbox(center, radius);
         return center.z+radius.z;
     }

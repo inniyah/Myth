@@ -5,7 +5,7 @@ namespace sphere
 {
     struct vert
     {
-        vec pos;
+        vec3 pos;
         ushort s, t;
     } *verts = NULL;
     GLushort *indices = NULL;
@@ -24,7 +24,7 @@ namespace sphere
             {
                 float theta = j==slices ? 0 : 2*M_PI*s;
                 vert &v = verts[i*(slices+1) + j];
-                v.pos = vec(sin(theta)*sinrho, cos(theta)*sinrho, -cosrho);
+                v.pos = vec3(sin(theta)*sinrho, cos(theta)*sinrho, -cosrho);
                 v.s = ushort(s*0xFFFF);
                 v.t = ushort(t*0xFFFF);
                 s += ds;
@@ -128,13 +128,13 @@ struct fireballrenderer : listrenderer
         sphere::cleanup();
     }
 
-    void seedemitter(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int gravity)
+    void seedemitter(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int gravity)
     {
         pe.maxfade = max(pe.maxfade, fade);
         pe.extendbb(o, (size+1+pe.ent->attr2)*WOBBLE);
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts)
+    void renderpart(listparticle *p, const vec3 &o, const vec3 &d, int blend, int ts)
     {
         float pmax = p->val,
               size = p->fade ? float(ts)/p->fade : 1,
@@ -142,7 +142,7 @@ struct fireballrenderer : listrenderer
 
         if(isfoggedsphere(psize*WOBBLE, p->o)) return;
 
-        vec dir = vec(o).sub(camera1->o), s, t;
+        vec3 dir = vec3(o).sub(camera1->o), s, t;
         float dist = dir.magnitude();
         bool inside = dist <= psize*WOBBLE;
         if(inside)
@@ -156,11 +156,11 @@ struct fireballrenderer : listrenderer
             dir.x /= mag2;
             dir.y /= mag2;
             dir.z /= dist;
-            s = vec(dir.y, -dir.x, 0);
-            t = vec(dir.x*dir.z, dir.y*dir.z, -mag2/dist);
+            s = vec3(dir.y, -dir.x, 0);
+            t = vec3(dir.x*dir.z, dir.y*dir.z, -mag2/dist);
         }
 
-        matrix3 rot(lastmillis/1000.0f*143*RAD, vec(1/SQRT3, 1/SQRT3, 1/SQRT3));
+        matrix3 rot(lastmillis/1000.0f*143*RAD, vec3(1/SQRT3, 1/SQRT3, 1/SQRT3));
         LOCALPARAM(texgenS, rot.transposedtransform(s));
         LOCALPARAM(texgenT, rot.transposedtransform(t));
 
@@ -180,7 +180,7 @@ struct fireballrenderer : listrenderer
             LOCALPARAMF(softparams, 0, -1, inside ? blend/(2*255.0f) : 0);
         }
 
-        vec color = p->color.tocolor().mul(ldrscale);
+        vec3 color = p->color.tocolor().mul(ldrscale);
         float alpha = blend/255.0f;
 
         loopi(inside ? 2 : 1)

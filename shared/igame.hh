@@ -53,10 +53,10 @@ namespace game
     extern void updateworld();
     extern void initclient();
     extern void physicstrigger(physent *d, bool local, int floorlevel, int waterlevel, int material = 0);
-    extern void bounced(physent *d, const vec &surface);
+    extern void bounced(physent *d, const vec3 &surface);
     extern void edittrigger(const selinfo &sel, int op, int arg1 = 0, int arg2 = 0, int arg3 = 0, const VSlot *vs = NULL);
     extern void vartrigger(ident *id);
-    extern void dynentcollide(physent *d, physent *o, const vec &dir);
+    extern void dynentcollide(physent *d, physent *o, const vec3 &dir);
     extern const char *getclientmap();
     extern const char *getmapinfo();
     extern const char *getscreenshotinfo();
@@ -81,13 +81,13 @@ namespace game
     extern void readgamedata(vector<char> &extras);
     extern float clipconsole(float w, float h);
     extern const char *defaultcrosshair(int index);
-    extern int selectcrosshair(vec &col);
+    extern int selectcrosshair(vec3 &col);
     extern void setupcamera();
     extern bool detachcamera();
     extern bool collidecamera();
     extern void adddynlights();
-    extern void particletrack(physent *owner, vec &o, vec &d);
-    extern void dynlighttrack(physent *owner, vec &o, vec &hud);
+    extern void particletrack(physent *owner, vec3 &o, vec3 &d);
+    extern void dynlighttrack(physent *owner, vec3 &o, vec3 &hud);
     extern bool needminimap();
 }
 

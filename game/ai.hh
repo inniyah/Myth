@@ -23,14 +23,14 @@ namespace ai
 
     struct waypoint
     {
-        vec o;
+        vec3 o;
         float curscore, estscore;
         int weight;
         ushort route, prev;
         ushort links[MAXWAYPOINTLINKS];
 
         waypoint() {}
-        waypoint(const vec &o, int weight = 0) : o(o), weight(weight), route(0) { memset(links, 0, sizeof(links)); }
+        waypoint(const vec3 &o, int weight = 0) : o(o), weight(weight), route(0) { memset(links, 0, sizeof(links)); }
 
         int score() const { return int(curscore) + int(estscore); }
 
@@ -50,9 +50,9 @@ namespace ai
     }
 
     extern int showwaypoints, dropwaypoints;
-    extern int closestwaypoint(const vec &pos, float mindist, bool links, gameent *d = NULL);
-    extern void findwaypointswithin(const vec &pos, float mindist, float maxdist, vector<int> &results);
-    extern void inferwaypoints(gameent *d, const vec &o, const vec &v, float mindist = ai::CLOSEDIST);
+    extern int closestwaypoint(const vec3 &pos, float mindist, bool links, gameent *d = NULL);
+    extern void findwaypointswithin(const vec3 &pos, float mindist, float maxdist, vector<int> &results);
+    extern void inferwaypoints(gameent *d, const vec3 &o, const vec3 &v, float mindist = ai::CLOSEDIST);
 
     struct avoidset
     {
@@ -97,7 +97,7 @@ namespace ai
             }
         }
 
-        void avoidnear(void *owner, float above, const vec &pos, float limit);
+        void avoidnear(void *owner, float above, const vec3 &pos, float limit);
 
         #define loopavoid(v, d, body) \
             if(!(v).obstacles.empty()) \
@@ -125,7 +125,7 @@ namespace ai
             return false;
         }
 
-        int remap(gameent *d, int n, vec &pos, bool retry = false);
+        int remap(gameent *d, int n, vec3 &pos, bool retry = false);
     };
 
     extern bool route(gameent *d, int node, int goal, vector<int> &route, const avoidset &obstacles, int retries = 0);
@@ -186,7 +186,7 @@ namespace ai
     {
         vector<aistate> state;
         vector<int> route;
-        vec target, spot;
+        vec3 target, spot;
         int enemy, enemyseen, enemymillis, weappref, prevnodes[NUMPREVNODES], targnode, targlast, targtime, targseq,
             lastrun, lasthunt, lastaction, lastcheck, jumpseed, jumprand, blocktime, huntseq, blockseq, lastaimrnd;
         float targyaw, targpitch, views[3], aimrnd[3];
@@ -203,7 +203,7 @@ namespace ai
         void clearsetup()
         {
             weappref = GUN_RAIL;
-            spot = target = vec(0, 0, 0);
+            spot = target = vec3(0, 0, 0);
             lastaction = lasthunt = lastcheck = enemyseen = enemymillis = blocktime = huntseq = blockseq = targtime = targseq = lastaimrnd = 0;
             lastrun = jumpseed = lastmillis;
             jumprand = lastmillis+5000;
@@ -281,13 +281,13 @@ namespace ai
     };
 
     extern avoidset obstacles;
-    extern vec aitarget;
+    extern vec3 aitarget;
 
     extern float viewdist(int x = 101);
     extern float viewfieldx(int x = 101);
     extern float viewfieldy(int x = 101);
     extern bool targetable(gameent *d, gameent *e);
-    extern bool cansee(gameent *d, vec &x, vec &y, vec &targ = aitarget);
+    extern bool cansee(gameent *d, vec3 &x, vec3 &y, vec3 &targ = aitarget);
 
     extern void init(gameent *d, int at, int on, int sk, int bn, int pm, int col, const char *name, int team);
     extern void update();
@@ -297,12 +297,12 @@ namespace ai
     extern bool badhealth(gameent *d);
     extern bool checkothers(vector<int> &targets, gameent *d = NULL, int state = -1, int targtype = -1, int target = -1, bool teams = false, int *members = NULL);
     extern bool makeroute(gameent *d, aistate &b, int node, bool changed = true, int retries = 0);
-    extern bool makeroute(gameent *d, aistate &b, const vec &pos, bool changed = true, int retries = 0);
-    extern bool randomnode(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX);
+    extern bool makeroute(gameent *d, aistate &b, const vec3 &pos, bool changed = true, int retries = 0);
+    extern bool randomnode(gameent *d, aistate &b, const vec3 &pos, float guard = SIGHTMIN, float wander = SIGHTMAX);
     extern bool randomnode(gameent *d, aistate &b, float guard = SIGHTMIN, float wander = SIGHTMAX);
     extern bool violence(gameent *d, aistate &b, gameent *e, int pursue = 0);
-    extern bool patrol(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1, bool retry = false);
-    extern bool defend(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1);
+    extern bool patrol(gameent *d, aistate &b, const vec3 &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1, bool retry = false);
+    extern bool defend(gameent *d, aistate &b, const vec3 &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1);
     extern void assist(gameent *d, aistate &b, vector<interest> &interests, bool all = false, bool force = false);
     extern bool parseinterests(gameent *d, aistate &b, vector<interest> &interests, bool override = false, bool ignore = false);
 

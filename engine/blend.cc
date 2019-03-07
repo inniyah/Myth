@@ -183,7 +183,7 @@ static uchar lookupblendmap(int x, int y, BlendMapBranch *bm, int bmscale)
     }
 }
 
-uchar lookupblendmap(BlendMapCache *cache, const vec &pos)
+uchar lookupblendmap(BlendMapCache *cache, const vec3 &pos)
 {
     if(cache->node.type==BM_SOLID) return cache->node.solid->val;
 

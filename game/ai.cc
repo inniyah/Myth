@@ -8,7 +8,7 @@ namespace ai
 
     avoidset obstacles;
     int updatemillis = 0, iteration = 0, itermillis = 0, forcegun = -1;
-    vec aitarget(0, 0, 0);
+    vec3 aitarget(0, 0, 0);
 
     VAR(aidebug, 0, 0, 6);
     VAR(aiforcegun, -1, -1, NUMGUNS-1);
@@ -60,7 +60,7 @@ namespace ai
         return e->state == CS_ALIVE && !isteam(d->team, e->team);
     }
 
-    bool getsight(vec &o, float yaw, float pitch, vec &q, vec &v, float mdist, float fovx, float fovy)
+    bool getsight(vec3 &o, float yaw, float pitch, vec3 &q, vec3 &v, float mdist, float fovx, float fovy)
     {
         float dist = o.dist(q);
 
@@ -73,7 +73,7 @@ namespace ai
         return false;
     }
 
-    bool cansee(gameent *d, vec &x, vec &y, vec &targ)
+    bool cansee(gameent *d, vec3 &x, vec3 &y, vec3 &targ)
     {
         aistate &b = d->ai->getstate();
         if(canmove(d) && b.type != AI_S_WAIT)
@@ -106,9 +106,9 @@ namespace ai
         return false;
     }
 
-    vec getaimpos(gameent *d, int atk, gameent *e)
+    vec3 getaimpos(gameent *d, int atk, gameent *e)
     {
-        vec o = e->o;
+        vec3 o = e->o;
         if(atk == ATK_PULSE_SHOOT) o.z += (e->aboveeye*0.2f)-(0.8f*d->eyeheight);
         else o.z += (e->aboveeye-e->eyeheight)*0.5f;
         if(d->skill <= 100)
@@ -244,13 +244,13 @@ namespace ai
         return false;
     }
 
-    bool makeroute(gameent *d, aistate &b, const vec &pos, bool changed, int retries)
+    bool makeroute(gameent *d, aistate &b, const vec3 &pos, bool changed, int retries)
     {
         int node = closestwaypoint(pos, SIGHTMIN, true);
         return makeroute(d, b, node, changed, retries);
     }
 
-    bool randomnode(gameent *d, aistate &b, const vec &pos, float guard, float wander)
+    bool randomnode(gameent *d, aistate &b, const vec3 &pos, float guard, float wander)
     {
         static vector<int> candidates;
         candidates.setsize(0);
@@ -275,17 +275,17 @@ namespace ai
         return false;
     }
 
-    bool enemy(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, int pursue = 0)
+    bool enemy(gameent *d, aistate &b, const vec3 &pos, float guard = SIGHTMIN, int pursue = 0)
     {
         gameent *t = NULL;
-        vec dp = d->headpos();
+        vec3 dp = d->headpos();
         float mindist = guard*guard, bestdist = 1e16f;
         int atk = guns[d->gunselect].attacks[ACT_SHOOT];
         loopv(players)
         {
             gameent *e = players[i];
             if(e == d || !targetable(d, e)) continue;
-            vec ep = getaimpos(d, atk, e);
+            vec3 ep = getaimpos(d, atk, e);
             float dist = ep.squaredist(dp);
             if(dist < bestdist && (cansee(d, dp, ep) || dist <= mindist))
             {
@@ -297,9 +297,9 @@ namespace ai
         return false;
     }
 
-    bool patrol(gameent *d, aistate &b, const vec &pos, float guard, float wander, int walk, bool retry)
+    bool patrol(gameent *d, aistate &b, const vec3 &pos, float guard, float wander, int walk, bool retry)
     {
-        vec feet = d->feetpos();
+        vec3 feet = d->feetpos();
         if(walk == 2 || b.override || (walk && feet.squaredist(pos) <= guard*guard) || !makeroute(d, b, pos))
         { // run away and back to keep ourselves busy
             if(!b.override && randomnode(d, b, pos, guard, wander))
@@ -322,7 +322,7 @@ namespace ai
         return true;
     }
 
-    bool defend(gameent *d, aistate &b, const vec &pos, float guard, float wander, int walk)
+    bool defend(gameent *d, aistate &b, const vec3 &pos, float guard, float wander, int walk)
     {
         bool hasenemy = enemy(d, b, pos, wander);
         if(!walk)
@@ -360,7 +360,7 @@ namespace ai
     bool target(gameent *d, aistate &b, int pursue = 0, bool force = false, float mindist = 0.f)
     {
         static vector<gameent *> hastried; hastried.setsize(0);
-        vec dp = d->headpos();
+        vec3 dp = d->headpos();
         while(true)
         {
             float dist = 1e16f;
@@ -370,7 +370,7 @@ namespace ai
             {
                 gameent *e = players[i];
                 if(e == d || hastried.find(e) >= 0 || !targetable(d, e)) continue;
-                vec ep = getaimpos(d, atk, e);
+                vec3 ep = getaimpos(d, atk, e);
                 float v = ep.squaredist(dp);
                 if((!t || v < dist) && (mindist <= 0 || v <= mindist) && (force || cansee(d, dp, ep)))
                 {
@@ -479,7 +479,7 @@ namespace ai
         {
             static vector<int> nearby;
             nearby.setsize(0);
-            findents(I_FIRST, I_LAST, false, d->feetpos(), vec(32, 32, 24), nearby);
+            findents(I_FIRST, I_LAST, false, d->feetpos(), vec3(32, 32, 24), nearby);
             loopv(nearby)
             {
                 int id = nearby[i];
@@ -542,9 +542,9 @@ namespace ai
         }
     }
 
-    void findorientation(vec &o, float yaw, float pitch, vec &pos)
+    void findorientation(vec3 &o, float yaw, float pitch, vec3 &pos)
     {
-        vec dir;
+        vec3 dir;
         vecfromyawpitch(yaw, pitch, 1, 0, dir);
         if(raycubepos(o, dir, pos, 0, RAY_CLIPMAT|RAY_SKIPFIRST) == -1)
             pos = dir.mul(2*getworldsize()).add(o); //otherwise 3dgui won't work when outside of map
@@ -557,7 +557,7 @@ namespace ai
         d->ai->lastrun = lastmillis;
         if(forcegun >= 0 && forcegun < NUMGUNS) d->ai->weappref = forcegun;
         else d->ai->weappref = rnd(NUMGUNS);
-        vec dp = d->headpos();
+        vec3 dp = d->headpos();
         findorientation(dp, d->yaw, d->pitch, d->ai->target);
     }
 
@@ -661,7 +661,7 @@ namespace ai
             case AI_T_NODE: // this is like a wait state without sitting still..
                 if(check(d, b) || find(d, b)) return 1;
                 if(target(d, b, 4, true)) return 1;
-                if(iswaypoint(b.target) && vec(waypoints[b.target].o).sub(d->feetpos()).magnitude() > CLOSEDIST)
+                if(iswaypoint(b.target) && vec3(waypoints[b.target].o).sub(d->feetpos()).magnitude() > CLOSEDIST)
                     return makeroute(d, b, waypoints[b.target].o) ? 1 : 0;
                 break;
             case AI_T_ENTITY:
@@ -721,12 +721,12 @@ namespace ai
 
     int closenode(gameent *d)
     {
-        vec pos = d->feetpos();
+        vec3 pos = d->feetpos();
         int node1 = -1, node2 = -1;
         float mindist1 = CLOSEDIST*CLOSEDIST, mindist2 = CLOSEDIST*CLOSEDIST;
         loopv(d->ai->route) if(iswaypoint(d->ai->route[i]))
         {
-            vec epos = waypoints[d->ai->route[i]].o;
+            vec3 epos = waypoints[d->ai->route[i]].o;
             float dist = epos.squaredist(pos);
             if(dist > FARDIST*FARDIST) continue;
             int entid = obstacles.remap(d, d->ai->route[i], epos);
@@ -744,7 +744,7 @@ namespace ai
     {
         if(iswaypoint(n)) loopk(2)
         {
-            vec epos = waypoints[n].o;
+            vec3 epos = waypoints[n].o;
             int entid = obstacles.remap(d, n, epos, k!=0);
             if(iswaypoint(entid))
             {
@@ -859,16 +859,16 @@ namespace ai
         return anynode(d, b);
     }
 
-    void jumpto(gameent *d, aistate &b, const vec &pos)
+    void jumpto(gameent *d, aistate &b, const vec3 &pos)
     {
-        vec off = vec(pos).sub(d->feetpos()), dir(off.x, off.y, 0);
+        vec3 off = vec3(pos).sub(d->feetpos()), dir(off.x, off.y, 0);
         bool sequenced = d->ai->blockseq || d->ai->targseq, offground = d->timeinair && !d->inwater,
             jump = !offground && lastmillis >= d->ai->jumpseed && (sequenced || off.z >= JUMPMIN || lastmillis >= d->ai->jumprand);
         if(jump)
         {
-            vec old = d->o;
-            d->o = vec(pos).addz(d->eyeheight);
-            if(collide(d, vec(0, 0, 1))) jump = false;
+            vec3 old = d->o;
+            d->o = vec3(pos).addz(d->eyeheight);
+            if(collide(d, vec3(0, 0, 1))) jump = false;
             d->o = old;
             if(jump)
             {
@@ -916,7 +916,7 @@ namespace ai
         fixfullrange(yaw, pitch, r, false);
     }
 
-    void getyawpitch(const vec &from, const vec &pos, float &yaw, float &pitch)
+    void getyawpitch(const vec3 &from, const vec3 &pos, float &yaw, float &pitch)
     {
         float dist = from.dist(pos);
         yaw = -atan2(pos.x-from.x, pos.y-from.y)/RAD;
@@ -955,7 +955,7 @@ namespace ai
     {
         if(attacks[atk].action == ACT_MELEE && !d->blocked && !d->timeinair)
         {
-            vec dir = vec(e->o).sub(d->o);
+            vec3 dir = vec3(e->o).sub(d->o);
             float xydist = dir.x*dir.x+dir.y*dir.y, zdist = dir.z*dir.z, mdist = maxdist*maxdist, ddist = d->radius*d->radius+e->radius*e->radius;
             if(zdist <= ddist && xydist >= ddist+4 && xydist <= mdist+ddist) return true;
         }
@@ -966,7 +966,7 @@ namespace ai
     {
         int result = 0, stupify = d->skill <= 10+rnd(15) ? rnd(d->skill*1000) : 0, skmod = 101-d->skill;
         float frame = d->skill <= 100 ? float(lastmillis-d->ai->lastrun)/float(max(skmod,1)*10) : 1;
-        vec dp = d->headpos();
+        vec3 dp = d->headpos();
 
         bool idle = b.idle == 1 || (stupify && stupify <= skmod);
         d->ai->dontmove = false;
@@ -974,17 +974,17 @@ namespace ai
         {
             d->ai->lastaction = d->ai->lasthunt = lastmillis;
             d->ai->dontmove = true;
-            d->ai->spot = vec(0, 0, 0);
+            d->ai->spot = vec3(0, 0, 0);
         }
         else if(hunt(d, b))
         {
-            getyawpitch(dp, vec(d->ai->spot).addz(d->eyeheight), d->ai->targyaw, d->ai->targpitch);
+            getyawpitch(dp, vec3(d->ai->spot).addz(d->eyeheight), d->ai->targyaw, d->ai->targpitch);
             d->ai->lasthunt = lastmillis;
         }
         else
         {
             idle = d->ai->dontmove = true;
-            d->ai->spot = vec(0, 0, 0);
+            d->ai->spot = vec3(0, 0, 0);
         }
 
         if(!d->ai->dontmove) jumpto(d, b, d->ai->spot);
@@ -1010,7 +1010,7 @@ namespace ai
         if(enemyok)
         {
             int atk = guns[d->gunselect].attacks[ACT_SHOOT];
-            vec ep = getaimpos(d, atk, e);
+            vec3 ep = getaimpos(d, atk, e);
             float yaw, pitch;
             getyawpitch(dp, ep, yaw, pitch);
             fixrange(yaw, pitch);
@@ -1107,7 +1107,7 @@ namespace ai
         if(targetable(d, e))
         {
             int atk = guns[weap].attacks[ACT_SHOOT];
-            vec ep = getaimpos(d, atk, e);
+            vec3 ep = getaimpos(d, atk, e);
             float dist = ep.squaredist(d->headpos());
             if(attackrange(d, atk, dist)) return true;
         }
@@ -1311,7 +1311,7 @@ namespace ai
                 if(iswaypoint(index) && iswaypoint(prev))
                 {
                     waypoint &e = waypoints[index], &f = waypoints[prev];
-                    vec fr = f.o, dr = e.o;
+                    vec3 fr = f.o, dr = e.o;
                     fr.z += amt; dr.z += amt;
                     particle_flare(fr, dr, 1, PART_STREAK, 0xFFFFFF);
                 }
@@ -1320,8 +1320,8 @@ namespace ai
         }
         if(aidebug >= 5)
         {
-            vec pos = d->feetpos();
-            if(d->ai->spot != vec(0, 0, 0)) particle_flare(pos, d->ai->spot, 1, PART_LIGHTNING, 0x00FFFF);
+            vec3 pos = d->feetpos();
+            if(d->ai->spot != vec3(0, 0, 0)) particle_flare(pos, d->ai->spot, 1, PART_LIGHTNING, 0x00FFFF);
             if(iswaypoint(d->ai->targnode))
                 particle_flare(pos, waypoints[d->ai->targnode].o, 1, PART_LIGHTNING, 0xFF00FF);
             if(iswaypoint(d->lastnode))
@@ -1351,7 +1351,7 @@ namespace ai
             loopv(players) if(players[i]->state == CS_ALIVE && players[i]->ai)
             {
                 gameent *d = players[i];
-                vec pos = d->abovehead();
+                vec3 pos = d->abovehead();
                 pos.z += 3;
                 alive++;
                 if(aidebug >= 4) drawroute(d, 4.f*(float(alive)/float(total)));

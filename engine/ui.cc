@@ -2900,10 +2900,10 @@ namespace UI
             model *m = loadmodel(name);
             if(m)
             {
-                vec center, radius;
+                vec3 center, radius;
                 m->boundbox(center, radius);
                 float yaw;
-                vec o = calcmodelpreviewpos(radius, yaw).sub(center);
+                vec3 o = calcmodelpreviewpos(radius, yaw).sub(center);
                 rendermodel(name, anim, o, yaw, 0, 0, 0, NULL, NULL, 0);
             }
             if(clipstack.length()) clipstack.last().scissor();
@@ -2945,7 +2945,7 @@ namespace UI
     struct PrefabPreview : Preview
     {
         char *name;
-        vec color;
+        vec3 color;
 
         PrefabPreview() : name(NULL) {}
         ~PrefabPreview() { delete[] name; }
@@ -2954,7 +2954,7 @@ namespace UI
         {
             Preview::setup(minw_, minh_);
             SETSTR(name, name_);
-            color = vec::hexcolor(color_);
+            color = vec3::hexcolor(color_);
         }
 
         static const char *typestr() { return "#PrefabPreview"; }

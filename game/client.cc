@@ -14,7 +14,7 @@ namespace game
 
     void drawminimap(gameent *d, float x, float y, float s)
     {
-        vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
+        vec3 pos = vec3(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
         vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
         float scale = calcradarscale();
         gle::defvertex(2);
@@ -22,9 +22,9 @@ namespace game
         gle::begin(GL_TRIANGLE_FAN);
         loopi(16)
         {
-            vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
+            vec3 v = vec3(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
             gle::attribf(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
-            vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
+            vec3 tc = vec3(dir).rotate_around_z(i/16.0f*2*M_PI);
             gle::attribf(1.0f - (pos.x + tc.x*scale*minimapscale.x), pos.y + tc.y*scale*minimapscale.y);
         }
         gle::end();
@@ -49,7 +49,7 @@ namespace game
 
     void drawteammate(gameent *d, float x, float y, float s, gameent *o, float scale, float blipsize = 1)
     {
-        vec dir = d->o;
+        vec3 dir = d->o;
         dir.sub(o->o).div(scale);
         float dist = dir.magnitude2(), maxdist = 1 - 0.05f - 0.05f;
         if(dist >= maxdist) dir.mul(maxdist/dist);
@@ -57,7 +57,7 @@ namespace game
         float bs = 0.06f*blipsize*s,
               bx = x + s*0.5f*(1.0f + dir.x),
               by = y + s*0.5f*(1.0f + dir.y);
-        vec v(-0.5f, -0.5f, 0);
+        vec3 v(-0.5f, -0.5f, 0);
         v.rotate_around_z((90+o->yaw-camera1->yaw)*RAD);
         gle::attribf(bx + bs*v.x, by + bs*v.y); gle::attribf(0, 0);
         gle::attribf(bx + bs*v.y, by - bs*v.x); gle::attribf(1, 0);
@@ -984,7 +984,7 @@ namespace game
         // 3 bits phys state, 1 bit life sequence, 2 bits move, 2 bits strafe
         uchar physstate = d->physstate | ((d->lifesequence&1)<<3) | ((d->move&3)<<4) | ((d->strafe&3)<<6);
         q.put(physstate);
-        ivec o = ivec(vec(d->o.x, d->o.y, d->o.z-d->eyeheight).mul(DMF));
+        ivec o = ivec(vec3(d->o.x, d->o.y, d->o.z-d->eyeheight).mul(DMF));
         uint vel = min(int(d->vel.magnitude()*DVELF), 0xFFFF), fall = min(int(d->falling.magnitude()*DVELF), 0xFFFF);
         // 3 bits position, 1 bit velocity, 3 bits falling, 1 bit material, 1 bit crouching
         uint flags = 0;
@@ -1171,7 +1171,7 @@ namespace game
             case N_POS:                        // position of another client
             {
                 int cn = getuint(p), physstate = p.get(), flags = getuint(p);
-                vec o, vel, falling;
+                vec3 o, vel, falling;
                 float yaw, pitch, roll;
                 loopk(3)
                 {
@@ -1194,10 +1194,10 @@ namespace game
                         dir = p.get(); dir |= p.get()<<8;
                         vecfromyawpitch(dir%360, clamp(dir/360, 0, 180)-90, 1, 0, falling);
                     }
-                    else falling = vec(0, 0, -1);
+                    else falling = vec3(0, 0, -1);
                     falling.mul(mag/DVELF);
                 }
-                else falling = vec(0, 0, 0);
+                else falling = vec3(0, 0, 0);
                 int seqcolor = (physstate>>3)&1;
                 gameent *d = getclient(cn);
                 if(!d || d->lifesequence < 0 || seqcolor!=(d->lifesequence&1) || d->state==CS_DEAD) continue;
@@ -1208,7 +1208,7 @@ namespace game
                 d->move = (physstate>>4)&2 ? -1 : (physstate>>4)&1;
                 d->strafe = (physstate>>6)&2 ? -1 : (physstate>>6)&1;
                 d->crouching = (flags&(1<<8))!=0 ? -1 : abs(d->crouching);
-                vec oldpos(d->o);
+                vec3 oldpos(d->o);
                 d->o = o;
                 d->o.z += d->eyeheight;
                 d->vel = vel;
@@ -1540,7 +1540,7 @@ namespace game
             case N_SHOTFX:
             {
                 int scn = getint(p), atk = getint(p), id = getint(p);
-                vec from, to;
+                vec3 from, to;
                 loopk(3) from[k] = getint(p)/DMF;
                 loopk(3) to[k] = getint(p)/DMF;
                 gameent *s = getclient(scn);
@@ -1583,7 +1583,7 @@ namespace game
             {
                 int tcn = getint(p), atk = getint(p), damage = getint(p);
                 gameent *target = getclient(tcn);
-                vec dir;
+                vec3 dir;
                 loopk(3) dir[k] = getint(p)/DNF;
                 if(!target || !validatk(atk)) break;
                 target->hitpush(damage * (target->health<=0 ? deadpush : 1), dir, NULL, atk);
@@ -1656,7 +1656,7 @@ namespace game
                 if(name) particle_text(entities::ents[i]->o, name, PART_TEXT, 2000, 0x32FF64, 4.0f, -8);
                 #endif
                 int icon = entities::itemicon(i);
-                if(icon >= 0) particle_icon(vec(0.0f, 0.0f, 4.0f).add(entities::ents[i]->o), icon%4, icon/4, PART_HUD_ICON, 2000, 0xFFFFFF, 2.0f, -8);
+                if(icon >= 0) particle_icon(vec3(0.0f, 0.0f, 4.0f).add(entities::ents[i]->o), icon%4, icon/4, PART_HUD_ICON, 2000, 0xFFFFFF, 2.0f, -8);
                 break;
             }
 
@@ -1768,7 +1768,7 @@ namespace game
                 int type = getint(p);
                 int attr1 = getint(p), attr2 = getint(p), attr3 = getint(p), attr4 = getint(p), attr5 = getint(p);
 
-                mpeditent(i, vec(x, y, z), type, attr1, attr2, attr3, attr4, attr5, false);
+                mpeditent(i, vec3(x, y, z), type, attr1, attr2, attr3, attr4, attr5, false);
                 break;
             }
             case N_EDITVAR:
@@ -2137,7 +2137,7 @@ namespace game
             gameent *d = getclient(i);
             if(!d || d==player1) return;
             player1->o = d->o;
-            vec dir;
+            vec3 dir;
             vecfromyawpitch(player1->yaw, player1->pitch, 1, 0, dir);
             player1->o.add(dir.mul(-32));
             player1->resetinterp();
@@ -2149,7 +2149,7 @@ namespace game
     {
         if(player1->state!=CS_EDITING) return;
         player1->o = getselpos();
-        vec dir;
+        vec3 dir;
         vecfromyawpitch(player1->yaw, player1->pitch, 1, 0, dir);
         player1->o.add(dir.mul(-32));
         player1->resetinterp();

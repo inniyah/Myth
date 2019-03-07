@@ -678,10 +678,10 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
             psbuf.put(foginterp, strlen(foginterp));
         }
         const char *fogparams =
-            "\nuniform vec3 fogcolor;\n"
+            "\nuniform vec33 fogcolor;\n"
             "uniform vec2 fogdensity;\n"
             "uniform vec4 radialfogscale;\n"
-            "#define fogcoord lineardepth*length(vec3(gl_FragCoord.xy*radialfogscale.xy + radialfogscale.zw, 1.0))\n";
+            "#define fogcoord lineardepth*length(vec33(gl_FragCoord.xy*radialfogscale.xy + radialfogscale.zw, 1.0))\n";
         psbuf.put(fogparams, strlen(fogparams));
         psbuf.put(psmain, psend - psmain);
         const char *psdef = "\n#define FOG_COLOR ";
@@ -1003,7 +1003,7 @@ void linkvslotshader(VSlot &s, bool load)
     {
         static const char *paramname = getshaderparamname("glowcolor");
         const float *param = findslotparam(s, paramname);
-        if(param) s.glowcolor = vec(param).clamp(0, 1);
+        if(param) s.glowcolor = vec3(param).clamp(0, 1);
     }
 }
 

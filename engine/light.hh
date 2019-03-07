@@ -46,7 +46,7 @@ struct PackNode
 extern bvec ambient, skylight, sunlight;
 extern float ambientscale, skylightscale, sunlightscale;
 extern float sunlightyaw, sunlightpitch;
-extern vec sunlightdir;
+extern vec3 sunlightdir;
 extern int fullbright, fullbrightlevel;
 
 extern void clearlights();
@@ -61,7 +61,7 @@ extern void calcnormals(bool lerptjoints = false);
 extern void clearnormals();
 extern void resetsmoothgroups();
 extern int smoothangle(int id, int angle);
-extern void findnormal(const vec &key, int smooth, const vec &surface, vec &v);
+extern void findnormal(const vec3 &key, int smooth, const vec3 &surface, vec3 &v);
 
 #define CHECK_CALCLIGHT_PROGRESS_LOCKED(exit, show_calclight_progress, before, after) \
     if(check_calclight_progress) \

@@ -16,14 +16,14 @@ struct ctfclientmode : clientmode
     struct flag
     {
         int id, version;
-        vec droploc, spawnloc;
+        vec3 droploc, spawnloc;
         int team, droptime, owntime;
 #ifdef SERVMODE
         int owner, dropcount, dropper;
 #else
         gameent *owner;
         float dropangle, spawnangle;
-        vec interploc;
+        vec3 interploc;
         float interpangle;
         int interptime;
 #endif
@@ -33,7 +33,7 @@ struct ctfclientmode : clientmode
         void reset()
         {
             version = 0;
-            droploc = spawnloc = vec(0, 0, 0);
+            droploc = spawnloc = vec3(0, 0, 0);
 #ifdef SERVMODE
             dropcount = 0;
             owner = dropper = -1;
@@ -42,7 +42,7 @@ struct ctfclientmode : clientmode
             if(id >= 0) loopv(players) players[i]->flagpickup &= ~(1<<id);
             owner = NULL;
             dropangle = spawnangle = 0;
-            interploc = vec(0, 0, 0);
+            interploc = vec3(0, 0, 0);
             interpangle = 0;
             interptime = 0;
 #endif
@@ -51,9 +51,9 @@ struct ctfclientmode : clientmode
         }
 
 #ifndef SERVMODE
-        vec pos() const
+        vec3 pos() const
         {
-            if(owner) return vec(owner->o).sub(owner->eyeheight);
+            if(owner) return vec3(owner->o).sub(owner->eyeheight);
             if(droptime) return droploc;
             return spawnloc;
         }
@@ -70,9 +70,9 @@ struct ctfclientmode : clientmode
     }
 
 #ifdef SERVMODE
-    bool addflag(int i, const vec &o, int team)
+    bool addflag(int i, const vec3 &o, int team)
 #else
-    bool addflag(int i, const vec &o, int team)
+    bool addflag(int i, const vec3 &o, int team)
 #endif
     {
         if(i<0 || i>=MAXFLAGS) return false;
@@ -104,9 +104,9 @@ struct ctfclientmode : clientmode
     }
 
 #ifdef SERVMODE
-    void dropflag(int i, const vec &o, int droptime, int dropper = -1, bool penalty = false)
+    void dropflag(int i, const vec3 &o, int droptime, int dropper = -1, bool penalty = false)
 #else
-    void dropflag(int i, const vec &o, float yaw, int droptime)
+    void dropflag(int i, const vec3 &o, float yaw, int droptime)
 #endif
     {
         flag &f = flags[i];
@@ -212,9 +212,9 @@ struct ctfclientmode : clientmode
         loopv(flags) if(flags[i].owner==ci->clientnum)
         {
             flag &f = flags[i];
-            ivec o(vec(ci->state.o).mul(DMF));
+            ivec o(vec3(ci->state.o).mul(DMF));
             sendf(-1, 1, "ri7", N_DROPFLAG, ci->clientnum, i, ++f.version, o.x, o.y, o.z);
-            dropflag(i, vec(o).div(DMF), lastmillis, dropper ? dropper->clientnum : ci->clientnum, dropper && dropper!=ci);
+            dropflag(i, vec3(o).div(DMF), lastmillis, dropper ? dropper->clientnum : ci->clientnum, dropper && dropper!=ci);
         }
     }
 
@@ -319,7 +319,7 @@ struct ctfclientmode : clientmode
         loopi(numflags)
         {
             int team = getint(p);
-            vec o;
+            vec3 o;
             loopk(3) o[k] = max(getint(p)/DMF, 0.0f);
             if(p.overread()) break;
             if(commit && notgotflags)
@@ -344,10 +344,10 @@ struct ctfclientmode : clientmode
         for(int i = S_FLAGPICKUP; i <= S_FLAGFAIL; i++) preloadsound(i);
     }
 
-    void drawblip(gameent *d, float x, float y, float s, const vec &pos, bool flagblip)
+    void drawblip(gameent *d, float x, float y, float s, const vec3 &pos, bool flagblip)
     {
         float scale = calcradarscale();
-        vec dir = d->o;
+        vec3 dir = d->o;
         dir.sub(pos).div(scale);
         float size = flagblip ? 0.1f : 0.05f,
               xoffset = flagblip ? -2*(3/32.0f)*size : -size,
@@ -438,9 +438,9 @@ struct ctfclientmode : clientmode
         }
     }
 
-    vec interpflagpos(flag &f, float &angle)
+    vec3 interpflagpos(flag &f, float &angle)
     {
-        vec pos = f.owner ? vec(f.owner->abovehead()).addz(1) : (f.droptime ? f.droploc : f.spawnloc);
+        vec3 pos = f.owner ? vec3(f.owner->abovehead()).addz(1) : (f.droptime ? f.droploc : f.spawnloc);
         if(f.owner) angle = f.owner->yaw;
         else { angle = f.droptime ? f.dropangle : f.spawnangle; pos.addz(FLAGFLOAT); }
         if(pos.x < 0) return pos;
@@ -454,7 +454,7 @@ struct ctfclientmode : clientmode
         return pos;
     }
 
-    vec interpflagpos(flag &f) { float angle; return interpflagpos(f, angle); }
+    vec3 interpflagpos(flag &f) { float angle; return interpflagpos(f, angle); }
 
     void rendergame()
     {
@@ -464,7 +464,7 @@ struct ctfclientmode : clientmode
             if(!f.owner && f.droptime && f.droploc.x < 0) continue;
             const char *flagname = f.team==1 ? "game/flag/azul" : "game/flag/rojo";
             float angle;
-            vec pos = interpflagpos(f, angle);
+            vec3 pos = interpflagpos(f, angle);
             rendermodel(flagname, ANIM_MAPMODEL|ANIM_LOOP,
                         pos, angle, 0, 0,
                         MDL_CULL_VFC | MDL_CULL_OCCLUDED);
@@ -507,7 +507,7 @@ struct ctfclientmode : clientmode
         loopi(numflags)
         {
             int version = getint(p), owner = getint(p), dropped = 0;
-            vec droploc(0, 0, 0);
+            vec3 droploc(0, 0, 0);
             if(owner<0)
             {
                 dropped = getint(p);
@@ -523,7 +523,7 @@ struct ctfclientmode : clientmode
                 f.droploc = dropped ? droploc : f.spawnloc;
                 f.interptime = 0;
 
-                if(dropped && !droptofloor(f.droploc.addz(4), 4, 0)) f.droploc = vec(-1, -1, -1);
+                if(dropped && !droptofloor(f.droploc.addz(4), 4, 0)) f.droploc = vec3(-1, -1, -1);
             }
         }
     }
@@ -543,7 +543,7 @@ struct ctfclientmode : clientmode
         return teamcolor("", "'s flag", f.team, "a flag");
     }
 
-    void dropflag(gameent *d, int i, int version, const vec &droploc)
+    void dropflag(gameent *d, int i, int version, const vec3 &droploc)
     {
         if(!flags.inrange(i)) return;
         flag &f = flags[i];
@@ -554,25 +554,25 @@ struct ctfclientmode : clientmode
         d->flagpickup |= 1<<f.id;
         if(!droptofloor(f.droploc.addz(4), 4, 0))
         {
-            f.droploc = vec(-1, -1, -1);
+            f.droploc = vec3(-1, -1, -1);
             f.interptime = 0;
         }
         conoutf(CON_GAMEINFO, "%s dropped %s", teamcolorname(d), teamcolorflag(f));
         playsound(S_FLAGDROP);
     }
 
-    void flagexplosion(int i, int team, const vec &loc)
+    void flagexplosion(int i, int team, const vec3 &loc)
     {
         int fcolor;
-        vec color;
-        if(team==1) { fcolor = 0x2020FF; color = vec(0.25f, 0.25f, 1); }
-        else { fcolor = 0x802020; color = vec(1, 0.25f, 0.25f); }
+        vec3 color;
+        if(team==1) { fcolor = 0x2020FF; color = vec3(0.25f, 0.25f, 1); }
+        else { fcolor = 0x802020; color = vec3(1, 0.25f, 0.25f); }
         particle_fireball(loc, 30, PART_EXPLOSION, -1, fcolor, 4.8f);
         adddynlight(loc, 35, color, 900, 100);
         particle_splash(PART_SPARK, 150, 300, loc, fcolor, 0.24f);
     }
 
-    void flageffect(int i, int team, const vec &from, const vec &to)
+    void flageffect(int i, int team, const vec3 &from, const vec3 &to)
     {
         if(from.x >= 0)
             flagexplosion(i, team, from);
@@ -588,7 +588,7 @@ struct ctfclientmode : clientmode
         if(!flags.inrange(i)) return;
         flag &f = flags[i];
         f.version = version;
-        flageffect(i, f.team, interpflagpos(f), vec(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
+        flageffect(i, f.team, interpflagpos(f), vec3(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
         f.interptime = 0;
         returnflag(i);
         conoutf(CON_GAMEINFO, "%s returned %s", teamcolorname(d), teamcolorflag(f));
@@ -600,7 +600,7 @@ struct ctfclientmode : clientmode
         if(!flags.inrange(i)) return;
         flag &f = flags[i];
         f.version = version;
-        flageffect(i, f.team, interpflagpos(f), vec(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
+        flageffect(i, f.team, interpflagpos(f), vec3(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
         f.interptime = 0;
         returnflag(i);
         conoutf(CON_GAMEINFO, "%s reset", teamcolorflag(f));
@@ -617,9 +617,9 @@ struct ctfclientmode : clientmode
             if(relay >= 0)
             {
                 flags[relay].version = relayversion;
-                flageffect(goal, team, vec(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER), vec(flags[relay].spawnloc).addz(FLAGFLOAT+FLAGCENTER));
+                flageffect(goal, team, vec3(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER), vec3(flags[relay].spawnloc).addz(FLAGFLOAT+FLAGCENTER));
             }
-            else flageffect(goal, team, interpflagpos(f), vec(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
+            else flageffect(goal, team, interpflagpos(f), vec3(f.spawnloc).addz(FLAGFLOAT+FLAGCENTER));
             f.interptime = 0;
             returnflag(relay >= 0 ? relay : goal);
             d->flagpickup &= ~(1<<f.id);
@@ -649,12 +649,12 @@ struct ctfclientmode : clientmode
     void checkitems(gameent *d)
     {
         if(d->state!=CS_ALIVE) return;
-        vec o = d->feetpos();
+        vec3 o = d->feetpos();
         loopv(flags)
         {
             flag &f = flags[i];
             if(!validteam(f.team) || f.owner || (f.droptime && f.droploc.x<0)) continue;
-            const vec &loc = f.droptime ? f.droploc : f.spawnloc;
+            const vec3 &loc = f.droptime ? f.droploc : f.spawnloc;
             if(o.dist(loc) < FLAGRADIUS)
             {
                 if(d->flagpickup&(1<<f.id)) continue;
@@ -668,7 +668,7 @@ struct ctfclientmode : clientmode
 
     void respawned(gameent *d)
     {
-        vec o = d->feetpos();
+        vec3 o = d->feetpos();
         d->flagpickup = 0;
         loopv(flags)
         {
@@ -685,7 +685,7 @@ struct ctfclientmode : clientmode
 
     bool aihomerun(gameent *d, ai::aistate &b)
     {
-        vec pos = d->feetpos();
+        vec3 pos = d->feetpos();
         loopk(2)
         {
             int goal = -1;
@@ -735,7 +735,7 @@ struct ctfclientmode : clientmode
 
     void aifind(gameent *d, ai::aistate &b, vector<ai::interest> &interests)
     {
-        vec pos = d->feetpos();
+        vec3 pos = d->feetpos();
         loopvj(flags)
         {
             flag &f = flags[j];
@@ -748,7 +748,7 @@ struct ctfclientmode : clientmode
                 gameent *e = NULL;
                 loopi(numdynents()) if((e = (gameent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
-                    vec ep = e->feetpos();
+                    vec3 ep = e->feetpos();
                     if(targets.find(e->clientnum) < 0 && (ep.squaredist(f.pos()) <= (FLAGRADIUS*FLAGRADIUS*4) || f.owner == e))
                         targets.add(e->clientnum);
                 }
@@ -830,7 +830,7 @@ struct ctfclientmode : clientmode
                 gameent *e = NULL;
                 loopi(numdynents()) if((e = (gameent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
-                    vec ep = e->feetpos();
+                    vec3 ep = e->feetpos();
                     if(targets.find(e->clientnum) < 0 && (ep.squaredist(f.pos()) <= (FLAGRADIUS*FLAGRADIUS*4) || f.owner == e))
                         targets.add(e->clientnum);
                 }
@@ -845,7 +845,7 @@ struct ctfclientmode : clientmode
                     b.millis = lastmillis;
                 }
             }
-            vec pos = d->feetpos();
+            vec3 pos = d->feetpos();
             float mindist = float(FLAGRADIUS*FLAGRADIUS*8);
             loopv(flags)
             { // get out of the way of the returnee!
@@ -922,7 +922,7 @@ case N_INITFLAGS:
 case N_DROPFLAG:
 {
     int ocn = getint(p), flag = getint(p), version = getint(p);
-    vec droploc;
+    vec3 droploc;
     loopk(3) droploc[k] = getint(p)/DMF;
     gameent *o = ocn==player1->clientnum ? player1 : newclient(ocn);
     if(o && m_ctf) ctfmode.dropflag(o, flag, version, droploc);

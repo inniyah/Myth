@@ -8,17 +8,17 @@ namespace ai
 
     vector<waypoint> waypoints;
 
-    bool clipped(const vec &o)
+    bool clipped(const vec3 &o)
     {
         int material = lookupmaterial(o), clipmat = material&MATF_CLIP;
         return clipmat == MAT_CLIP || material&MAT_DEATH || (material&MATF_VOLUME) == MAT_LAVA;
     }
 
-    int getweight(const vec &o)
+    int getweight(const vec3 &o)
     {
-        vec pos = o; pos.z += ai::JUMPMIN;
-        if(!insideworld(vec(pos.x, pos.y, min(pos.z, getworldsize() - 1e-3f)))) return -2;
-        float dist = raycube(pos, vec(0, 0, -1), 0, RAY_CLIPMAT);
+        vec3 pos = o; pos.z += ai::JUMPMIN;
+        if(!insideworld(vec3(pos.x, pos.y, min(pos.z, getworldsize() - 1e-3f)))) return -2;
+        float dist = raycube(pos, vec3(0, 0, -1), 0, RAY_CLIPMAT);
         int posmat = lookupmaterial(pos), weight = 1;
         if(isliquid(posmat&MATF_VOLUME)) weight *= 5;
         if(dist >= 0)
@@ -53,7 +53,7 @@ namespace ai
 
         vector<node> nodes;
         int firstwp, lastwp;
-        vec bbmin, bbmax;
+        vec3 bbmin, bbmax;
 
         wpcache() { clear(); }
 
@@ -61,8 +61,8 @@ namespace ai
         {
             nodes.setsize(0);
             firstwp = lastwp = -1;
-            bbmin = vec(1e16f, 1e16f, 1e16f);
-            bbmax = vec(-1e16f, -1e16f, -1e16f);
+            bbmin = vec3(1e16f, 1e16f, 1e16f);
+            bbmax = vec3(-1e16f, -1e16f, -1e16f);
         }
 
         void build(int first = 0, int last = -1)
@@ -75,8 +75,8 @@ namespace ai
                 indices.add(i);
                 if(firstwp < 0) firstwp = i;
                 float radius = WAYPOINTRADIUS;
-                bbmin.min(vec(w.o).sub(radius));
-                bbmax.max(vec(w.o).add(radius));
+                bbmin.min(vec3(w.o).sub(radius));
+                bbmax.max(vec3(w.o).add(radius));
             }
             if(first < last) lastwp = max(lastwp, last-1);
             if(indices.length())
@@ -86,12 +86,12 @@ namespace ai
             }
         }
 
-        void build(int *indices, int numindices, const vec &vmin, const vec &vmax)
+        void build(int *indices, int numindices, const vec3 &vmin, const vec3 &vmax)
         {
             int axis = 2;
             loopk(2) if(vmax[k] - vmin[k] > vmax[axis] - vmin[axis]) axis = k;
 
-            vec leftmin(1e16f, 1e16f, 1e16f), leftmax(-1e16f, -1e16f, -1e16f), rightmin(1e16f, 1e16f, 1e16f), rightmax(-1e16f, -1e16f, -1e16f);
+            vec3 leftmin(1e16f, 1e16f, 1e16f), leftmax(-1e16f, -1e16f, -1e16f), rightmin(1e16f, 1e16f, 1e16f), rightmax(-1e16f, -1e16f, -1e16f);
             float split = 0.5f*(vmax[axis] + vmin[axis]), splitleft = -1e16f, splitright = 1e16f;
             int left, right;
             for(left = 0, right = numindices; left < right;)
@@ -102,23 +102,23 @@ namespace ai
                 {
                     ++left;
                     splitleft = max(splitleft, w.o[axis]+radius);
-                    leftmin.min(vec(w.o).sub(radius));
-                    leftmax.max(vec(w.o).add(radius));
+                    leftmin.min(vec3(w.o).sub(radius));
+                    leftmax.max(vec3(w.o).add(radius));
                 }
                 else
                 {
                     --right;
                     swap(indices[left], indices[right]);
                     splitright = min(splitright, w.o[axis]-radius);
-                    rightmin.min(vec(w.o).sub(radius));
-                    rightmax.max(vec(w.o).add(radius));
+                    rightmin.min(vec3(w.o).sub(radius));
+                    rightmax.max(vec3(w.o).add(radius));
                 }
             }
 
             if(!left || right==numindices)
             {
-                leftmin = rightmin = vec(1e16f, 1e16f, 1e16f);
-                leftmax = rightmax = vec(-1e16f, -1e16f, -1e16f);
+                leftmin = rightmin = vec3(1e16f, 1e16f, 1e16f);
+                leftmax = rightmax = vec3(-1e16f, -1e16f, -1e16f);
                 left = right = numindices/2;
                 splitleft = -1e16f;
                 splitright = 1e16f;
@@ -129,14 +129,14 @@ namespace ai
                     if(i < left)
                     {
                         splitleft = max(splitleft, w.o[axis]+radius);
-                        leftmin.min(vec(w.o).sub(radius));
-                        leftmax.max(vec(w.o).add(radius));
+                        leftmin.min(vec3(w.o).sub(radius));
+                        leftmax.max(vec3(w.o).add(radius));
                     }
                     else
                     {
                         splitright = min(splitright, w.o[axis]-radius);
-                        rightmin.min(vec(w.o).sub(radius));
-                        rightmax.max(vec(w.o).add(radius));
+                        rightmin.min(vec3(w.o).sub(radius));
+                        rightmax.max(vec3(w.o).add(radius));
                     }
                 }
             }
@@ -207,7 +207,7 @@ namespace ai
 
     vector<wpcache::node *> wpcachestack;
 
-    int closestwaypoint(const vec &pos, float mindist, bool links, gameent *d)
+    int closestwaypoint(const vec3 &pos, float mindist, bool links, gameent *d)
     {
         if(waypoints.empty()) return -1;
         if(clearedwpcaches) buildwpcache();
@@ -264,7 +264,7 @@ namespace ai
         return closest;
     }
 
-    void findwaypointswithin(const vec &pos, float mindist, float maxdist, vector<int> &results)
+    void findwaypointswithin(const vec3 &pos, float mindist, float maxdist, vector<int> &results)
     {
         if(waypoints.empty()) return;
         if(clearedwpcaches) buildwpcache();
@@ -317,7 +317,7 @@ namespace ai
         for(int i = lastwpcache; i < waypoints.length(); i++) { CHECKWITHIN(i); }
     }
 
-    void avoidset::avoidnear(void *owner, float above, const vec &pos, float limit)
+    void avoidset::avoidnear(void *owner, float above, const vec3 &pos, float limit)
     {
         if(ai::waypoints.empty()) return;
         if(clearedwpcaches) buildwpcache();
@@ -369,7 +369,7 @@ namespace ai
         for(int i = lastwpcache; i < waypoints.length(); i++) { CHECKNEAR(i); }
     }
 
-    int avoidset::remap(gameent *d, int n, vec &pos, bool retry)
+    int avoidset::remap(gameent *d, int n, vec3 &pos, bool retry)
     {
         if(!obstacles.empty())
         {
@@ -383,7 +383,7 @@ namespace ai
                     for(; cur < next; cur++) if(waypoints[cur] == n)
                     {
                         if(ob.above < 0) return retry ? n : -1;
-                        vec above(pos.x, pos.y, ob.above);
+                        vec3 above(pos.x, pos.y, ob.above);
                         if(above.z-d->o.z >= ai::JUMPMAX)
                             return retry ? n : -1; // too much scotty
                         int node = closestwaypoint(above, ai::SIGHTMIN, true, d);
@@ -398,9 +398,9 @@ namespace ai
                         }
                         else
                         {
-                            vec old = d->o;
-                            d->o = vec(above).addz(d->eyeheight);
-                            bool col = collide(d, vec(0, 0, 1));
+                            vec3 old = d->o;
+                            d->o = vec3(above).addz(d->eyeheight);
+                            bool col = collide(d, vec3(0, 0, 1));
                             d->o = old;
                             if(!col)
                             {
@@ -508,7 +508,7 @@ namespace ai
 
     VARF(dropwaypoints, 0, 0, 1, { player1->lastnode = -1; });
 
-    int addwaypoint(const vec &o, int weight = -1)
+    int addwaypoint(const vec3 &o, int weight = -1)
     {
         if(waypoints.length() > MAXWAYPOINTS) return -1;
         int n = waypoints.length();
@@ -541,7 +541,7 @@ namespace ai
         return !d->ai && (dropwaypoints || !loadedwaypoints[0]);
     }
 
-    void inferwaypoints(gameent *d, const vec &o, const vec &v, float mindist)
+    void inferwaypoints(gameent *d, const vec3 &o, const vec3 &v, float mindist)
     {
         if(!shouldnavigate()) return;
         if(shoulddrop(d))
@@ -564,7 +564,7 @@ namespace ai
 
     void navigate(gameent *d)
     {
-        vec v(d->feetpos());
+        vec3 v(d->feetpos());
         if(d->state != CS_ALIVE) { d->lastnode = -1; return; }
         bool dropping = shoulddrop(d);
         int mat = lookupmaterial(v);
@@ -610,7 +610,7 @@ namespace ai
 
     void seedwaypoints()
     {
-        if(waypoints.empty()) addwaypoint(vec(0, 0, 0));
+        if(waypoints.empty()) addwaypoint(vec3(0, 0, 0));
         loopv(entities::ents)
         {
             extentity &e = *entities::ents[i];
@@ -698,12 +698,12 @@ namespace ai
         copystring(loadedwaypoints, wptname);
 
         waypoints.setsize(0);
-        waypoints.add(vec(0, 0, 0));
+        waypoints.add(vec3(0, 0, 0));
         ushort numwp = f->getlil<ushort>();
         loopi(numwp)
         {
             if(f->end()) break;
-            vec o;
+            vec3 o;
             o.x = f->getlil<float>();
             o.y = f->getlil<float>();
             o.z = f->getlil<float>();
@@ -757,7 +757,7 @@ namespace ai
     void delselwaypoints()
     {
         if(noedit(true)) return;
-        vec o = vec(sel.o).sub(0.1f), s = vec(sel.s).mul(sel.grid).add(o).add(0.1f);
+        vec3 o = vec3(sel.o).sub(0.1f), s = vec3(sel.s).mul(sel.grid).add(o).add(0.1f);
         int cleared = 0;
         for(int i = 1; i < waypoints.length(); i++)
         {
@@ -778,7 +778,7 @@ namespace ai
     }
     COMMAND(delselwaypoints, "");
 
-    void movewaypoints(const vec &d)
+    void movewaypoints(const vec3 &d)
     {
         if(noedit(true)) return;
         int worldsize = getworldsize();
@@ -801,6 +801,6 @@ namespace ai
         }
         clearwpcache();
     }
-    ICOMMAND(movewaypoints, "iii", (int *dx, int *dy, int *dz), movewaypoints(vec(*dx, *dy, *dz)));
+    ICOMMAND(movewaypoints, "iii", (int *dx, int *dy, int *dz), movewaypoints(vec3(*dx, *dy, *dz)));
 }
 

@@ -47,11 +47,11 @@ struct BIH
         int posstride, tcstride;
         Texture *tex;
         int flags;
-        vec bbmin, bbmax;
+        vec3 bbmin, bbmax;
 
         mesh() : numnodes(0), numtris(0), tex(NULL), flags(0) {}
 
-        vec getpos(int i) const { return *(const vec *)(pos + i*posstride); }
+        vec3 getpos(int i) const { return *(const vec3 *)(pos + i*posstride); }
         vec2 gettc(int i) const { return *(const vec2 *)(tc + i*tcstride); }
     };
 
@@ -61,7 +61,7 @@ struct BIH
     int numnodes;
     tribb *tribbs;
     int numtris;
-    vec bbmin, bbmax, center;
+    vec3 bbmin, bbmax, center;
     float radius, entradius;
 
     BIH(vector<mesh> &buildmeshes);
@@ -70,24 +70,24 @@ struct BIH
 
     void build(mesh &m, ushort *indices, int numindices, const ivec &vmin, const ivec &vmax);
 
-    bool traverse(const vec &o, const vec &ray, float maxdist, float &dist, int mode);
-    bool traverse(const mesh &m, const vec &o, const vec &ray, const vec &invray, float maxdist, float &dist, int mode, node *curnode, float tmin, float tmax);
-    bool triintersect(const mesh &m, int tidx, const vec &mo, const vec &mray, float maxdist, float &dist, int mode);
+    bool traverse(const vec3 &o, const vec3 &ray, float maxdist, float &dist, int mode);
+    bool traverse(const mesh &m, const vec3 &o, const vec3 &ray, const vec3 &invray, float maxdist, float &dist, int mode, node *curnode, float tmin, float tmax);
+    bool triintersect(const mesh &m, int tidx, const vec3 &mo, const vec3 &mray, float maxdist, float &dist, int mode);
 
-    bool boxcollide(physent *d, const vec &dir, float cutoff, const vec &o, int yaw, int pitch, int roll, float scale = 1);
-    bool ellipsecollide(physent *d, const vec &dir, float cutoff, const vec &o, int yaw, int pitch, int roll, float scale = 1);
+    bool boxcollide(physent *d, const vec3 &dir, float cutoff, const vec3 &o, int yaw, int pitch, int roll, float scale = 1);
+    bool ellipsecollide(physent *d, const vec3 &dir, float cutoff, const vec3 &o, int yaw, int pitch, int roll, float scale = 1);
 
     template<int C>
-    void collide(const mesh &m, physent *d, const vec &dir, float cutoff, const vec &center, const vec &radius, const matrix4x3 &orient, float &dist, node *curnode, const ivec &bo, const ivec &br);
+    void collide(const mesh &m, physent *d, const vec3 &dir, float cutoff, const vec3 &center, const vec3 &radius, const matrix4x3 &orient, float &dist, node *curnode, const ivec &bo, const ivec &br);
     template<int C>
-    void tricollide(const mesh &m, int tidx, physent *d, const vec &dir, float cutoff, const vec &center, const vec &radius, const matrix4x3 &orient, float &dist, const ivec &bo, const ivec &br);
+    void tricollide(const mesh &m, int tidx, physent *d, const vec3 &dir, float cutoff, const vec3 &center, const vec3 &radius, const matrix4x3 &orient, float &dist, const ivec &bo, const ivec &br);
 
-    void genstaintris(stainrenderer *s, const vec &staincenter, float stainradius, const vec &o, int yaw, int pitch, int roll, float scale = 1);
-    void genstaintris(stainrenderer *s, const mesh &m, const vec &center, float radius, const matrix4x3 &orient, node *curnode, const ivec &bo, const ivec &br);
-    void genstaintris(stainrenderer *s, const mesh &m, int tidx, const vec &center, float radius, const matrix4x3 &orient, const ivec &bo, const ivec &br);
+    void genstaintris(stainrenderer *s, const vec3 &staincenter, float stainradius, const vec3 &o, int yaw, int pitch, int roll, float scale = 1);
+    void genstaintris(stainrenderer *s, const mesh &m, const vec3 &center, float radius, const matrix4x3 &orient, node *curnode, const ivec &bo, const ivec &br);
+    void genstaintris(stainrenderer *s, const mesh &m, int tidx, const vec3 &center, float radius, const matrix4x3 &orient, const ivec &bo, const ivec &br);
  
     void preload();
 };
 
-extern bool mmintersect(const extentity &e, const vec &o, const vec &ray, float maxdist, int mode, float &dist);
+extern bool mmintersect(const extentity &e, const vec3 &o, const vec3 &ray, float maxdist, int mode, float &dist);
 

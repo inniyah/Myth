@@ -48,7 +48,7 @@ struct soundchannel
 {
     int id;
     bool inuse;
-    vec loc;
+    vec3 loc;
     soundslot *slot;
     extentity *ent;
     int radius, volume, pan, flags;
@@ -57,7 +57,7 @@ struct soundchannel
     soundchannel(int id) : id(id) { reset(); }
 
     bool hasloc() const { return loc.x >= -1e15f; }
-    void clearloc() { loc = vec(-1e16f, -1e16f, -1e16f); }
+    void clearloc() { loc = vec3(-1e16f, -1e16f, -1e16f); }
 
     void reset()
     {
@@ -75,7 +75,7 @@ struct soundchannel
 vector<soundchannel> channels;
 int maxchannels = 0;
 
-soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, extentity *ent = NULL, int flags = 0, int radius = 0)
+soundchannel &newchannel(int n, soundslot *slot, const vec3 *loc = NULL, extentity *ent = NULL, int flags = 0, int radius = 0)
 {
     if(ent)
     {
@@ -484,7 +484,7 @@ bool updatechannel(soundchannel &chan)
     int vol = soundvol, pan = 255/2;
     if(chan.hasloc())
     {
-        vec v;
+        vec3 v;
         float dist = chan.loc.dist(camera1->o, v);
         int rad = maxsoundradius;
         if(chan.ent)
@@ -574,7 +574,7 @@ void preloadmapsounds()
     }
 }
 
-int playsound(int n, const vec *loc, extentity *ent, int flags, int loops, int fade, int chanid, int radius, int expire)
+int playsound(int n, const vec3 *loc, extentity *ent, int flags, int loops, int fade, int chanid, int radius, int expire)
 {
     if(nosound || !soundvol || minimized) return -1;
 
@@ -670,7 +670,7 @@ bool stopsound(int n, int chanid, int fade)
     return true;
 }
 
-int playsoundname(const char *s, const vec *loc, int vol, int flags, int loops, int fade, int chanid, int radius, int expire)
+int playsoundname(const char *s, const vec3 *loc, int vol, int flags, int loops, int fade, int chanid, int radius, int expire)
 {
     if(!vol) vol = 100;
     int id = gamesounds.findsound(s, vol);
@@ -742,7 +742,7 @@ COMMAND(resetsound, "");
 struct MumbleInfo
 {
     int version, timestamp;
-    vec pos, front, top;
+    vec3 pos, front, top;
     wchar_t name[256];
 };
 #endif
@@ -802,11 +802,11 @@ void closemumble()
 #endif
 }
 
-static inline vec mumblevec(const vec &v, bool pos = false)
+static inline vec3 mumblevec(const vec3 &v, bool pos = false)
 {
     // change from X left, Z up, Y forward to X right, Y up, Z forward
     // 8 cube units = 1 meter
-    vec m(-v.x, v.z, v.y);
+    vec3 m(-v.x, v.z, v.y);
     if(pos) m.div(8);
     return m;
 }
@@ -822,8 +822,8 @@ void updatemumble()
     mumbleinfo->timestamp = ++timestamp;
 
     mumbleinfo->pos = mumblevec(player->o, true);
-    mumbleinfo->front = mumblevec(vec(player->yaw*RAD, player->pitch*RAD));
-    mumbleinfo->top = mumblevec(vec(player->yaw*RAD, (player->pitch+90)*RAD));
+    mumbleinfo->front = mumblevec(vec3(player->yaw*RAD, player->pitch*RAD));
+    mumbleinfo->top = mumblevec(vec3(player->yaw*RAD, (player->pitch+90)*RAD));
 #endif
 }
 

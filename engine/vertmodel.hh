@@ -1,7 +1,7 @@
 struct vertmodel : animmodel
 {
-    struct vert { vec pos, norm; vec4 tangent; };
-    struct vvert { vec pos; hvec2 tc; squat tangent; };
+    struct vert { vec3 pos, norm; vec4 tangent; };
+    struct vvert { vec3 pos; hvec2 tc; squat tangent; };
     struct vvertg { hvec4 pos; hvec2 tc; squat tangent; };
     struct tcvert { vec2 tc; };
     struct tri { ushort vert[3]; };
@@ -52,11 +52,11 @@ struct vertmodel : animmodel
             mesh::calctangents(verts, tcverts, numverts, tris, numtris, areaweight, ((vertmeshgroup *)group)->numframes);
         }
 
-        void calcbb(vec &bbmin, vec &bbmax, const matrix4x3 &m)
+        void calcbb(vec3 &bbmin, vec3 &bbmax, const matrix4x3 &m)
         {
             loopj(numverts)
             {
-                vec v = m.transform(verts[j].pos);
+                vec3 v = m.transform(verts[j].pos);
                 bbmin.min(v);
                 bbmax.max(v);
             }
@@ -159,8 +159,8 @@ struct vertmodel : animmodel
                        * RESTRICT pvert2 = as.interp<1 ? &verts[as.prev.fr2 * numverts] : NULL;
             #define ipvert(attrib, type) v.attrib.lerp(vert1[i].attrib, vert2[i].attrib, as.cur.t)
             #define ipvertp(attrib, type) v.attrib.lerp(type().lerp(pvert1[i].attrib, pvert2[i].attrib, as.prev.t), type().lerp(vert1[i].attrib, vert2[i].attrib, as.cur.t), as.interp)
-            if(as.interp<1) loopi(numverts) { T &v = vdata[i]; ipvertp(pos, vec); ipvertp(tangent, vec4); }
-            else loopi(numverts) { T &v = vdata[i]; ipvert(pos, vec); ipvert(tangent, vec4); }
+            if(as.interp<1) loopi(numverts) { T &v = vdata[i]; ipvertp(pos, vec3); ipvertp(tangent, vec4); }
+            else loopi(numverts) { T &v = vdata[i]; ipvert(pos, vec3); ipvert(tangent, vec4); }
             #undef ipvert
             #undef ipvertp
         }
@@ -368,7 +368,7 @@ struct vertmodel : animmodel
             if(!vbocache->vbuf) genvbo(*vbocache);
         }
 
-        void render(const animstate *as, float pitch, const vec &axis, const vec &forward, dynent *d, part *p)
+        void render(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, part *p)
         {
             if(as->cur.anim&ANIM_NORENDER)
             {
@@ -474,7 +474,7 @@ template<class MDL> struct vertcommands : modelcommands<MDL, struct MDL::vertmes
               cy = *ry ? cosf(*ry/2*RAD) : 1, sy = *ry ? sinf(*ry/2*RAD) : 0,
               cz = *rz ? cosf(*rz/2*RAD) : 1, sz = *rz ? sinf(*rz/2*RAD) : 0;
         matrix4x3 m(matrix3(quat(sx*cy*cz - cx*sy*sz, cx*sy*cz + sx*cy*sz, cx*cy*sz - sx*sy*cz, cx*cy*cz + sx*sy*sz)),
-                    vec(*tx, *ty, *tz));
+                    vec3(*tx, *ty, *tz));
         ((meshgroup *)mdl.meshes)->addtag(tagname, m);
     }
 

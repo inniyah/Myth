@@ -2,7 +2,7 @@ struct ragdollskel
 {
     struct vert
     {
-        vec pos;
+        vec3 pos;
         float radius, weight;
     };
 
@@ -67,7 +67,7 @@ struct ragdollskel
         {
             joint &j = joints[i];
             j.weight = 0;
-            vec pos(0, 0, 0);
+            vec3 pos(0, 0, 0);
             loopk(3) if(j.vert[k]>=0)
             {
                 pos.add(verts[j.vert[k]].pos);
@@ -79,11 +79,11 @@ struct ragdollskel
 
             tri &t = tris[j.tri];
             matrix4x3 &m = j.orient;
-            const vec &v1 = verts[t.vert[0]].pos,
+            const vec3 &v1 = verts[t.vert[0]].pos,
                       &v2 = verts[t.vert[1]].pos,
                       &v3 = verts[t.vert[2]].pos;
-            m.a = vec(v2).sub(v1).normalize();
-            m.c.cross(m.a, vec(v3).sub(v1)).normalize();
+            m.a = vec3(v2).sub(v1).normalize();
+            m.c.cross(m.a, vec3(v3).sub(v1)).normalize();
             m.b.cross(m.c, m.a);
             m.d = pos;
             m.transpose();
@@ -123,7 +123,7 @@ struct ragdolldata
 {
     struct vert
     {
-        vec oldpos, pos, newpos, undo;
+        vec3 oldpos, pos, newpos, undo;
         float weight;
         bool collided, stuck;
 
@@ -132,7 +132,7 @@ struct ragdolldata
 
     ragdollskel *skel;
     int millis, collidemillis, collisions, floating, lastmove, unsticks;
-    vec offset, center;
+    vec3 offset, center;
     float radius, timestep, scale;
     vert *verts;
     matrix3 *tris;
@@ -169,17 +169,17 @@ struct ragdolldata
     {
         if(!animjoints) return;
         ragdollskel::joint &j = skel->joints[i];
-        vec pos(0, 0, 0);
+        vec3 pos(0, 0, 0);
         loopk(3) if(j.vert[k]>=0) pos.add(verts[j.vert[k]].pos);
         pos.mul(j.weight);
 
         ragdollskel::tri &t = skel->tris[j.tri];
         matrix4x3 m;
-        const vec &v1 = verts[t.vert[0]].pos,
+        const vec3 &v1 = verts[t.vert[0]].pos,
                   &v2 = verts[t.vert[1]].pos,
                   &v3 = verts[t.vert[2]].pos;
-        m.a = vec(v2).sub(v1).normalize();
-        m.c.cross(m.a, vec(v3).sub(v1)).normalize();
+        m.a = vec3(v2).sub(v1).normalize();
+        m.c.cross(m.a, vec3(v3).sub(v1)).normalize();
         m.b.cross(m.c, m.a);
         m.d = pos;
         animjoints[i].transposemul(m, anim);
@@ -191,18 +191,18 @@ struct ragdolldata
         {
             ragdollskel::tri &t = skel->tris[i];
             matrix3 &m = tris[i];
-            const vec &v1 = verts[t.vert[0]].pos,
+            const vec3 &v1 = verts[t.vert[0]].pos,
                       &v2 = verts[t.vert[1]].pos,
                       &v3 = verts[t.vert[2]].pos;
-            m.a = vec(v2).sub(v1).normalize();
-            m.c.cross(m.a, vec(v3).sub(v1)).normalize();
+            m.a = vec3(v2).sub(v1).normalize();
+            m.c.cross(m.a, vec3(v3).sub(v1)).normalize();
             m.b.cross(m.c, m.a);
         }
     }
 
     void calcboundsphere()
     {
-        center = vec(0, 0, 0);
+        center = vec3(0, 0, 0);
         loopv(skel->verts) center.add(verts[i].pos);
         center.div(skel->verts.length());
         radius = 0;
@@ -213,7 +213,7 @@ struct ragdolldata
     {
         extern int ragdolltimestepmin;
         float ts = ragdolltimestepmin/1000.0f;
-        loopv(skel->verts) (verts[i].oldpos = verts[i].pos).sub(vec(d->vel).add(d->falling).mul(ts));
+        loopv(skel->verts) (verts[i].oldpos = verts[i].pos).sub(vec3(d->vel).add(d->falling).mul(ts));
         timestep = ts;
 
         calctris();
@@ -226,13 +226,13 @@ struct ragdolldata
     void move(dynent *pl, float ts);
     void constrain();
     void constraindist();
-    void applyrotlimit(ragdollskel::tri &t1, ragdollskel::tri &t2, float angle, const vec &axis);
+    void applyrotlimit(ragdollskel::tri &t1, ragdollskel::tri &t2, float angle, const vec3 &axis);
     void constrainrot();
     void calcrotfriction();
     void applyrotfriction(float ts);
     void tryunstick(float speed);
 
-    static inline bool collidevert(const vec &pos, const vec &dir, float radius)
+    static inline bool collidevert(const vec3 &pos, const vec3 &dir, float radius)
     {
         static struct vertent : physent
         {
@@ -261,49 +261,49 @@ void ragdolldata::constraindist()
     {
         ragdollskel::distlimit &d = skel->distlimits[i];
         vert &v1 = verts[d.vert[0]], &v2 = verts[d.vert[1]];
-        vec dir = vec(v2.pos).sub(v1.pos);
+        vec3 dir = vec3(v2.pos).sub(v1.pos);
         float dist = dir.magnitude()*invscale, cdist;
         if(dist < d.mindist) cdist = d.mindist;
         else if(dist > d.maxdist) cdist = d.maxdist;
         else continue;
         if(dist > 1e-4f) dir.mul(cdist*0.5f/dist);
-        else dir = vec(0, 0, cdist*0.5f/invscale);
-        vec center = vec(v1.pos).add(v2.pos).mul(0.5f);
-        v1.newpos.add(vec(center).sub(dir));
+        else dir = vec3(0, 0, cdist*0.5f/invscale);
+        vec3 center = vec3(v1.pos).add(v2.pos).mul(0.5f);
+        v1.newpos.add(vec3(center).sub(dir));
         v1.weight++;
-        v2.newpos.add(vec(center).add(dir));
+        v2.newpos.add(vec3(center).add(dir));
         v2.weight++;
     }
 }
 
-inline void ragdolldata::applyrotlimit(ragdollskel::tri &t1, ragdollskel::tri &t2, float angle, const vec &axis)
+inline void ragdolldata::applyrotlimit(ragdollskel::tri &t1, ragdollskel::tri &t2, float angle, const vec3 &axis)
 {
     vert &v1a = verts[t1.vert[0]], &v1b = verts[t1.vert[1]], &v1c = verts[t1.vert[2]],
          &v2a = verts[t2.vert[0]], &v2b = verts[t2.vert[1]], &v2c = verts[t2.vert[2]];
-    vec m1 = vec(v1a.pos).add(v1b.pos).add(v1c.pos).div(3),
-        m2 = vec(v2a.pos).add(v2b.pos).add(v2c.pos).div(3),
+    vec3 m1 = vec3(v1a.pos).add(v1b.pos).add(v1c.pos).div(3),
+        m2 = vec3(v2a.pos).add(v2b.pos).add(v2c.pos).div(3),
         q1a, q1b, q1c, q2a, q2b, q2c;
-    float w1 = q1a.cross(axis, vec(v1a.pos).sub(m1)).magnitude() +
-               q1b.cross(axis, vec(v1b.pos).sub(m1)).magnitude() +
-               q1c.cross(axis, vec(v1c.pos).sub(m1)).magnitude(),
-          w2 = q2a.cross(axis, vec(v2a.pos).sub(m2)).magnitude() +
-               q2b.cross(axis, vec(v2b.pos).sub(m2)).magnitude() +
-               q2c.cross(axis, vec(v2c.pos).sub(m2)).magnitude();
+    float w1 = q1a.cross(axis, vec3(v1a.pos).sub(m1)).magnitude() +
+               q1b.cross(axis, vec3(v1b.pos).sub(m1)).magnitude() +
+               q1c.cross(axis, vec3(v1c.pos).sub(m1)).magnitude(),
+          w2 = q2a.cross(axis, vec3(v2a.pos).sub(m2)).magnitude() +
+               q2b.cross(axis, vec3(v2b.pos).sub(m2)).magnitude() +
+               q2c.cross(axis, vec3(v2c.pos).sub(m2)).magnitude();
     angle /= w1 + w2 + 1e-9f;
     float a1 = angle*w2, a2 = -angle*w1,
           s1 = sinf(a1), s2 = sinf(a2);
-    vec c1 = vec(axis).mul(1 - cosf(a1)), c2 = vec(axis).mul(1 - cosf(a2));
-    v1a.newpos.add(vec().cross(c1, q1a).madd(q1a, s1).add(v1a.pos));
+    vec3 c1 = vec3(axis).mul(1 - cosf(a1)), c2 = vec3(axis).mul(1 - cosf(a2));
+    v1a.newpos.add(vec3().cross(c1, q1a).madd(q1a, s1).add(v1a.pos));
     v1a.weight++;
-    v1b.newpos.add(vec().cross(c1, q1b).madd(q1b, s1).add(v1b.pos));
+    v1b.newpos.add(vec3().cross(c1, q1b).madd(q1b, s1).add(v1b.pos));
     v1b.weight++;
-    v1c.newpos.add(vec().cross(c1, q1c).madd(q1c, s1).add(v1c.pos));
+    v1c.newpos.add(vec3().cross(c1, q1c).madd(q1c, s1).add(v1c.pos));
     v1c.weight++;
-    v2a.newpos.add(vec().cross(c2, q2a).madd(q2a, s2).add(v2a.pos));
+    v2a.newpos.add(vec3().cross(c2, q2a).madd(q2a, s2).add(v2a.pos));
     v2a.weight++;
-    v2b.newpos.add(vec().cross(c2, q2b).madd(q2b, s2).add(v2b.pos));
+    v2b.newpos.add(vec3().cross(c2, q2b).madd(q2b, s2).add(v2b.pos));
     v2b.weight++;
-    v2c.newpos.add(vec().cross(c2, q2c).madd(q2c, s2).add(v2c.pos));
+    v2c.newpos.add(vec3().cross(c2, q2c).madd(q2c, s2).add(v2c.pos));
     v2c.weight++;
 }
 
@@ -317,7 +317,7 @@ void ragdolldata::constrainrot()
         rot.mul(tris[r.tri[0]], r.middle);
         rot.multranspose(tris[r.tri[1]]);
 
-        vec axis;
+        vec3 axis;
         float angle, tr = rot.trace();
         if(tr >= r.maxtrace || !rot.calcangleaxis(tr, angle, axis)) continue;
 
@@ -351,7 +351,7 @@ void ragdolldata::applyrotfriction(float ts)
         rot.mul(tris[r.tri[0]], r.middle);
         rot.multranspose(tris[r.tri[1]]);
 
-        vec axis;
+        vec3 axis;
         float angle;
         if(!rot.calcangleaxis(angle, axis)) continue;
 
@@ -363,21 +363,21 @@ void ragdolldata::applyrotfriction(float ts)
         vert &v = verts[i];
         if(!v.weight) continue;
         v.pos = v.newpos.div(v.weight);
-        v.newpos = vec(0, 0, 0);
+        v.newpos = vec3(0, 0, 0);
         v.weight = 0;
     }
 }
 
 void ragdolldata::tryunstick(float speed)
 {
-    vec unstuck(0, 0, 0);
+    vec3 unstuck(0, 0, 0);
     int stuck = 0;
     loopv(skel->verts)
     {
         vert &v = verts[i];
         if(v.stuck)
         {
-            if(collidevert(v.pos, vec(0, 0, 0), skel->verts[i].radius)) { stuck++; continue; }
+            if(collidevert(v.pos, vec3(0, 0, 0), skel->verts[i].radius)) { stuck++; continue; }
             v.stuck = false;
         }
         unstuck.add(v.pos);
@@ -390,7 +390,7 @@ void ragdolldata::tryunstick(float speed)
         vert &v = verts[i];
         if(v.stuck)
         {
-            v.pos.add(vec(unstuck).sub(v.pos).rescale(speed));
+            v.pos.add(vec3(unstuck).sub(v.pos).rescale(speed));
             unsticks++;
         }
     }
@@ -410,7 +410,7 @@ void ragdolldata::constrain()
             if(v.weight)
             {
                 v.pos = v.newpos.div(v.weight);
-                v.newpos = vec(0, 0, 0);
+                v.newpos = vec3(0, 0, 0);
                 v.weight = 0;
             }
         }
@@ -422,14 +422,14 @@ void ragdolldata::constrain()
             if(v.weight)
             {
                 v.pos = v.newpos.div(v.weight);
-                v.newpos = vec(0, 0, 0);
+                v.newpos = vec3(0, 0, 0);
                 v.weight = 0;
             }
-            if(v.pos != v.undo && collidevert(v.pos, vec(v.pos).sub(v.undo), skel->verts[j].radius))
+            if(v.pos != v.undo && collidevert(v.pos, vec3(v.pos).sub(v.undo), skel->verts[j].radius))
             {
-                vec dir = vec(v.pos).sub(v.oldpos);
+                vec3 dir = vec3(v.pos).sub(v.oldpos);
                 float facing = dir.dot(collidewall);
-                if(facing < 0) v.oldpos = vec(v.undo).sub(dir.msub(collidewall, 2*facing));
+                if(facing < 0) v.oldpos = vec3(v.undo).sub(dir.msub(collidewall, 2*facing));
                 v.pos = v.undo;
                 v.collided = true;
             }
@@ -451,7 +451,7 @@ void ragdolldata::move(dynent *pl, float ts)
     extern const float GRAVITY;
     if(collidemillis && lastmillis > collidemillis) return;
 
-    int material = lookupmaterial(vec(center.x, center.y, center.z + radius/2));
+    int material = lookupmaterial(vec3(center.x, center.y, center.z + radius/2));
     bool water = isliquid(material&MATF_VOLUME);
     if(!pl->inwater && water) game::physicstrigger(pl, true, 0, -1, material&MATF_VOLUME);
     else if(pl->inwater && !water)
@@ -469,7 +469,7 @@ void ragdolldata::move(dynent *pl, float ts)
     loopv(skel->verts)
     {
         vert &v = verts[i];
-        vec dpos = vec(v.pos).sub(v.oldpos);
+        vec3 dpos = vec3(v.pos).sub(v.oldpos);
         dpos.z -= GRAVITY*ts*ts;
         if(water) dpos.z += 0.25f*sinf(detrnd(size_t(this)+i, 360)*RAD + lastmillis/10000.0f*M_PI)*ts;
         dpos.mul(pow((water ? ragdollwaterfric : 1.0f) * (v.collided ? ragdollgroundfric : airfric), ts*1000.0f/ragdolltimestepmin)*tsfric);
@@ -481,7 +481,7 @@ void ragdolldata::move(dynent *pl, float ts)
     {
         vert &v = verts[i];
         if(v.pos.z < 0) { v.pos.z = 0; v.oldpos = v.pos; collisions++; }
-        vec dir = vec(v.pos).sub(v.oldpos);
+        vec3 dir = vec3(v.pos).sub(v.oldpos);
         v.collided = collidevert(v.pos, dir, skel->verts[i].radius);
         if(v.collided)
         {
@@ -524,7 +524,7 @@ void moveragdoll(dynent *d)
         }
     }
 
-    vec eye = d->ragdoll->skel->eye >= 0 ? d->ragdoll->verts[d->ragdoll->skel->eye].pos : d->ragdoll->center;
+    vec3 eye = d->ragdoll->skel->eye >= 0 ? d->ragdoll->verts[d->ragdoll->skel->eye].pos : d->ragdoll->center;
     eye.add(d->ragdoll->offset);
     float k = pow(ragdolleyesmooth, float(curtime)/ragdolleyesmoothmillis);
     d->o.lerp(eye, 1-k);

@@ -45,8 +45,8 @@ namespace gle
         static inline void name##suffix(type x, type y, type z, type w) { glVertexAttrib4##suffix##_(index, x, y, z, w); }
     #define GLE_INITATTRIBF(name, index) \
         GLE_INITATTRIB(name, index, f, float) \
-        static inline void name(const vec &v) { glVertexAttrib3fv_(index, v.v); } \
-        static inline void name(const vec &v, float w) { glVertexAttrib4f_(index, v.x, v.y, v.z, w); } \
+        static inline void name(const vec3 &v) { glVertexAttrib3fv_(index, v.v); } \
+        static inline void name(const vec3 &v, float w) { glVertexAttrib4f_(index, v.x, v.y, v.z, w); } \
         static inline void name(const vec2 &v) { glVertexAttrib2fv_(index, v.v); } \
         static inline void name(const vec4 &v) { glVertexAttrib4fv_(index, v.v); }
     #define GLE_INITATTRIBN(name, index, suffix, type, defaultw) \
@@ -60,9 +60,9 @@ namespace gle
     GLE_INITATTRIBF(texcoord0, ATTRIB_TEXCOORD0)
     GLE_INITATTRIBF(texcoord1, ATTRIB_TEXCOORD1)
     static inline void normal(float x, float y, float z) { glVertexAttrib4f_(ATTRIB_NORMAL, x, y, z, 0.0f); }
-    static inline void normal(const vec &v) { glVertexAttrib4f_(ATTRIB_NORMAL, v.x, v.y, v.z, 0.0f); }
+    static inline void normal(const vec3 &v) { glVertexAttrib4f_(ATTRIB_NORMAL, v.x, v.y, v.z, 0.0f); }
     static inline void tangent(float x, float y, float z, float w = 1.0f) { glVertexAttrib4f_(ATTRIB_TANGENT, x, y, z, w); }
-    static inline void tangent(const vec &v, float w = 1.0f) { glVertexAttrib4f_(ATTRIB_TANGENT, v.x, v.y, v.z, w); }
+    static inline void tangent(const vec3 &v, float w = 1.0f) { glVertexAttrib4f_(ATTRIB_TANGENT, v.x, v.y, v.z, w); }
     static inline void tangent(const vec4 &v) { glVertexAttrib4fv_(ATTRIB_TANGENT, v.v); }
 
     #define GLE_ATTRIBPOINTER(name, index, defaultnormalized, defaultsize, defaulttype, prepare) \
@@ -156,8 +156,8 @@ namespace gle
     GLE_ATTRIB(i, int)
     GLE_ATTRIB(ui, uint)
 
-    static inline void attrib(const vec &v) { attribf(v.x, v.y, v.z); }
-    static inline void attrib(const vec &v, float w) { attribf(v.x, v.y, v.z, w); }
+    static inline void attrib(const vec3 &v) { attribf(v.x, v.y, v.z); }
+    static inline void attrib(const vec3 &v, float w) { attribf(v.x, v.y, v.z, w); }
     static inline void attrib(const vec2 &v) { attribf(v.x, v.y); }
     static inline void attrib(const vec4 &v) { attribf(v.x, v.y, v.z, v.w); }
     static inline void attrib(const ivec &v) { attribi(v.x, v.y, v.z); }

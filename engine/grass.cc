@@ -11,16 +11,16 @@ VARP(grassheight, 1, 4, 64);
 
 static struct grasswedge
 {
-    vec dir, across, edge1, edge2;
+    vec3 dir, across, edge1, edge2;
     plane bound1, bound2;
 
     grasswedge(int i) :
       dir(2*M_PI*(i+0.5f)/float(NUMGRASSWEDGES), 0),
       across(2*M_PI*((i+0.5f)/float(NUMGRASSWEDGES) + 0.25f), 0),
-      edge1(vec(2*M_PI*i/float(NUMGRASSWEDGES), 0).div(cos(M_PI/NUMGRASSWEDGES))),
-      edge2(vec(2*M_PI*(i+1)/float(NUMGRASSWEDGES), 0).div(cos(M_PI/NUMGRASSWEDGES))),
-      bound1(vec(2*M_PI*(i/float(NUMGRASSWEDGES) - 0.25f), 0), 0),
-      bound2(vec(2*M_PI*((i+1)/float(NUMGRASSWEDGES) + 0.25f), 0), 0)
+      edge1(vec3(2*M_PI*i/float(NUMGRASSWEDGES), 0).div(cos(M_PI/NUMGRASSWEDGES))),
+      edge2(vec3(2*M_PI*(i+1)/float(NUMGRASSWEDGES), 0).div(cos(M_PI/NUMGRASSWEDGES))),
+      bound1(vec3(2*M_PI*(i/float(NUMGRASSWEDGES) - 0.25f), 0), 0),
+      bound2(vec3(2*M_PI*((i+1)/float(NUMGRASSWEDGES) + 0.25f), 0), 0)
     {
         across.div(-across.dot(bound1));
     }
@@ -28,7 +28,7 @@ static struct grasswedge
 
 struct grassvert
 {
-    vec pos;
+    vec3 pos;
     bvec4 color;
     vec2 tc;
 };
@@ -80,7 +80,7 @@ static void gengrassquads(grassgroup *&group, const grasswedge &w, const grasstr
         numsteps = maxstep - minstep + 1;
 
     float texscale = (grassscale*tex->ys)/float(grassheight*tex->xs), animscale = grassheight*texscale;
-    vec tc;
+    vec3 tc;
     tc.cross(g.surface, w.dir).mul(texscale);
 
     int offset = tstep + maxstep;
@@ -88,14 +88,14 @@ static void gengrassquads(grassgroup *&group, const grasswedge &w, const grasstr
     offset += numsteps + NUMGRASSOFFSETS - numsteps%NUMGRASSOFFSETS;
 
     float leftdist = t0;
-    const vec *leftv = &g.v[0];
+    const vec3 *leftv = &g.v[0];
     if(t1 > leftdist) { leftv = &g.v[1]; leftdist = t1; }
     if(t2 > leftdist) { leftv = &g.v[2]; leftdist = t2; }
     if(t3 > leftdist) { leftv = &g.v[3]; leftdist = t3; }
     float rightdist = leftdist;
-    const vec *rightv = leftv;
+    const vec3 *rightv = leftv;
 
-    vec across(w.across.x, w.across.y, g.surface.zdelta(w.across)), leftdir(0, 0, 0), rightdir(0, 0, 0), leftp = *leftv, rightp = *rightv;
+    vec3 across(w.across.x, w.across.y, g.surface.zdelta(w.across)), leftdir(0, 0, 0), rightdir(0, 0, 0), leftp = *leftv, rightp = *rightv;
     float taperdist = grassdist*grasstaper,
           taperscale = 1.0f / (grassdist - taperdist),
           dist = maxstep*grassstep + tstart,
@@ -104,7 +104,7 @@ static void gengrassquads(grassgroup *&group, const grasswedge &w, const grasstr
     {
         if(dist <= leftdist)
         {
-            const vec *prev = leftv;
+            const vec3 *prev = leftv;
             float prevdist = leftdist;
             if(--leftv < g.v) leftv += g.numv;
             leftdist = leftv->dot(w.dir);
@@ -115,15 +115,15 @@ static void gengrassquads(grassgroup *&group, const grasswedge &w, const grasstr
                 if(--leftv < g.v) leftv += g.numv;
                 leftdist = leftv->dot(w.dir);
             }
-            leftdir = vec(*leftv).sub(*prev);
+            leftdir = vec3(*leftv).sub(*prev);
             leftdir.mul(grassstep/-w.dir.dot(leftdir));
-            leftp = vec(leftdir).mul((prevdist - dist)/grassstep).add(*prev);
+            leftp = vec3(leftdir).mul((prevdist - dist)/grassstep).add(*prev);
             leftb = w.bound1.dist(leftp);
             leftdb = w.bound1.dot(leftdir);
         }
         if(dist <= rightdist)
         {
-            const vec *prev = rightv;
+            const vec3 *prev = rightv;
             float prevdist = rightdist;
             if(++rightv >= &g.v[g.numv]) rightv = g.v;
             rightdist = rightv->dot(w.dir);
@@ -134,22 +134,22 @@ static void gengrassquads(grassgroup *&group, const grasswedge &w, const grasstr
                 if(++rightv >= &g.v[g.numv]) rightv = g.v;
                 rightdist = rightv->dot(w.dir);
             }
-            rightdir = vec(*rightv).sub(*prev);
+            rightdir = vec3(*rightv).sub(*prev);
             rightdir.mul(grassstep/-w.dir.dot(rightdir));
-            rightp = vec(rightdir).mul((prevdist - dist)/grassstep).add(*prev);
+            rightp = vec3(rightdir).mul((prevdist - dist)/grassstep).add(*prev);
             rightb = w.bound2.dist(rightp);
             rightdb = w.bound2.dot(rightdir);
         }
-        vec p1 = leftp, p2 = rightp;
+        vec3 p1 = leftp, p2 = rightp;
         if(leftb > 0)
         {
             if(w.bound1.dist(p2) >= 0) continue;
-            p1.add(vec(across).mul(leftb));
+            p1.add(vec3(across).mul(leftb));
         }
         if(rightb > 0)
         {
             if(w.bound2.dist(p1) >= 0) continue;
-            p2.sub(vec(across).mul(rightb));
+            p2.sub(vec3(across).mul(rightb));
         }
 
         if(grassverts.length() >= 4*maxgrass) break;

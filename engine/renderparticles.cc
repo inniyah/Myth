@@ -32,8 +32,8 @@ VAR(dbgpseed, 0, 0, 1);
 struct particleemitter
 {
     extentity *ent;
-    vec bbmin, bbmax;
-    vec center;
+    vec3 bbmin, bbmax;
+    vec3 center;
     float radius;
     ivec cullmin, cullmax;
     int maxfade, lastemit, lastcull;
@@ -44,14 +44,14 @@ struct particleemitter
 
     void finalize()
     {
-        center = vec(bbmin).add(bbmax).mul(0.5f);
+        center = vec3(bbmin).add(bbmax).mul(0.5f);
         radius = bbmin.dist(bbmax)/2;
         cullmin = ivec::floor(bbmin);
         cullmax = ivec::ceil(bbmax);
         if(dbgpseed) conoutf(CON_DEBUG, "radius: %f, maxfade: %d", radius, maxfade);
     }
 
-    void extendbb(const vec &o, float size = 0)
+    void extendbb(const vec3 &o, float size = 0)
     {
         bbmin.x = min(bbmin.x, o.x - size);
         bbmin.y = min(bbmin.y, o.y - size);
@@ -126,7 +126,7 @@ const char *partnames[] = { "part", "tape", "trail", "text", "textup", "meter", 
 
 struct particle
 {
-    vec o, d;
+    vec3 o, d;
     int gravity, fade, millis;
     bvec color;
     uchar flags;
@@ -146,7 +146,7 @@ struct particle
 
 struct partvert
 {
-    vec pos;
+    vec3 pos;
     bvec4 color;
     vec2 tc;
 };
@@ -178,14 +178,14 @@ struct partrenderer
     virtual void init(int n) { }
     virtual void reset() = 0;
     virtual void resettracked(physent *owner) { }
-    virtual particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity = 0) = 0;
+    virtual particle *addpart(const vec3 &o, const vec3 &d, int fade, int color, float size, int gravity = 0) = 0;
     virtual void update() { }
     virtual void render() = 0;
     virtual bool haswork() = 0;
     virtual int count() = 0; //for debug
     virtual void cleanup() {}
 
-    virtual void seedemitter(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int gravity)
+    virtual void seedemitter(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int gravity)
     {
     }
 
@@ -195,7 +195,7 @@ struct partrenderer
     }
 
     //blend = 0 => remove it
-    void calc(particle *p, int &blend, int &ts, vec &o, vec &d, bool step = true)
+    void calc(particle *p, int &blend, int &ts, vec3 &o, vec3 &d, bool step = true)
     {
         o = p->o;
         d = p->d;
@@ -213,21 +213,21 @@ struct partrenderer
             {
                 if(ts > p->fade) ts = p->fade;
                 float t = ts;
-                o.add(vec(d).mul(t/5000.0f));
+                o.add(vec3(d).mul(t/5000.0f));
                 o.z -= t*t/(2.0f * 5000.0f * p->gravity);
             }
             if(type&PT_COLLIDE && o.z < p->val && step)
             {
                 if(stain >= 0)
                 {
-                    vec surface;
-                    float floorz = rayfloor(vec(o.x, o.y, p->val), surface, RAY_CLIPMAT, COLLIDERADIUS);
+                    vec3 surface;
+                    float floorz = rayfloor(vec3(o.x, o.y, p->val), surface, RAY_CLIPMAT, COLLIDERADIUS);
                     float collidez = floorz<0 ? o.z-COLLIDERADIUS : p->val - floorz;
                     if(o.z >= collidez+COLLIDEERROR)
                         p->val = collidez+COLLIDEERROR;
                     else
                     {
-                        addstain(stain, vec(o.x, o.y, collidez), vec(p->o).sub(o).normalize(), 2*p->size, p->color, type&PT_RND4 ? (p->flags>>5)&3 : 0);
+                        addstain(stain, vec3(o.x, o.y, collidez), vec3(p->o).sub(o).normalize(), 2*p->size, p->color, type&PT_RND4 ? (p->flags>>5)&3 : 0);
                         blend = 0;
                     }
                 }
@@ -314,7 +314,7 @@ struct listrenderer : partrenderer
         }
     }
 
-    particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity)
+    particle *addpart(const vec3 &o, const vec3 &d, int fade, int color, float size, int gravity)
     {
         if(!parempty)
         {
@@ -354,11 +354,11 @@ struct listrenderer : partrenderer
 
     virtual void startrender() = 0;
     virtual void endrender() = 0;
-    virtual void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts) = 0;
+    virtual void renderpart(listparticle *p, const vec3 &o, const vec3 &d, int blend, int ts) = 0;
 
     bool renderpart(listparticle *p)
     {
-        vec o, d;
+        vec3 o, d;
         int blend, ts;
         calc(p, blend, ts, o, d, canstep);
         if(blend <= 0) return false;
@@ -405,11 +405,11 @@ struct meterrenderer : listrenderer
          glEnable(GL_BLEND);
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts)
+    void renderpart(listparticle *p, const vec3 &o, const vec3 &d, int blend, int ts)
     {
         int basetype = type&0xFF;
         float scale = FONTH*p->size/80.0f, right = 8, left = p->progress/100.0f*right;
-        matrix4x3 m(camright, vec(camup).neg(), vec(camdir).neg(), o);
+        matrix4x3 m(camright, vec3(camup).neg(), vec3(camdir).neg(), o);
         m.scale(scale);
         m.translate(-right/2.0f, 0, 0);
 
@@ -492,12 +492,12 @@ struct textrenderer : listrenderer
         if(p->text && p->flags&1) delete[] p->text;
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts)
+    void renderpart(listparticle *p, const vec3 &o, const vec3 &d, int blend, int ts)
     {
         float scale = p->size/80.0f, xoff = -text_width(p->text)/2, yoff = 0;
         if((type&0xFF)==PT_TEXTUP) { xoff += detrnd((size_t)p, 100)-50; yoff -= detrnd((size_t)p, 101); }
 
-        matrix4x3 m(camright, vec(camup).neg(), vec(camdir).neg(), o);
+        matrix4x3 m(camright, vec3(camup).neg(), vec3(camdir).neg(), o);
         m.scale(scale);
         m.translate(xoff, yoff, 50);
 
@@ -509,49 +509,49 @@ struct textrenderer : listrenderer
 static textrenderer texts;
 
 template<int T>
-static inline void modifyblend(const vec &o, int &blend)
+static inline void modifyblend(const vec3 &o, int &blend)
 {
     blend = min(blend<<2, 255);
 }
 
 template<>
-inline void modifyblend<PT_TAPE>(const vec &o, int &blend)
+inline void modifyblend<PT_TAPE>(const vec3 &o, int &blend)
 {
 }
 
 template<int T>
-static inline void genpos(const vec &o, const vec &d, float size, int grav, int ts, partvert *vs)
+static inline void genpos(const vec3 &o, const vec3 &d, float size, int grav, int ts, partvert *vs)
 {
-    vec udir = vec(camup).sub(camright).mul(size);
-    vec vdir = vec(camup).add(camright).mul(size);
-    vs[0].pos = vec(o.x + udir.x, o.y + udir.y, o.z + udir.z);
-    vs[1].pos = vec(o.x + vdir.x, o.y + vdir.y, o.z + vdir.z);
-    vs[2].pos = vec(o.x - udir.x, o.y - udir.y, o.z - udir.z);
-    vs[3].pos = vec(o.x - vdir.x, o.y - vdir.y, o.z - vdir.z);
+    vec3 udir = vec3(camup).sub(camright).mul(size);
+    vec3 vdir = vec3(camup).add(camright).mul(size);
+    vs[0].pos = vec3(o.x + udir.x, o.y + udir.y, o.z + udir.z);
+    vs[1].pos = vec3(o.x + vdir.x, o.y + vdir.y, o.z + vdir.z);
+    vs[2].pos = vec3(o.x - udir.x, o.y - udir.y, o.z - udir.z);
+    vs[3].pos = vec3(o.x - vdir.x, o.y - vdir.y, o.z - vdir.z);
 }
 
 template<>
-inline void genpos<PT_TAPE>(const vec &o, const vec &d, float size, int ts, int grav, partvert *vs)
+inline void genpos<PT_TAPE>(const vec3 &o, const vec3 &d, float size, int ts, int grav, partvert *vs)
 {
-    vec dir1 = vec(d).sub(o), dir2 = vec(d).sub(camera1->o), c;
+    vec3 dir1 = vec3(d).sub(o), dir2 = vec3(d).sub(camera1->o), c;
     c.cross(dir2, dir1).normalize().mul(size);
-    vs[0].pos = vec(d.x-c.x, d.y-c.y, d.z-c.z);
-    vs[1].pos = vec(o.x-c.x, o.y-c.y, o.z-c.z);
-    vs[2].pos = vec(o.x+c.x, o.y+c.y, o.z+c.z);
-    vs[3].pos = vec(d.x+c.x, d.y+c.y, d.z+c.z);
+    vs[0].pos = vec3(d.x-c.x, d.y-c.y, d.z-c.z);
+    vs[1].pos = vec3(o.x-c.x, o.y-c.y, o.z-c.z);
+    vs[2].pos = vec3(o.x+c.x, o.y+c.y, o.z+c.z);
+    vs[3].pos = vec3(d.x+c.x, d.y+c.y, d.z+c.z);
 }
 
 template<>
-inline void genpos<PT_TRAIL>(const vec &o, const vec &d, float size, int ts, int grav, partvert *vs)
+inline void genpos<PT_TRAIL>(const vec3 &o, const vec3 &d, float size, int ts, int grav, partvert *vs)
 {
-    vec e = d;
+    vec3 e = d;
     if(grav) e.z -= float(ts)/grav;
     e.div(-75.0f).add(o);
     genpos<PT_TAPE>(o, e, size, ts, grav, vs);
 }
 
 template<int T>
-static inline void genrotpos(const vec &o, const vec &d, float size, int grav, int ts, partvert *vs, int rot)
+static inline void genrotpos(const vec3 &o, const vec3 &d, float size, int grav, int ts, partvert *vs, int rot)
 {
     genpos<T>(o, d, size, grav, ts, vs);
 }
@@ -571,22 +571,22 @@ static const vec2 rotcoeffs[32][4] =
 };
 
 template<>
-inline void genrotpos<PT_PART>(const vec &o, const vec &d, float size, int grav, int ts, partvert *vs, int rot)
+inline void genrotpos<PT_PART>(const vec3 &o, const vec3 &d, float size, int grav, int ts, partvert *vs, int rot)
 {
     const vec2 *coeffs = rotcoeffs[rot];
-    vs[0].pos = vec(o).madd(camright, coeffs[0].x*size).madd(camup, coeffs[0].y*size);
-    vs[1].pos = vec(o).madd(camright, coeffs[1].x*size).madd(camup, coeffs[1].y*size);
-    vs[2].pos = vec(o).madd(camright, coeffs[2].x*size).madd(camup, coeffs[2].y*size);
-    vs[3].pos = vec(o).madd(camright, coeffs[3].x*size).madd(camup, coeffs[3].y*size);
+    vs[0].pos = vec3(o).madd(camright, coeffs[0].x*size).madd(camup, coeffs[0].y*size);
+    vs[1].pos = vec3(o).madd(camright, coeffs[1].x*size).madd(camup, coeffs[1].y*size);
+    vs[2].pos = vec3(o).madd(camright, coeffs[2].x*size).madd(camup, coeffs[2].y*size);
+    vs[3].pos = vec3(o).madd(camright, coeffs[3].x*size).madd(camup, coeffs[3].y*size);
 }
 
 template<int T>
-static inline void seedpos(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int grav)
+static inline void seedpos(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int grav)
 {
     if(grav)
     {
         float t = fade;
-        vec end = vec(o).madd(d, t/5000.0f);
+        vec3 end = vec3(o).madd(d, t/5000.0f);
         end.z -= t*t/(2.0f * 5000.0f * grav);
         pe.extendbb(end, size);
 
@@ -596,15 +596,15 @@ static inline void seedpos(particleemitter &pe, const vec &o, const vec &d, int 
 }
 
 template<>
-inline void seedpos<PT_TAPE>(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int grav)
+inline void seedpos<PT_TAPE>(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int grav)
 {
     pe.extendbb(d, size);
 }
 
 template<>
-inline void seedpos<PT_TRAIL>(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int grav)
+inline void seedpos<PT_TRAIL>(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int grav)
 {
-    vec e = d;
+    vec3 e = d;
     if(grav) e.z -= float(fade)/grav;
     e.div(-75.0f).add(o);
     pe.extendbb(e, size);
@@ -671,7 +671,7 @@ struct varenderer : partrenderer
         return (numparts > 0);
     }
 
-    particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity)
+    particle *addpart(const vec3 &o, const vec3 &d, int fade, int color, float size, int gravity)
     {
         particle *p = parts + (numparts < maxparts ? numparts++ : rnd(maxparts)); //next free slot, or kill a random kitten
         p->o = o;
@@ -687,7 +687,7 @@ struct varenderer : partrenderer
         return p;
     }
 
-    void seedemitter(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int gravity)
+    void seedemitter(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int gravity)
     {
         pe.maxfade = max(pe.maxfade, fade);
         size *= SQRT2;
@@ -696,9 +696,9 @@ struct varenderer : partrenderer
         seedpos<T>(pe, o, d, fade, size, gravity);
         if(!gravity) return;
 
-        vec end(o);
+        vec3 end(o);
         float t = fade;
-        end.add(vec(d).mul(t/5000.0f));
+        end.add(vec3(d).mul(t/5000.0f));
         end.z -= t*t/(2.0f * 5000.0f * gravity);
         pe.extendbb(end, size);
 
@@ -708,7 +708,7 @@ struct varenderer : partrenderer
 
     void genverts(particle *p, partvert *vs, bool regen)
     {
-        vec o, d;
+        vec3 o, d;
         int blend, ts;
 
         calc(p, blend, ts, o, d);
@@ -987,7 +987,7 @@ void renderparticles(int layer)
 
 static int addedparticles = 0;
 
-static inline particle *newparticle(const vec &o, const vec &d, int fade, int type, int color, float size, int gravity = 0)
+static inline particle *newparticle(const vec3 &o, const vec3 &d, int fade, int type, int color, float size, int gravity = 0)
 {
     static particle dummy;
     if(seedemitter)
@@ -1002,10 +1002,10 @@ static inline particle *newparticle(const vec &o, const vec &d, int fade, int ty
 
 VARP(maxparticledistance, 256, 1024, 4096);
 
-static void splash(int type, int color, int radius, int num, int fade, const vec &p, float size, int gravity)
+static void splash(int type, int color, int radius, int num, int fade, const vec3 &p, float size, int gravity)
 {
     if(camera1->o.dist(p) > maxparticledistance && !seedemitter) return;
-    float collidez = parts[type]->type&PT_COLLIDE ? p.z - raycube(p, vec(0, 0, -1), COLLIDERADIUS, RAY_CLIPMAT) + (parts[type]->stain >= 0 ? COLLIDEERROR : 0) : -1;
+    float collidez = parts[type]->type&PT_COLLIDE ? p.z - raycube(p, vec3(0, 0, -1), COLLIDERADIUS, RAY_CLIPMAT) + (parts[type]->stain >= 0 ? COLLIDEERROR : 0) : -1;
     int fmin = 1;
     int fmax = fade*3;
     loopi(num)
@@ -1018,13 +1018,13 @@ static void splash(int type, int color, int radius, int num, int fade, const vec
             z = rnd(radius*2)-radius;
         }
         while(x*x+y*y+z*z>radius*radius);
-        vec tmp = vec((float)x, (float)y, (float)z);
+        vec3 tmp = vec3((float)x, (float)y, (float)z);
         int f = (num < 10) ? (fmin + rnd(fmax)) : (fmax - (i*(fmax-fmin))/(num-1)); //help deallocater by using fade distribution rather than random
         newparticle(p, tmp, f, type, color, size, gravity)->val = collidez;
     }
 }
 
-static void regularsplash(int type, int color, int radius, int num, int fade, const vec &p, float size, int gravity, int delay = 0)
+static void regularsplash(int type, int color, int radius, int num, int fade, const vec3 &p, float size, int gravity, int delay = 0)
 {
     if(!canemitparticles() || (delay > 0 && rnd(delay) != 0)) return;
     splash(type, color, radius, num, fade, p, size, gravity);
@@ -1035,13 +1035,13 @@ bool canaddparticles()
     return !minimized;
 }
 
-void regular_particle_splash(int type, int num, int fade, const vec &p, int color, float size, int radius, int gravity, int delay)
+void regular_particle_splash(int type, int num, int fade, const vec3 &p, int color, float size, int radius, int gravity, int delay)
 {
     if(!canaddparticles()) return;
     regularsplash(type, color, radius, num, fade, p, size, gravity, delay);
 }
 
-void particle_splash(int type, int num, int fade, const vec &p, int color, float size, int radius, int gravity)
+void particle_splash(int type, int num, int fade, const vec3 &p, int color, float size, int radius, int gravity)
 {
     if(!canaddparticles()) return;
     splash(type, color, radius, num, fade, p, size, gravity);
@@ -1049,18 +1049,18 @@ void particle_splash(int type, int num, int fade, const vec &p, int color, float
 
 VARP(maxtrail, 1, 500, 10000);
 
-void particle_trail(int type, int fade, const vec &s, const vec &e, int color, float size, int gravity)
+void particle_trail(int type, int fade, const vec3 &s, const vec3 &e, int color, float size, int gravity)
 {
     if(!canaddparticles()) return;
-    vec v;
+    vec3 v;
     float d = e.dist(s, v);
     int steps = clamp(int(d*2), 1, maxtrail);
     v.div(steps);
-    vec p = s;
+    vec3 p = s;
     loopi(steps)
     {
         p.add(v);
-        vec tmp = vec(float(rnd(11)-5), float(rnd(11)-5), float(rnd(11)-5));
+        vec3 tmp = vec3(float(rnd(11)-5), float(rnd(11)-5), float(rnd(11)-5));
         newparticle(p, tmp, rnd(fade)+fade, type, color, size, gravity);
     }
 }
@@ -1068,58 +1068,58 @@ void particle_trail(int type, int fade, const vec &s, const vec &e, int color, f
 VARP(particletext, 0, 1, 1);
 VARP(maxparticletextdistance, 0, 128, 10000);
 
-void particle_text(const vec &s, const char *t, int type, int fade, int color, float size, int gravity)
+void particle_text(const vec3 &s, const char *t, int type, int fade, int color, float size, int gravity)
 {
     if(!canaddparticles()) return;
     if(!particletext || camera1->o.dist(s) > maxparticletextdistance) return;
-    particle *p = newparticle(s, vec(0, 0, 1), fade, type, color, size, gravity);
+    particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size, gravity);
     p->text = t;
 }
 
-void particle_textcopy(const vec &s, const char *t, int type, int fade, int color, float size, int gravity)
+void particle_textcopy(const vec3 &s, const char *t, int type, int fade, int color, float size, int gravity)
 {
     if(!canaddparticles()) return;
     if(!particletext || camera1->o.dist(s) > maxparticletextdistance) return;
-    particle *p = newparticle(s, vec(0, 0, 1), fade, type, color, size, gravity);
+    particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size, gravity);
     p->text = newstring(t);
     p->flags = 1;
 }
 
-void particle_icon(const vec &s, int ix, int iy, int type, int fade, int color, float size, int gravity)
+void particle_icon(const vec3 &s, int ix, int iy, int type, int fade, int color, float size, int gravity)
 {
     if(!canaddparticles()) return;
-    particle *p = newparticle(s, vec(0, 0, 1), fade, type, color, size, gravity);
+    particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size, gravity);
     p->flags |= ix | (iy<<2);
 }
 
-void particle_meter(const vec &s, float val, int type, int fade, int color, int color2, float size)
+void particle_meter(const vec3 &s, float val, int type, int fade, int color, int color2, float size)
 {
     if(!canaddparticles()) return;
-    particle *p = newparticle(s, vec(0, 0, 1), fade, type, color, size);
+    particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size);
     p->color2[0] = color2>>16;
     p->color2[1] = (color2>>8)&0xFF;
     p->color2[2] = color2&0xFF;
     p->progress = clamp(int(val*100), 0, 100);
 }
 
-void particle_flare(const vec &p, const vec &dest, int fade, int type, int color, float size, physent *owner)
+void particle_flare(const vec3 &p, const vec3 &dest, int fade, int type, int color, float size, physent *owner)
 {
     if(!canaddparticles()) return;
     newparticle(p, dest, fade, type, color, size)->owner = owner;
 }
 
-void particle_fireball(const vec &dest, float maxsize, int type, int fade, int color, float size)
+void particle_fireball(const vec3 &dest, float maxsize, int type, int fade, int color, float size)
 {
     if(!canaddparticles()) return;
     float growth = maxsize - size;
     if(fade < 0) fade = int(growth*20);
-    newparticle(dest, vec(0, 0, 1), fade, type, color, size)->val = growth;
+    newparticle(dest, vec3(0, 0, 1), fade, type, color, size)->val = growth;
 }
 
 //dir = 0..6 where 0=up
-static inline vec offsetvec(vec o, int dir, int dist)
+static inline vec3 offsetvec(vec3 o, int dir, int dist)
 {
-    vec v = vec(o);
+    vec3 v = vec3(o);
     v[(2+dir)%3] += (dir>2)?(-dist):dist;
     return v;
 }
@@ -1141,7 +1141,7 @@ static inline int colorfromattr(int attr)
  * 24..26 flat plane
  * +32 to inverse direction
  */
-static void regularshape(int type, int radius, int color, int dir, int num, int fade, const vec &p, float size, int gravity, int vel = 200)
+static void regularshape(int type, int radius, int color, int dir, int num, int fade, const vec3 &p, float size, int gravity, int vel = 200)
 {
     if(!canemitparticles()) return;
 
@@ -1151,7 +1151,7 @@ static void regularshape(int type, int radius, int color, int dir, int num, int 
     dir &= 0x1F;
     loopi(num)
     {
-        vec to, from;
+        vec3 to, from;
         if(dir < 12)
         {
             const vec2 &sc = sincos360[rnd(360)];
@@ -1201,7 +1201,7 @@ static void regularshape(int type, int radius, int color, int dir, int num, int 
         }
         else if(dir < 24) //sphere
         {
-            to = vec(2*M_PI*float(rnd(1000))/1000.0, M_PI*float(rnd(1000)-500)/1000.0).mul(radius);
+            to = vec3(2*M_PI*float(rnd(1000))/1000.0, M_PI*float(rnd(1000)-500)/1000.0).mul(radius);
             to.add(p);
             from = p;
         }
@@ -1231,30 +1231,30 @@ static void regularshape(int type, int radius, int color, int dir, int num, int 
             newparticle(from, to, rnd(fade*3)+1, type, color, size, gravity);
         else
         {
-            vec d = vec(to).sub(from).rescale(vel); //velocity
+            vec3 d = vec3(to).sub(from).rescale(vel); //velocity
             particle *n = newparticle(from, d, rnd(fade*3)+1, type, color, size, gravity);
             if(parts[type]->type&PT_COLLIDE)
-                n->val = from.z - raycube(from, vec(0, 0, -1), parts[type]->stain >= 0 ? COLLIDERADIUS : max(from.z, 0.0f), RAY_CLIPMAT) + (parts[type]->stain >= 0 ? COLLIDEERROR : 0);
+                n->val = from.z - raycube(from, vec3(0, 0, -1), parts[type]->stain >= 0 ? COLLIDERADIUS : max(from.z, 0.0f), RAY_CLIPMAT) + (parts[type]->stain >= 0 ? COLLIDEERROR : 0);
         }
     }
 }
 
-static void regularflame(int type, const vec &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15)
+static void regularflame(int type, const vec3 &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15)
 {
     if(!canemitparticles()) return;
 
     float size = scale * min(radius, height);
-    vec v(0, 0, min(1.0f, height)*speed);
+    vec3 v(0, 0, min(1.0f, height)*speed);
     loopi(density)
     {
-        vec s = p;
+        vec3 s = p;
         s.x += rndscale(radius*2.0f)-radius;
         s.y += rndscale(radius*2.0f)-radius;
         newparticle(s, v, rnd(max(int(fade*height), 1))+1, type, color, size, gravity);
     }
 }
 
-void regular_particle_flame(int type, const vec &p, float radius, float height, int color, int density, float scale, float speed, float fade, int gravity)
+void regular_particle_flame(int type, const vec3 &p, float radius, float height, int color, int density, float scale, float speed, float fade, int gravity)
 {
     if(!canaddparticles()) return;
     regularflame(type, p, radius, height, color, density, scale, speed, fade, gravity);
@@ -1269,7 +1269,7 @@ static void makeparticles(entity &e)
             float radius = e.attr2 ? float(e.attr2)/100.0f : 1.5f,
                   height = e.attr3 ? float(e.attr3)/100.0f : radius/3;
             regularflame(PART_FLAME, e.o, radius, height, e.attr4 ? colorfromattr(e.attr4) : 0x903020, 3, 2.0f);
-            regularflame(PART_SMOKE, vec(e.o.x, e.o.y, e.o.z + 4.0f*min(radius, height)), radius, height, 0x303020, 1, 4.0f, 100.0f, 2000.0f, -20);
+            regularflame(PART_SMOKE, vec3(e.o.x, e.o.y, e.o.z + 4.0f*min(radius, height)), radius, height, 0x303020, 1, 4.0f, 100.0f, 2000.0f, -20);
             break;
         }
         case 1: //steam vent - <dir>
@@ -1289,7 +1289,7 @@ static void makeparticles(entity &e)
             break;
         }
         case 3: //fire ball - <size> <rgb>
-            newparticle(e.o, vec(0, 0, 1), 1, PART_EXPLOSION, colorfromattr(e.attr3), 4.0f)->val = 1+e.attr2;
+            newparticle(e.o, vec3(0, 0, 1), 1, PART_EXPLOSION, colorfromattr(e.attr3), 4.0f)->val = 1+e.attr2;
             break;
         case 4:  //tape - <dir> <length> <rgb>
         case 7:  //lightning
@@ -1310,7 +1310,7 @@ static void makeparticles(entity &e)
         case 5: //meter, metervs - <percent> <rgb> <rgb2>
         case 6:
         {
-            particle *p = newparticle(e.o, vec(0, 0, 1), 1, e.attr1==5 ? PART_METER : PART_METER_VS, colorfromattr(e.attr3), 2.0f);
+            particle *p = newparticle(e.o, vec3(0, 0, 1), 1, e.attr1==5 ? PART_METER : PART_METER_VS, colorfromattr(e.attr3), 2.0f);
             int color2 = colorfromattr(e.attr4);
             p->color2[0] = color2>>16;
             p->color2[1] = (color2>>8)&0xFF;

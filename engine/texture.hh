@@ -310,7 +310,7 @@ struct GlobalShaderParam
         g->fval[2] = z;
         g->fval[3] = w;
     }
-    void set(const vec &v, float w = 0) { setf(v.x, v.y, v.z, w); }
+    void set(const vec3 &v, float w = 0) { setf(v.x, v.y, v.z, w); }
     void set(const vec2 &v, float z = 0, float w = 0) { setf(v.x, v.y, z, w); }
     void set(const vec4 &v) { setf(v.x, v.y, v.z, v.w); }
     void set(const plane &p) { setf(p.x, p.y, p.z, p.offset); }
@@ -390,12 +390,12 @@ struct LocalShaderParam
             case GL_UNSIGNED_INT_VEC4: glUniform4ui_(b->loc, uint(x), uint(y), uint(z), uint(w)); break;
         }
     }
-    void set(const vec &v, float w = 0) { setf(v.x, v.y, v.z, w); }
+    void set(const vec3 &v, float w = 0) { setf(v.x, v.y, v.z, w); }
     void set(const vec2 &v, float z = 0, float w = 0) { setf(v.x, v.y, z, w); }
     void set(const vec4 &v) { setf(v.x, v.y, v.z, v.w); }
     void set(const plane &p) { setf(p.x, p.y, p.z, p.offset); }
     void setv(const float *f, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform1fv_(b->loc, n, f); }
-    void setv(const vec *v, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform3fv_(b->loc, n, v->v); }
+    void setv(const vec3 *v, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform3fv_(b->loc, n, v->v); }
     void setv(const vec2 *v, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform2fv_(b->loc, n, v->v); }
     void setv(const vec4 *v, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform4fv_(b->loc, n, v->v); }
     void setv(const plane *p, int n = 1) { ShaderParamBinding *b = resolve(); if(b) glUniform4fv_(b->loc, n, p->v); }
@@ -627,10 +627,10 @@ struct VSlot
     vec2 scroll;
     int layer, detail;
     float alphafront, alphaback;
-    vec colorscale;
-    vec glowcolor;
+    vec3 colorscale;
+    vec3 glowcolor;
     float refractscale;
-    vec refractcolor;
+    vec3 refractcolor;
 
     VSlot(Slot *slot = NULL, int index = -1) : slot(slot), next(NULL), index(index), changed(0)
     {
@@ -651,10 +651,10 @@ struct VSlot
         layer = detail = 0;
         alphafront = 0.5f;
         alphaback = 0;
-        colorscale = vec(1, 1, 1);
-        glowcolor = vec(1, 1, 1);
+        colorscale = vec3(1, 1, 1);
+        glowcolor = vec3(1, 1, 1);
         refractscale = 0;
-        refractcolor = vec(1, 1, 1);
+        refractcolor = vec3(1, 1, 1);
     }
 
     void cleanup()

@@ -921,11 +921,11 @@ void writeobj(char *name)
     defformatstring(mtlname, "%s.mtl", name);
     path(mtlname);
     f->printf("mtllib %s\n\n", mtlname);
-    vector<vec> verts, texcoords;
-    hashtable<vec, int> shareverts(1<<16), sharetc(1<<16);
+    vector<vec3> verts, texcoords;
+    hashtable<vec3, int> shareverts(1<<16), sharetc(1<<16);
     hashtable<int, vector<ivec2> > mtls(1<<8);
     vector<int> usedmtl;
-    vec bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
+    vec3 bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
     loopv(valist)
     {
         vtxarray &va = *valist[i];
@@ -941,8 +941,8 @@ void writeobj(char *name)
             loopk(es.length)
             {
                 const vertex &v = vdata[idx[k]];
-                const vec &pos = v.pos;
-                const vec &tc = v.tc;
+                const vec3 &pos = v.pos;
+                const vec3 &tc = v.tc;
                 ivec2 &key = keys.add();
                 key.x = shareverts.access(pos, verts.length());
                 if(key.x == verts.length())
@@ -958,10 +958,10 @@ void writeobj(char *name)
         }
     }
 
-    vec center(-(bbmax.x + bbmin.x)/2, -(bbmax.y + bbmin.y)/2, -bbmin.z);
+    vec3 center(-(bbmax.x + bbmin.x)/2, -(bbmax.y + bbmin.y)/2, -bbmin.z);
     loopv(verts)
     {
-        vec v = verts[i];
+        vec3 v = verts[i];
         v.add(center);
         if(v.y != floor(v.y)) f->printf("v %.3f ", -v.y); else f->printf("v %d ", int(-v.y));
         if(v.z != floor(v.z)) f->printf("%.3f ", v.z); else f->printf("%d ", int(v.z));
@@ -970,7 +970,7 @@ void writeobj(char *name)
     f->printf("\n");
     loopv(texcoords)
     {
-        const vec &tc = texcoords[i];
+        const vec3 &tc = texcoords[i];
         f->printf("vt %.6f %.6f\n", tc.x, 1-tc.y);
     }
     f->printf("\n");
@@ -1061,8 +1061,8 @@ void writecollideobj(char *name)
     xform.invert();
 
     ivec selmin = sel.o, selmax = ivec(sel.s).mul(sel.grid).add(sel.o);
-    vector<vec> verts;
-    hashtable<vec, int> shareverts;
+    vector<vec3> verts;
+    hashtable<vec3, int> shareverts;
     vector<int> tris;
     loopv(valist)
     {
@@ -1079,7 +1079,7 @@ void writecollideobj(char *name)
             elementset &es = va.texelems[j];
             for(int k = 0; k < es.length; k += 3)
             {
-                const vec &v0 = vdata[idx[k]].pos, &v1 = vdata[idx[k+1]].pos, &v2 = vdata[idx[k+2]].pos;
+                const vec3 &v0 = vdata[idx[k]].pos, &v1 = vdata[idx[k+1]].pos, &v2 = vdata[idx[k+2]].pos;
                 if(!v0.insidebb(selmin, selmax) || !v1.insidebb(selmin, selmax) || !v2.insidebb(selmin, selmax))
                     continue;
                 int i0 = shareverts.access(v0, verts.length());
@@ -1102,7 +1102,7 @@ void writecollideobj(char *name)
     f->printf("# obj file of Cube 2 collide model\n\n");
     loopv(verts)
     {
-        vec v = xform.transform(verts[i]);
+        vec3 v = xform.transform(verts[i]);
         if(v.y != floor(v.y)) f->printf("v %.3f ", -v.y); else f->printf("v %d ", int(-v.y));
         if(v.z != floor(v.z)) f->printf("%.3f ", v.z); else f->printf("%d ", int(v.z));
         if(v.x != floor(v.x)) f->printf("%.3f\n", v.x); else f->printf("%d\n", int(v.x));

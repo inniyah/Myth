@@ -146,14 +146,14 @@ void drawenvoverlay(Texture *overlay = NULL, float tx = 0, float ty = 0)
     int w = farplane/2;
     float z = w*cloudheight, tsz = 0.5f*(1-cloudfade)/cloudscale, psz = w*(1-cloudfade);
     glBindTexture(GL_TEXTURE_2D, (overlay ? overlay : notexture)->id);
-    vec color = cloudcolour.tocolor();
+    vec3 color = cloudcolour.tocolor();
     gle::color(color, cloudalpha);
     gle::defvertex();
     gle::deftexcoord0();
     gle::begin(GL_TRIANGLE_FAN);
     loopi(cloudsubdiv+1)
     {
-        vec p(1, 1, 0);
+        vec3 p(1, 1, 0);
         p.rotate_around_z((-2.0f*M_PI*i)/cloudsubdiv);
         gle::attribf(p.x*psz, p.y*psz, z);
             gle::attribf(tx - p.x*tsz, ty + p.y*tsz);
@@ -166,7 +166,7 @@ void drawenvoverlay(Texture *overlay = NULL, float tx = 0, float ty = 0)
     gle::begin(GL_TRIANGLE_STRIP);
     loopi(cloudsubdiv+1)
     {
-        vec p(1, 1, 0);
+        vec3 p(1, 1, 0);
         p.rotate_around_z((-2.0f*M_PI*i)/cloudsubdiv);
         gle::attribf(p.x*psz, p.y*psz, z);
             gle::attribf(tx - p.x*tsz, ty + p.y*tsz);
@@ -190,14 +190,14 @@ namespace fogdome
 {
     struct vert
     {
-        vec pos;
+        vec3 pos;
         bvec4 color;
 
         vert() {}
-        vert(const vec &pos, const bvec &fcolor, float alpha) : pos(pos), color(fcolor, uchar(alpha*255))
+        vert(const vec3 &pos, const bvec &fcolor, float alpha) : pos(pos), color(fcolor, uchar(alpha*255))
         {
         }
-        vert(const vert &v0, const vert &v1) : pos(vec(v0.pos).add(v1.pos).normalize()), color(v0.color)
+        vert(const vert &v0, const vert &v1) : pos(vec3(v0.pos).add(v1.pos).normalize()), color(v0.color)
         {
             if(v0.pos.z != v1.pos.z) color.a += uchar((v1.color.a - v0.color.a) * (pos.z - v0.pos.z) / (v1.pos.z - v0.pos.z));
         }
@@ -237,7 +237,7 @@ namespace fogdome
 
     static inline int sortcap(GLushort x, GLushort y)
     {
-        const vec &xv = verts[x].pos, &yv = verts[y].pos;
+        const vec3 &xv = verts[x].pos, &yv = verts[y].pos;
         return xv.y < 0 ? yv.y >= 0 || xv.x < yv.x : yv.y >= 0 && xv.x > yv.x;
     }
 
@@ -249,13 +249,13 @@ namespace fogdome
         indices = new GLushort[(tris + (capsize >= 0 ? hres<<depth : 0))*3];
         if(clipz >= 1)
         {
-            verts[numverts++] = vert(vec(0.0f, 0.0f, 1.0f), color, minalpha); //build initial 'hres' sided pyramid
-            loopi(hres) verts[numverts++] = vert(vec(sincos360[(360*i)/hres], 0.0f), color, maxalpha);
+            verts[numverts++] = vert(vec3(0.0f, 0.0f, 1.0f), color, minalpha); //build initial 'hres' sided pyramid
+            loopi(hres) verts[numverts++] = vert(vec3(sincos360[(360*i)/hres], 0.0f), color, maxalpha);
             loopi(hres) genface(depth, 0, i+1, 1+(i+1)%hres);
         }
         else if(clipz <= 0)
         {
-            loopi(hres<<depth) verts[numverts++] = vert(vec(sincos360[(360*i)/(hres<<depth)], 0.0f), color, maxalpha);
+            loopi(hres<<depth) verts[numverts++] = vert(vec3(sincos360[(360*i)/(hres<<depth)], 0.0f), color, maxalpha);
         }
         else
         {
@@ -264,9 +264,9 @@ namespace fogdome
             loopi(hres)
             {
                 const vec2 &sc = sincos360[(360*i)/hres];
-                verts[numverts++] = vert(vec(sc.x*clipxy, sc.y*clipxy, clipz), color, minalpha);
-                verts[numverts++] = vert(vec(sc.x, sc.y, 0.0f), color, maxalpha);
-                verts[numverts++] = vert(vec(sc.x*scm.x - sc.y*scm.y, sc.y*scm.x + sc.x*scm.y, 0.0f), color, maxalpha);
+                verts[numverts++] = vert(vec3(sc.x*clipxy, sc.y*clipxy, clipz), color, minalpha);
+                verts[numverts++] = vert(vec3(sc.x, sc.y, 0.0f), color, maxalpha);
+                verts[numverts++] = vert(vec3(sc.x*scm.x - sc.y*scm.y, sc.y*scm.x + sc.x*scm.y, 0.0f), color, maxalpha);
             }
             loopi(hres)
             {
@@ -281,7 +281,7 @@ namespace fogdome
             GLushort *cap = &indices[numindices];
             int capverts = 0;
             loopi(numverts) if(!verts[i].pos.z) cap[capverts++] = i;
-            verts[numverts++] = vert(vec(0.0f, 0.0f, -capsize), color, maxalpha);
+            verts[numverts++] = vert(vec3(0.0f, 0.0f, -capsize), color, maxalpha);
             quicksort(cap, capverts, sortcap);
             loopi(capverts)
             {
@@ -353,7 +353,7 @@ static void drawfogdome()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     matrix4 skymatrix = cammatrix, skyprojmatrix;
-    skymatrix.settranslation(vec(cammatrix.c).mul(farplane*fogdomeheight*0.5f));
+    skymatrix.settranslation(vec3(cammatrix.c).mul(farplane*fogdomeheight*0.5f));
     skymatrix.scale(farplane/2, farplane/2, farplane*(0.5f - fogdomeheight*0.5f));
     skyprojmatrix.mul(projmatrix, skymatrix);
     LOCALPARAM(skymatrix, skyprojmatrix);
@@ -395,7 +395,7 @@ static void drawatmosphere()
     LOCALPARAM(sunlight, (!atmosunlight.iszero() ? atmosunlight.tocolor().mul(atmosunlightscale) : sunlight.tocolor().mul(sunlightscale)).mul(atmobright*ldrscale));
     LOCALPARAM(sundir, sunlightdir);
 
-    vec sundiskparams;
+    vec3 sundiskparams;
     sundiskparams.y = -(1 - 0.0075f * atmosundisksize);
     sundiskparams.x = 1/(1 + sundiskparams.y);
     sundiskparams.y *= sundiskparams.x;
@@ -409,10 +409,10 @@ static void drawatmosphere()
     float gm = (1 - atmohaze)*0.2f + 0.75f;
     LOCALPARAMF(gm, gm);
 
-    vec lambda(680e-9f, 550e-9f, 450e-9f),
-        betar = vec(lambda).square().square().recip().mul(1.86e-31f / atmodensity),
-        betam = vec(lambda).recip().mul(2*M_PI).square().mul(atmohazefade.tocolor().mul(atmohazefadescale)).mul(1.36e-19f * max(atmohaze, 1e-3f)),
-        betarm = vec(betar).div(1+atmoclarity).add(betam);
+    vec3 lambda(680e-9f, 550e-9f, 450e-9f),
+        betar = vec3(lambda).square().square().recip().mul(1.86e-31f / atmodensity),
+        betam = vec3(lambda).recip().mul(2*M_PI).square().mul(atmohazefade.tocolor().mul(atmohazefadescale)).mul(1.36e-19f * max(atmohaze, 1e-3f)),
+        betarm = vec3(betar).div(1+atmoclarity).add(betam);
     betar.div(betarm).mul(3/(16*M_PI));
     betam.div(betarm).mul((1-gm)*(1-gm)/(4*M_PI));
     LOCALPARAM(betar, betar);
@@ -469,7 +469,7 @@ void drawskybox(bool clear)
 
     if(clear || (!skybox[0] && (!atmo || atmoalpha < 1)))
     {
-        vec skyboxcolor = skyboxcolour.tocolor().mul(ldrscale);
+        vec3 skyboxcolor = skyboxcolour.tocolor().mul(ldrscale);
         glClearColor(skyboxcolor.x, skyboxcolor.y, skyboxcolor.z, 0);
         glClear(GL_COLOR_BUFFER_BIT);
     }

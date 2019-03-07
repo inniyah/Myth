@@ -10,8 +10,8 @@ struct skelhitdata;
 
 struct skelmodel : animmodel
 {
-    struct vert { vec pos, norm; vec2 tc; quat tangent; int blend, interpindex; };
-    struct vvert { vec pos; hvec2 tc; squat tangent; };
+    struct vert { vec3 pos, norm; vec2 tc; quat tangent; int blend, interpindex; };
+    struct vvert { vec3 pos; hvec2 tc; squat tangent; };
     struct vvertg { hvec4 pos; hvec2 tc; squat tangent; };
     struct vvertgw : vvertg { uchar weights[4]; uchar bones[4]; };
     struct tri { ushort vert[3]; };
@@ -207,11 +207,11 @@ struct skelmodel : animmodel
             mesh::calctangents(verts, verts, numverts, tris, numtris, areaweight);
         }
 
-        void calcbb(vec &bbmin, vec &bbmax, const matrix4x3 &m)
+        void calcbb(vec3 &bbmin, vec3 &bbmax, const matrix4x3 &m)
         {
             loopj(numverts)
             {
-                vec v = m.transform(verts[j].pos);
+                vec3 v = m.transform(verts[j].pos);
                 bbmin.min(v);
                 bbmax.max(v);
             }
@@ -774,17 +774,17 @@ struct skelmodel : animmodel
         int availgpubones() const { return min(maxvsuniforms, maxskelanimdata) / 2; }
         bool gpuaccelerate() const { return numframes && gpuskel && numgpubones<=availgpubones(); }
 
-        float calcdeviation(const vec &axis, const vec &forward, const dualquat &pose1, const dualquat &pose2)
+        float calcdeviation(const vec3 &axis, const vec3 &forward, const dualquat &pose1, const dualquat &pose2)
         {
-            vec forward1 = pose1.transformnormal(forward).project(axis).normalize(),
+            vec3 forward1 = pose1.transformnormal(forward).project(axis).normalize(),
                 forward2 = pose2.transformnormal(forward).project(axis).normalize(),
-                daxis = vec().cross(forward1, forward2);
+                daxis = vec3().cross(forward1, forward2);
             float dx = clamp(forward1.dot(forward2), -1.0f, 1.0f), dy = clamp(daxis.magnitude(), -1.0f, 1.0f);
             if(daxis.dot(axis) < 0) dy = -dy;
             return atan2f(dy, dx)/RAD;
         }
 
-        void calcpitchcorrects(float pitch, const vec &axis, const vec &forward)
+        void calcpitchcorrects(float pitch, const vec3 &axis, const vec3 &forward)
         {
             loopv(pitchtargets)
             {
@@ -835,7 +835,7 @@ struct skelmodel : animmodel
                 d.accumulate(f.pfr2[bone], s.prev.t*(1-s.interp)); \
             }
 
-        void interpbones(const animstate *as, float pitch, const vec &axis, const vec &forward, int numanimparts, const uchar *partmask, skelcacheentry &sc)
+        void interpbones(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, int numanimparts, const uchar *partmask, skelcacheentry &sc)
         {
             if(!sc.bdata) sc.bdata = new dualquat[numinterpbones];
             sc.nextversion();
@@ -906,7 +906,7 @@ struct skelmodel : animmodel
             loopv(ragdoll->verts)
             {
                 ragdolldata::vert &dv = d.verts[i];
-                matrixstack[matrixpos].transform(vec(dv.pos).mul(p->model->scale), dv.pos);
+                matrixstack[matrixpos].transform(vec3(dv.pos).mul(p->model->scale), dv.pos);
             }
             loopv(ragdoll->reljoints)
             {
@@ -921,12 +921,12 @@ struct skelmodel : animmodel
         {
             if(!sc.bdata) sc.bdata = new dualquat[numinterpbones];
             sc.nextversion();
-            vec trans = vec(d.center).div(p->model->scale).add(p->model->translate);
+            vec3 trans = vec3(d.center).div(p->model->scale).add(p->model->translate);
             loopv(ragdoll->joints)
             {
                 const ragdollskel::joint &j = ragdoll->joints[i];
                 const boneinfo &b = bones[j.bone];
-                vec pos(0, 0, 0);
+                vec3 pos(0, 0, 0);
                 loopk(3) if(j.vert[k]>=0) pos.add(d.verts[j.vert[k]].pos);
                 pos.mul(j.weight/p->model->scale).sub(trans);
                 matrix4x3 m;
@@ -990,7 +990,7 @@ struct skelmodel : animmodel
             }
         }
 
-        skelcacheentry &checkskelcache(part *p, const animstate *as, float pitch, const vec &axis, const vec &forward, ragdolldata *rdata)
+        skelcacheentry &checkskelcache(part *p, const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, ragdolldata *rdata)
         {
             if(skelcache.empty())
             {
@@ -1382,9 +1382,9 @@ struct skelmodel : animmodel
         void cleanuphitdata();
         void deletehitdata();
         void buildhitdata(const uchar *hitzones);
-        void intersect(skelhitdata *z, part *p, const skelmodel::skelcacheentry &sc, const vec &o, const vec &ray);
+        void intersect(skelhitdata *z, part *p, const skelmodel::skelcacheentry &sc, const vec3 &o, const vec3 &ray);
 
-        void intersect(const animstate *as, float pitch, const vec &axis, const vec &forward, dynent *d, part *p, const vec &o, const vec &ray)
+        void intersect(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, part *p, const vec3 &o, const vec3 &ray)
         {
             if(!hitdata) return;
 
@@ -1405,7 +1405,7 @@ struct skelmodel : animmodel
             if(!vbocache->vbuf) genvbo(*vbocache);
         }
 
-        void render(const animstate *as, float pitch, const vec &axis, const vec &forward, dynent *d, part *p)
+        void render(const animstate *as, float pitch, const vec3 &axis, const vec3 &forward, dynent *d, part *p)
         {
             if(skel->shouldcleanup()) { skel->cleanup(); disablevbo(); }
 
@@ -1605,15 +1605,15 @@ hashnameset<skelmodel::skeleton *> skelmodel::skeletons;
 struct skeladjustment
 {
     float yaw, pitch, roll;
-    vec translate;
+    vec3 translate;
 
-    skeladjustment(float yaw, float pitch, float roll, const vec &translate) : yaw(yaw), pitch(pitch), roll(roll), translate(translate) {}
+    skeladjustment(float yaw, float pitch, float roll, const vec3 &translate) : yaw(yaw), pitch(pitch), roll(roll), translate(translate) {}
 
     void adjust(dualquat &dq)
     {
-        if(yaw) dq.mulorient(quat(vec(0, 0, 1), yaw*RAD));
-        if(pitch) dq.mulorient(quat(vec(0, -1, 0), pitch*RAD));
-        if(roll) dq.mulorient(quat(vec(-1, 0, 0), roll*RAD));
+        if(yaw) dq.mulorient(quat(vec3(0, 0, 1), yaw*RAD));
+        if(pitch) dq.mulorient(quat(vec3(0, -1, 0), pitch*RAD));
+        if(roll) dq.mulorient(quat(vec3(-1, 0, 0), roll*RAD));
         if(!translate.iszero()) dq.translate(translate);
     }
 };
@@ -1681,7 +1681,7 @@ template<class MDL> struct skelcommands : modelcommands<MDL, struct MDL::skelmes
                   cy = *ry ? cosf(*ry/2*RAD) : 1, sy = *ry ? sinf(*ry/2*RAD) : 0,
                   cz = *rz ? cosf(*rz/2*RAD) : 1, sz = *rz ? sinf(*rz/2*RAD) : 0;
             matrix4x3 m(matrix3(quat(sx*cy*cz - cx*sy*sz, cx*sy*cz + sx*cy*sz, cx*cy*sz - sx*sy*cz, cx*cy*cz + sx*sy*sz)),
-                        vec(*tx, *ty, *tz));
+                        vec3(*tx, *ty, *tz));
             ((meshgroup *)mdl.meshes)->skel->addtag(tagname, i, m);
             return;
         }
@@ -1843,8 +1843,8 @@ template<class MDL> struct skelcommands : modelcommands<MDL, struct MDL::skelmes
         if(!name[0]) return;
         int i = mdl.meshes ? ((meshgroup *)mdl.meshes)->skel->findbone(name) : -1;
         if(i < 0) {  conoutf("could not find bone %s to adjust", name); return; }
-        while(!MDL::adjustments.inrange(i)) MDL::adjustments.add(skeladjustment(0, 0, 0, vec(0, 0, 0)));
-        MDL::adjustments[i] = skeladjustment(*yaw, *pitch, *roll, vec(*tx/4, *ty/4, *tz/4));
+        while(!MDL::adjustments.inrange(i)) MDL::adjustments.add(skeladjustment(0, 0, 0, vec3(0, 0, 0)));
+        MDL::adjustments[i] = skeladjustment(*yaw, *pitch, *roll, vec3(*tx/4, *ty/4, *tz/4));
     }
 
     static void sethitzone(int *id, char *maskstr)

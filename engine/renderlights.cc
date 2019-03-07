@@ -176,7 +176,7 @@ void setupao(int w, int h)
 
     if(!aonoisetex) glGenTextures(1, &aonoisetex);
     bvec *noise = new bvec[(1<<aonoise)*(1<<aonoise)];
-    loopk((1<<aonoise)*(1<<aonoise)) noise[k] = bvec(vec(rndscale(2)-1, rndscale(2)-1, 0).normalize());
+    loopk((1<<aonoise)*(1<<aonoise)) noise[k] = bvec(vec3(rndscale(2)-1, rndscale(2)-1, 0).normalize());
     createtexture(aonoisetex, 1<<aonoise, 1<<aonoise, noise, 0, 0, GL_RGB, GL_TEXTURE_2D);
     delete[] noise;
 
@@ -957,7 +957,7 @@ void copyhdr(int sw, int sh, GLuint fbo, int dw, int dh, bool flipx, bool flipy,
     glViewport(0, 0, dw, dh);
 
     SETSHADER(reorient);
-    vec reorientx(flipx ? -0.5f : 0.5f, 0, 0.5f), reorienty(0, flipy ? -0.5f : 0.5f, 0.5f);
+    vec3 reorientx(flipx ? -0.5f : 0.5f, 0, 0.5f), reorienty(0, flipy ? -0.5f : 0.5f, 0.5f);
     if(swapxy) swap(reorientx, reorienty);
     reorientx.mul(sw);
     reorienty.mul(sh);
@@ -1542,15 +1542,15 @@ extern int smminradius;
 struct lightinfo
 {
     int ent, shadowmap, flags;
-    vec o, color;
+    vec3 o, color;
     float radius, dist;
-    vec dir, spotx, spoty;
+    vec3 dir, spotx, spoty;
     int spot;
     float sx1, sy1, sx2, sy2, sz1, sz2;
     occludequery *query;
     
     lightinfo() {}
-    lightinfo(const vec &o, const vec &color, float radius, int flags = 0, const vec &dir = vec(0, 0, 0), int spot = 0)
+    lightinfo(const vec3 &o, const vec3 &color, float radius, int flags = 0, const vec3 &dir = vec3(0, 0, 0), int spot = 0)
       : ent(-1), shadowmap(-1), flags(flags),
         o(o), color(color), radius(radius), dist(camera1->o.dist(o)),
         dir(dir), spot(spot), query(NULL)
@@ -1560,12 +1560,12 @@ struct lightinfo
     }
     lightinfo(int i, const extentity &e)
       : ent(i), shadowmap(-1), flags(e.attr5),
-        o(e.o), color(vec(e.attr2, e.attr3, e.attr4).max(0)), radius(e.attr1), dist(camera1->o.dist(e.o)),
+        o(e.o), color(vec3(e.attr2, e.attr3, e.attr4).max(0)), radius(e.attr1), dist(camera1->o.dist(e.o)),
         dir(0, 0, 0), spot(0), query(NULL)
     {
         if(e.attached && e.attached->type == ET_SPOTLIGHT)
         {
-            dir = vec(e.attached->o).sub(e.o).normalize();
+            dir = vec3(e.attached->o).sub(e.o).normalize();
             spot = clamp(int(e.attached->attr1), 1, 89);
             calcspot();
         }
@@ -1574,9 +1574,9 @@ struct lightinfo
         
     void calcspot()
     {
-        quat orient(dir, vec(0, 0, dir.z < 0 ? -1 : 1));
-        spotx = orient.invertedrotate(vec(1, 0, 0));
-        spoty = orient.invertedrotate(vec(0, 1, 0));
+        quat orient(dir, vec3(0, 0, dir.z < 0 ? -1 : 1));
+        spotx = orient.invertedrotate(vec3(1, 0, 0));
+        spoty = orient.invertedrotate(vec3(0, 1, 0));
     }
 
     bool noshadow() const { return flags&L_NOSHADOW || radius <= smminradius; }
@@ -1610,12 +1610,12 @@ struct lightinfo
 
     bool checkquery() const { return query && query->owner == this && ::checkquery(query); }
 
-    void calcbb(vec &bbmin, vec &bbmax)
+    void calcbb(vec3 &bbmin, vec3 &bbmax)
     {
         if(spot > 0)
         {
             float spotscale = radius * tan360(spot);
-            vec up = vec(spotx).mul(spotscale).abs(), right = vec(spoty).mul(spotscale).abs(), center = vec(dir).mul(radius).add(o);
+            vec3 up = vec3(spotx).mul(spotscale).abs(), right = vec3(spoty).mul(spotscale).abs(), center = vec3(dir).mul(radius).add(o);
             bbmin = bbmax = center;
             bbmin.sub(up).sub(right);
             bbmax.add(up).add(right);
@@ -1624,17 +1624,17 @@ struct lightinfo
         }
         else
         {
-            bbmin = vec(o).sub(radius);
-            bbmax = vec(o).add(radius);
+            bbmin = vec3(o).sub(radius);
+            bbmax = vec3(o).add(radius);
         }
     }
 };
 
 struct shadowcachekey
 {
-    vec o;
+    vec3 o;
     float radius;
-    vec dir;
+    vec3 dir;
     int spot;
 
     shadowcachekey() {}
@@ -1764,12 +1764,12 @@ void cleanupshadowatlas()
 const matrix4 cubeshadowviewmatrix[6] =
 {
     // sign-preserving cubemap projections
-    matrix4(vec(0, 0, 1), vec(0, 1, 0), vec(-1, 0, 0)), // +X
-    matrix4(vec(0, 0, 1), vec(0, 1, 0), vec( 1, 0, 0)), // -X
-    matrix4(vec(1, 0, 0), vec(0, 0, 1), vec(0, -1, 0)), // +Y
-    matrix4(vec(1, 0, 0), vec(0, 0, 1), vec(0,  1, 0)), // -Y
-    matrix4(vec(1, 0, 0), vec(0, 1, 0), vec(0, 0, -1)), // +Z
-    matrix4(vec(1, 0, 0), vec(0, 1, 0), vec(0, 0,  1))  // -Z
+    matrix4(vec3(0, 0, 1), vec3(0, 1, 0), vec3(-1, 0, 0)), // +X
+    matrix4(vec3(0, 0, 1), vec3(0, 1, 0), vec3( 1, 0, 0)), // -X
+    matrix4(vec3(1, 0, 0), vec3(0, 0, 1), vec3(0, -1, 0)), // +Y
+    matrix4(vec3(1, 0, 0), vec3(0, 0, 1), vec3(0,  1, 0)), // -Y
+    matrix4(vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, -1)), // +Z
+    matrix4(vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0,  1))  // -Z
 };
 
 FVAR(smpolyfactor, -1e3f, 1, 1e3f);
@@ -1947,14 +1947,14 @@ struct cascadedshadowmap
         float nearplane;     // split distance to near plane
         float farplane;      // split distance to farplane
         matrix4 proj;      // one projection per split
-        vec scale, offset;   // scale and offset of the projection
+        vec3 scale, offset;   // scale and offset of the projection
         int idx;             // shadowmapinfo indices
-        vec center, bounds;  // max extents of shadowmap in sunlight model space
+        vec3 center, bounds;  // max extents of shadowmap in sunlight model space
         plane cull[4];       // world space culling planes of the split's projected sides
     };
     matrix4 model;                // model view is shared by all splits
     splitinfo splits[CSM_MAXSPLITS]; // per-split parameters
-    vec lightview;                  // view vector for light
+    vec3 lightview;                  // view vector for light
     void setup();                   // insert shadowmaps for each split frustum if there is sunlight
     void updatesplitdist();         // compute split frustum distances
     void getmodelmatrix();          // compute the shared model matrix
@@ -2013,7 +2013,7 @@ void cascadedshadowmap::getmodelmatrix()
 
 void cascadedshadowmap::getprojmatrix()
 {
-    lightview = vec(sunlightdir).neg();
+    lightview = vec3(sunlightdir).neg();
 
     // compute the split frustums
     updatesplitdist();
@@ -2031,24 +2031,24 @@ void cascadedshadowmap::getprojmatrix()
         if(split.idx < 0) continue;
         const shadowmapinfo &sm = shadowmaps[split.idx];
 
-        vec c;
+        vec3 c;
         float radius = calcfrustumboundsphere(split.nearplane, split.farplane, camera1->o, camdir, c);
 
         // compute the projected bounding box of the sphere
-        vec tc;
+        vec3 tc;
         model.transform(c, tc);
         int border = smfilter > 2 ? smborder2 : smborder;
         const float pradius = ceil(radius * csmpradiustweak), step = (2*pradius) / (sm.size - 2*border);
         vec2 offset = vec2(tc).sub(pradius).div(step);
         offset.x = floor(offset.x);
         offset.y = floor(offset.y);
-        split.center = vec(vec2(offset).mul(step).add(pradius), -0.5f*(minz + maxz));
-        split.bounds = vec(pradius, pradius, 0.5f*(maxz - minz));
+        split.center = vec3(vec2(offset).mul(step).add(pradius), -0.5f*(minz + maxz));
+        split.bounds = vec3(pradius, pradius, 0.5f*(maxz - minz));
 
         // modify mvp with a scale and offset
         // now compute the update model view matrix for this split
-        split.scale = vec(1/step, 1/step, -1/(maxz - minz));
-        split.offset = vec(border - offset.x, border - offset.y, -minz/(maxz - minz));
+        split.scale = vec3(1/step, 1/step, -1/(maxz - minz));
+        split.offset = vec3(border - offset.x, border - offset.y, -minz/(maxz - minz));
 
         split.proj.identity();
         split.proj.settranslation(2*split.offset.x/sm.size - 1, 2*split.offset.y/sm.size - 1, 2*split.offset.z - 1);
@@ -2077,7 +2077,7 @@ void cascadedshadowmap::bindparams()
 
     static GlobalShaderParam csmtc("csmtc"), csmoffset("csmoffset");
     vec4 *csmtcv = csmtc.reserve<vec4>(csmsplits);
-    vec *csmoffsetv = csmoffset.reserve<vec>(csmsplits);
+    vec3 *csmoffsetv = csmoffset.reserve<vec3>(csmsplits);
     loopi(csmsplits)
     {   
         cascadedshadowmap::splitinfo &split = splits[i];
@@ -2087,7 +2087,7 @@ void cascadedshadowmap::bindparams()
         csmtcv[i] = vec4(vec2(split.center).mul(-split.scale.x), split.scale.x, split.bounds.x*split.scale.x);
 
         const float bias = (smfilter > 2 ? csmbias2 : csmbias) * (-512.0f / sm.size) * (split.farplane - split.nearplane) / (splits[0].farplane - splits[0].nearplane);
-        csmoffsetv[i] = vec(sm.x, sm.y, 0.5f + bias).add2(0.5f*sm.size);
+        csmoffsetv[i] = vec3(sm.x, sm.y, 0.5f + bias).add2(0.5f*sm.size);
     }
     GLOBALPARAMF(csmz, splits[0].center.z*-splits[0].scale.z, splits[0].scale.z);
 }
@@ -2126,7 +2126,7 @@ int calcbbcsmsplits(const ivec &bbmin, const ivec &bbmax)
     return mask;
 }
 
-int calcspherecsmsplits(const vec &center, float radius)
+int calcspherecsmsplits(const vec3 &center, float radius)
 {
     int mask = (1<<csmsplits)-1;
     if(!csmcull) return mask;
@@ -2157,10 +2157,10 @@ int calcspherecsmsplits(const vec &center, float radius)
 struct reflectiveshadowmap
 {
     matrix4 model, proj;
-    vec lightview;
+    vec3 lightview;
     plane cull[4];
-    vec scale, offset;
-    vec center, bounds;
+    vec3 scale, offset;
+    vec3 center, bounds;
     void setup();
     void getmodelmatrix();
     void getprojmatrix();
@@ -2183,7 +2183,7 @@ void reflectiveshadowmap::getmodelmatrix()
 
 void reflectiveshadowmap::getprojmatrix()
 {
-    lightview = vec(sunlightdir).neg();
+    lightview = vec3(sunlightdir).neg();
 
     // find z extent
     float minz = lightview.project_bb(worldmin, worldmax), maxz = lightview.project_bb(worldmax, worldmin),
@@ -2191,21 +2191,21 @@ void reflectiveshadowmap::getprojmatrix()
     minz -= zmargin;
     maxz += zmargin;
 
-    vec c;
+    vec3 c;
     float radius = calcfrustumboundsphere(rhnearplane, rhfarplane, camera1->o, camdir, c);
 
     // compute the projected bounding box of the sphere
-    vec tc;
+    vec3 tc;
     model.transform(c, tc);
     const float pradius = ceil((radius + gidist) * rsmpradiustweak), step = (2*pradius) / rsmsize;
     vec2 tcoff = vec2(tc).sub(pradius).div(step);
     tcoff.x = floor(tcoff.x);
     tcoff.y = floor(tcoff.y);
-    center = vec(vec2(tcoff).mul(step).add(pradius), -0.5f*(minz + maxz));
-    bounds = vec(pradius, pradius, 0.5f*(maxz - minz));
+    center = vec3(vec2(tcoff).mul(step).add(pradius), -0.5f*(minz + maxz));
+    bounds = vec3(pradius, pradius, 0.5f*(maxz - minz));
 
-    scale = vec(1/step, 1/step, -1/(maxz - minz));
-    offset = vec(-tcoff.x, -tcoff.y, -minz/(maxz - minz));
+    scale = vec3(1/step, 1/step, -1/(maxz - minz));
+    offset = vec3(-tcoff.x, -tcoff.y, -minz/(maxz - minz));
 
     proj.identity();
     proj.settranslation(2*offset.x/rsmsize - 1, 2*offset.y/rsmsize - 1, 2*offset.z - 1);
@@ -2244,7 +2244,7 @@ int calcbbrsmsplits(const ivec &bbmin, const ivec &bbmax)
     return 1;
 }
 
-int calcspherersmsplits(const vec &center, float radius)
+int calcspherersmsplits(const vec3 &center, float radius)
 {
     if(!rsmcull) return 1;
     loopk(4)
@@ -2266,16 +2266,16 @@ struct radiancehints
     struct splitinfo
     {
         float nearplane, farplane;
-        vec offset, scale;
-        vec center; float bounds;
-        vec cached; bool copied;
+        vec3 offset, scale;
+        vec3 center; float bounds;
+        vec3 cached; bool copied;
 
         splitinfo() : center(-1e16f, -1e16f, -1e16f), bounds(-1e16f), cached(-1e16f, -1e16f, -1e16f), copied(false) {}
 
         void clearcache() { bounds = -1e16f; }
     } splits[RH_MAXSPLITS];
 
-    vec dynmin, dynmax, prevdynmin, prevdynmax;
+    vec3 dynmin, dynmax, prevdynmin, prevdynmax;
 
     radiancehints() : dynmin(1e16f, 1e16f, 1e16f), dynmax(-1e16f, -1e16f, -1e16f), prevdynmin(1e16f, 1e16f, 1e16f), prevdynmax(-1e16f, -1e16f, -1e16f) {}
 
@@ -2315,23 +2315,23 @@ void radiancehints::setup()
     {
         splitinfo &split = splits[i];
 
-        vec c;
+        vec3 c;
         float radius = calcfrustumboundsphere(split.nearplane, split.farplane, camera1->o, camdir, c);
 
         // compute the projected bounding box of the sphere
         const float pradius = ceil(radius * rhpradiustweak), step = (2*pradius) / rhgrid;
-        vec offset = vec(c).sub(pradius).div(step);
+        vec3 offset = vec3(c).sub(pradius).div(step);
         offset.x = floor(offset.x);
         offset.y = floor(offset.y);
         offset.z = floor(offset.z);
-        split.cached = split.bounds == pradius ? split.center : vec(-1e16f, -1e16f, -1e16f);
-        split.center = vec(offset).mul(step).add(pradius);
+        split.cached = split.bounds == pradius ? split.center : vec3(-1e16f, -1e16f, -1e16f);
+        split.center = vec3(offset).mul(step).add(pradius);
         split.bounds = pradius;
 
         // modify mvp with a scale and offset
         // now compute the update model view matrix for this split
-        split.scale = vec(1/(step*(rhgrid+2*rhborder)), 1/(step*(rhgrid+2*rhborder)), 1/(step*(rhgrid+2*rhborder)*rhsplits));
-        split.offset = vec(-(offset.x-rhborder)/(rhgrid+2*rhborder), -(offset.y-rhborder)/(rhgrid+2*rhborder), (i - (offset.z-rhborder)/(rhgrid+2*rhborder))/float(rhsplits));
+        split.scale = vec3(1/(step*(rhgrid+2*rhborder)), 1/(step*(rhgrid+2*rhborder)), 1/(step*(rhgrid+2*rhborder)*rhsplits));
+        split.offset = vec3(-(offset.x-rhborder)/(rhgrid+2*rhborder), -(offset.y-rhborder)/(rhgrid+2*rhborder), (i - (offset.z-rhborder)/(rhgrid+2*rhborder))/float(rhsplits));
     }
 }
 
@@ -2345,7 +2345,7 @@ void radiancehints::bindparams()
     loopi(rhsplits)
     {
         splitinfo &split = splits[i];
-        rhtcv[i] = vec4(vec(split.center).mul(-split.scale.x), split.scale.x);//split.bounds*(1 + rhborder*2*0.5f/rhgrid));
+        rhtcv[i] = vec4(vec3(split.center).mul(-split.scale.x), split.scale.x);//split.bounds*(1 + rhborder*2*0.5f/rhgrid));
     }
     GLOBALPARAMF(rhbounds, 0.5f*(rhgrid + rhborder)/float(rhgrid + 2*rhborder));
 }
@@ -2629,7 +2629,7 @@ void resetlights()
 
 namespace lightsphere
 {
-    vec *verts = NULL;
+    vec3 *verts = NULL;
     GLushort *indices = NULL;
     int numverts = 0, numindices = 0;
     GLuint vbuf = 0, ebuf = 0;
@@ -2637,7 +2637,7 @@ namespace lightsphere
     void init(int slices, int stacks)
     {
         numverts = (stacks+1)*(slices+1);
-        verts = new vec[numverts];
+        verts = new vec3[numverts];
         float ds = 1.0f/slices, dt = 1.0f/stacks, t = 1.0f;
         loopi(stacks+1)
         {
@@ -2645,7 +2645,7 @@ namespace lightsphere
             loopj(slices+1)
             {
                 float theta = j==slices ? 0 : 2*M_PI*s;
-                verts[i*(slices+1) + j] = vec(-sin(theta)*sinrho, -cos(theta)*sinrho, cosrho);
+                verts[i*(slices+1) + j] = vec3(-sin(theta)*sinrho, -cos(theta)*sinrho, cosrho);
                 s += ds;
             }
             t -= dt;
@@ -2676,7 +2676,7 @@ namespace lightsphere
 
         if(!vbuf) glGenBuffers_(1, &vbuf);
         gle::bindvbo(vbuf);
-        glBufferData_(GL_ARRAY_BUFFER, numverts*sizeof(vec), verts, GL_STATIC_DRAW);
+        glBufferData_(GL_ARRAY_BUFFER, numverts*sizeof(vec3), verts, GL_STATIC_DRAW);
         DELETEA(verts);
 
         if(!ebuf) glGenBuffers_(1, &ebuf);
@@ -2696,7 +2696,7 @@ namespace lightsphere
         if(!vbuf) init(8, 4);
         gle::bindvbo(vbuf);
         gle::bindebo(ebuf);
-        gle::vertexpointer(sizeof(vec), verts);
+        gle::vertexpointer(sizeof(vec3), verts);
         gle::enablevertex();
     }
 
@@ -2862,8 +2862,8 @@ static vec2 shadowoffsetv[8];
 static inline void setlightparams(int i, const lightinfo &l)
 {
     lightposv[i] = vec4(l.o, 1).div(l.radius);
-    lightcolorv[i] = vec4(vec(l.color).mul(2*ldrscaleb), l.nospec() ? 0 : 1);
-    if(l.spot > 0) spotparamsv[i] = vec4(vec(l.dir).neg(), 1/(1 - cos360(l.spot)));
+    lightcolorv[i] = vec4(vec3(l.color).mul(2*ldrscaleb), l.nospec() ? 0 : 1);
+    if(l.spot > 0) spotparamsv[i] = vec4(vec3(l.dir).neg(), 1/(1 - cos360(l.spot)));
     if(l.shadowmap >= 0)
     {
         shadowmapinfo &sm = shadowmaps[l.shadowmap];
@@ -3253,7 +3253,7 @@ void rendervolumetric()
         else volumetricshader->set();
 
         LOCALPARAM(lightpos, vec4(l.o, 1).div(l.radius));
-        vec color = vec(l.color).mul(ldrscaleb).mul(volcolour.tocolor().mul(volscale));
+        vec3 color = vec3(l.color).mul(ldrscaleb).mul(volcolour.tocolor().mul(volscale));
         LOCALPARAM(lightcolor, color);
 
         if(l.shadowmap >= 0)
@@ -3460,12 +3460,12 @@ void collectlights()
     }
     loopi(numdynlights)
     {
-        vec o, color, dir;
+        vec3 o, color, dir;
         float radius;
         int spot, flags;
         if(!getdynlight(i, o, radius, color, dir, spot, flags)) continue;
 
-        lightinfo &l = lights.add(lightinfo(o, vec(color).mul(255).max(0), radius, flags, dir, spot));
+        lightinfo &l = lights.add(lightinfo(o, vec3(color).mul(255).max(0), radius, flags, dir, spot));
         if(l.validscissor()) lightorder.add(lights.length()-1);
     }
 
@@ -3477,7 +3477,7 @@ void collectlights()
         int idx = lightorder[i];
         lightinfo &l = lights[idx];
         if((l.noshadow() && (!oqvol || !l.volumetric())) || l.radius >= worldsize) continue;
-        vec bbmin, bbmax;
+        vec3 bbmin, bbmax;
         l.calcbb(bbmin, bbmax);
         if(!camera1->o.insidebb(bbmin, bbmax, 2))
         {
@@ -3881,7 +3881,7 @@ void radiancehints::renderslices()
     {
         splitinfo &split = splits[i];
         float cellradius = split.bounds/rhgrid, step = 2*cellradius, nudge = rhnudge*2*splits[0].bounds/rhgrid + rhworldbias*step;
-        vec cmin, cmax, dmin(1e16f, 1e16f, 1e16f), dmax(-1e16f, -1e16f, -1e16f), bmin(1e16f, 1e16f, 1e16f), bmax(-1e16f, -1e16f, -1e16f);
+        vec3 cmin, cmax, dmin(1e16f, 1e16f, 1e16f), dmax(-1e16f, -1e16f, -1e16f), bmin(1e16f, 1e16f, 1e16f), bmax(-1e16f, -1e16f, -1e16f);
         loopk(3)
         {
             cmin[k] = floor((worldmin[k] - nudge - (split.center[k] - split.bounds))/step)*step + split.center[k] - split.bounds;
@@ -4102,7 +4102,7 @@ void radiancehints::renderslices()
 
         maskslice:
             if(i) continue;
-            rendernogi(ivec::floor(vec(x1, y1, z - 0.5f*step)), ivec::ceil(vec(x2, y2, z + 0.5f*step)), int(step));
+            rendernogi(ivec::floor(vec3(x1, y1, z - 0.5f*step)), ivec::ceil(vec3(x2, y2, z + 0.5f*step)), int(step));
             if(gle::attribbuf.empty()) continue;
             SETSHADER(radiancehintsdisable);
             if(rhborder)
@@ -4150,7 +4150,7 @@ void renderradiancehints()
 
     shadowmapping = SM_REFLECT;
     shadowside = 0;
-    shadoworigin = vec(0, 0, 0);
+    shadoworigin = vec3(0, 0, 0);
     shadowdir = rsm.lightview;
     shadowbias = rsm.lightview.project_bb(worldmin, worldmax);
     shadowradius = fabs(rsm.lightview.project_bb(worldmax, worldmin));
@@ -4163,8 +4163,8 @@ void renderradiancehints()
 
     rh.prevdynmin = rh.dynmin;
     rh.prevdynmax = rh.dynmax;
-    rh.dynmin = vec(1e16f, 1e16f, 1e16f);
-    rh.dynmax = vec(-1e16f, -1e16f, -1e16f);
+    rh.dynmin = vec3(1e16f, 1e16f, 1e16f);
+    rh.dynmax = vec3(-1e16f, -1e16f, -1e16f);
     if(rhdyntex) dynamicshadowvabounds(1<<shadowside, rh.dynmin, rh.dynmax);
     if(rhdynmm) batcheddynamicmodelbounds(1<<shadowside, rh.dynmin, rh.dynmax);
 
@@ -4222,7 +4222,7 @@ void rendercsmshadowmaps()
     csm.setup();
 
     shadowmapping = SM_CASCADE;
-    shadoworigin = vec(0, 0, 0);
+    shadoworigin = vec3(0, 0, 0);
     shadowdir = csm.lightview;
     shadowbias = csm.lightview.project_bb(worldmin, worldmax);
     shadowradius = fabs(csm.lightview.project_bb(worldmax, worldmin));
@@ -4277,7 +4277,7 @@ void rendercsmshadowmaps()
     }
 }
 
-int calcshadowinfo(const extentity &e, vec &origin, float &radius, vec &spotloc, int &spotangle, float &bias)
+int calcshadowinfo(const extentity &e, vec3 &origin, float &radius, vec3 &spotloc, int &spotangle, float &bias)
 {
     if(e.attr5&L_NOSHADOW || e.attr1 <= smminradius) return SM_NONE;
 
@@ -4405,8 +4405,8 @@ void rendershadowmaps(int offset = 0)
             glClear(GL_DEPTH_BUFFER_BIT);
 
             float invradius = 1.0f / l.radius, spotscale = invradius * cotan360(l.spot);
-            matrix4 spotmatrix(vec(l.spotx).mul(spotscale), vec(l.spoty).mul(spotscale), vec(l.dir).mul(-invradius));
-            spotmatrix.translate(vec(l.o).neg());
+            matrix4 spotmatrix(vec3(l.spotx).mul(spotscale), vec3(l.spoty).mul(spotscale), vec3(l.dir).mul(-invradius));
+            spotmatrix.translate(vec3(l.o).neg());
             shadowmatrix.mul(smprojmatrix, spotmatrix);
             GLOBALPARAM(shadowmatrix, shadowmatrix);
 
@@ -4437,7 +4437,7 @@ void rendershadowmaps(int offset = 0)
 
                 matrix4 cubematrix(cubeshadowviewmatrix[side]);
                 cubematrix.scale(1.0f/l.radius);
-                cubematrix.translate(vec(l.o).neg());
+                cubematrix.translate(vec3(l.o).neg());
                 shadowmatrix.mul(smprojmatrix, cubematrix);
                 GLOBALPARAM(shadowmatrix, shadowmatrix);
 
@@ -4582,8 +4582,8 @@ void rendertransparent()
 
     if(ghasstencil) glEnable(GL_STENCIL_TEST);
 
-    matrix4 raymatrix(vec(-0.5f*vieww*projmatrix.a.x, 0, 0.5f*vieww - 0.5f*vieww*projmatrix.c.x),
-                      vec(0, -0.5f*viewh*projmatrix.b.y, 0.5f*viewh - 0.5f*viewh*projmatrix.c.y));
+    matrix4 raymatrix(vec3(-0.5f*vieww*projmatrix.a.x, 0, 0.5f*vieww - 0.5f*vieww*projmatrix.c.x),
+                      vec3(0, -0.5f*viewh*projmatrix.b.y, 0.5f*viewh - 0.5f*viewh*projmatrix.c.y));
     raymatrix.muld(cammatrix);
     GLOBALPARAM(raymatrix, raymatrix);
     GLOBALPARAM(linearworldmatrix, linearworldmatrix);
@@ -4781,7 +4781,7 @@ void preparegbuffer(bool depthclear)
     else
     {
         float xscale = eyematrix.a.x, yscale = eyematrix.b.y, xoffset = eyematrix.d.x, yoffset = eyematrix.d.y, zscale = eyematrix.d.z;
-        matrix4 depthmatrix(vec(xscale/zscale, 0, xoffset/zscale), vec(0, yscale/zscale, yoffset/zscale));
+        matrix4 depthmatrix(vec3(xscale/zscale, 0, xoffset/zscale), vec3(0, yscale/zscale, yoffset/zscale));
         linearworldmatrix.muld(invcammatrix, depthmatrix);
         if(gdepthformat) worldmatrix = linearworldmatrix;
         else worldmatrix.muld(invcamprojmatrix, invscreenmatrix);
@@ -4853,7 +4853,7 @@ void rendergbuffer(bool depthclear)
     endtimer(gcputimer);
 }
 
-void shademinimap(const vec &color)
+void shademinimap(const vec3 &color)
 {
     GLERROR;
 
@@ -4889,7 +4889,7 @@ void shademodelpreview(int x, int y, int w, int h, bool background, bool scissor
 
     float lightscale = 2.0f*ldrscale;
     GLOBALPARAMF(lightscale, 0.1f*lightscale, 0.1f*lightscale, 0.1f*lightscale, lightscale);
-    GLOBALPARAM(sunlightdir, vec(0, -1, 2).normalize());
+    GLOBALPARAM(sunlightdir, vec3(0, -1, 2).normalize());
     GLOBALPARAMF(sunlightcolor, 0.6f*lightscale, 0.6f*lightscale, 0.6f*lightscale);
 
     SETSHADER(modelpreview);

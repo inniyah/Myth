@@ -41,14 +41,14 @@ enum // cube empty-space materials
 #define isdeadly(mat) ((mat)==MAT_LAVA)
 
 extern void lightent(extentity &e, float height = 8.0f);
-extern void lightreaching(const vec &target, vec &color, vec &dir, bool fast = false, extentity *e = 0, float minambient = 0.4f);
+extern void lightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool fast = false, extentity *e = 0, float minambient = 0.4f);
 
 enum { RAY_BB = 1, RAY_POLY = 3, RAY_ALPHAPOLY = 7, RAY_ENTS = 9, RAY_CLIPMAT = 16, RAY_SKIPFIRST = 32, RAY_EDITMAT = 64, RAY_SHADOW = 128, RAY_PASS = 256, RAY_SKIPSKY = 512 };
 
-extern float raycube   (const vec &o, const vec &ray,     float radius = 0, int mode = RAY_CLIPMAT, int size = 0, extentity *t = 0);
-extern float raycubepos(const vec &o, const vec &ray, vec &hit, float radius = 0, int mode = RAY_CLIPMAT, int size = 0);
-extern float rayfloor  (const vec &o, vec &floor, int mode = 0, float radius = 0);
-extern bool  raycubelos(const vec &o, const vec &dest, vec &hitpos);
+extern float raycube   (const vec3 &o, const vec3 &ray,     float radius = 0, int mode = RAY_CLIPMAT, int size = 0, extentity *t = 0);
+extern float raycubepos(const vec3 &o, const vec3 &ray, vec3 &hit, float radius = 0, int mode = RAY_CLIPMAT, int size = 0);
+extern float rayfloor  (const vec3 &o, vec3 &floor, int mode = 0, float radius = 0);
+extern bool  raycubelos(const vec3 &o, const vec3 &dest, vec3 &hitpos);
 
 extern int thirdperson;
 extern bool isthirdperson();
@@ -203,9 +203,9 @@ extern void logoutfv(const char *fmt, va_list args);
 extern void logoutf(const char *fmt, ...) PRINTFARGS(1, 2);
 
 // octa
-extern int lookupmaterial(const vec &o);
+extern int lookupmaterial(const vec3 &o);
 
-static inline bool insideworld(const vec &o)
+static inline bool insideworld(const vec3 &o)
 {
     extern int worldsize;
     return o.x>=0 && o.x<worldsize && o.y>=0 && o.y<worldsize && o.z>=0 && o.z<worldsize;
@@ -221,13 +221,13 @@ static inline bool insideworld(const ivec &o)
 extern bool emptymap(int factor, bool force, const char *mname = "", bool usecfg = true);
 extern bool enlargemap(bool force);
 extern int findentity(int type, int index = 0, int attr1 = -1, int attr2 = -1);
-extern void findents(int low, int high, bool notspawned, const vec &pos, const vec &radius, vector<int> &found);
-extern void mpeditent(int i, const vec &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local);
-extern vec getselpos();
+extern void findents(int low, int high, bool notspawned, const vec3 &pos, const vec3 &radius, vector<int> &found);
+extern void mpeditent(int i, const vec3 &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local);
+extern vec3 getselpos();
 extern int getworldsize();
 extern int getmapversion();
-extern void renderentcone(const extentity &e, const vec &dir, float radius, float angle);
-extern void renderentarrow(const extentity &e, const vec &dir, float radius);
+extern void renderentcone(const extentity &e, const vec3 &dir, float radius, float angle);
+extern void renderentarrow(const extentity &e, const vec3 &dir, float radius);
 extern void renderentattachment(const extentity &e);
 extern void renderentsphere(const extentity &e, float radius);
 extern void renderentring(const extentity &e, float radius, int axis = 0);
@@ -287,24 +287,24 @@ enum
     DL_FLASH  = 1<<10
 };
 
-extern void adddynlight(const vec &o, float radius, const vec &color, int fade = 0, int peak = 0, int flags = 0, float initradius = 0, const vec &initcolor = vec(0, 0, 0), physent *owner = NULL, const vec &dir = vec(0, 0, 0), int spot = 0);
-extern void dynlightreaching(const vec &target, vec &color, vec &dir, bool hud = false);
+extern void adddynlight(const vec3 &o, float radius, const vec3 &color, int fade = 0, int peak = 0, int flags = 0, float initradius = 0, const vec3 &initcolor = vec3(0, 0, 0), physent *owner = NULL, const vec3 &dir = vec3(0, 0, 0), int spot = 0);
+extern void dynlightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool hud = false);
 extern void removetrackeddynlights(physent *owner = NULL);
 
 // rendergl
 extern physent *camera1;
-extern vec worldpos, camdir, camright, camup;
+extern vec3 worldpos, camdir, camright, camup;
 extern float curfov, fovy, aspect;
 
 extern void disablezoom();
 
-extern vec calcavatarpos(const vec &pos, float dist);
-extern vec calcmodelpreviewpos(const vec &radius, float &yaw);
+extern vec3 calcavatarpos(const vec3 &pos, float dist);
+extern vec3 calcmodelpreviewpos(const vec3 &radius, float &yaw);
 
 extern void damageblend(int n);
-extern void damagecompass(int n, const vec &loc);
+extern void damagecompass(int n, const vec3 &loc);
 
-extern vec minimapcenter, minimapradius, minimapscale;
+extern vec3 minimapcenter, minimapradius, minimapscale;
 extern void bindminimap();
 
 extern matrix4 hudmatrix;
@@ -339,16 +339,16 @@ enum
 };
 
 extern bool canaddparticles();
-extern void regular_particle_splash(int type, int num, int fade, const vec &p, int color = 0xFFFFFF, float size = 1.0f, int radius = 150, int gravity = 2, int delay = 0);
-extern void regular_particle_flame(int type, const vec &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15);
-extern void particle_splash(int type, int num, int fade, const vec &p, int color = 0xFFFFFF, float size = 1.0f, int radius = 150, int gravity = 2);
-extern void particle_trail(int type, int fade, const vec &from, const vec &to, int color = 0xFFFFFF, float size = 1.0f, int gravity = 20);
-extern void particle_text(const vec &s, const char *t, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
-extern void particle_textcopy(const vec &s, const char *t, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
-extern void particle_icon(const vec &s, int ix, int iy, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
-extern void particle_meter(const vec &s, float val, int type, int fade = 1, int color = 0xFFFFFF, int color2 = 0xFFFFF, float size = 2.0f);
-extern void particle_flare(const vec &p, const vec &dest, int fade, int type, int color = 0xFFFFFF, float size = 0.28f, physent *owner = NULL);
-extern void particle_fireball(const vec &dest, float max, int type, int fade = -1, int color = 0xFFFFFF, float size = 4.0f);
+extern void regular_particle_splash(int type, int num, int fade, const vec3 &p, int color = 0xFFFFFF, float size = 1.0f, int radius = 150, int gravity = 2, int delay = 0);
+extern void regular_particle_flame(int type, const vec3 &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15);
+extern void particle_splash(int type, int num, int fade, const vec3 &p, int color = 0xFFFFFF, float size = 1.0f, int radius = 150, int gravity = 2);
+extern void particle_trail(int type, int fade, const vec3 &from, const vec3 &to, int color = 0xFFFFFF, float size = 1.0f, int gravity = 20);
+extern void particle_text(const vec3 &s, const char *t, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
+extern void particle_textcopy(const vec3 &s, const char *t, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
+extern void particle_icon(const vec3 &s, int ix, int iy, int type, int fade = 2000, int color = 0xFFFFFF, float size = 2.0f, int gravity = 0);
+extern void particle_meter(const vec3 &s, float val, int type, int fade = 1, int color = 0xFFFFFF, int color2 = 0xFFFFF, float size = 2.0f);
+extern void particle_flare(const vec3 &p, const vec3 &dest, int fade, int type, int color = 0xFFFFFF, float size = 0.28f, physent *owner = NULL);
+extern void particle_fireball(const vec3 &dest, float max, int type, int fade = -1, int color = 0xFFFFFF, float size = 4.0f);
 extern void removetrackedparticles(physent *owner = NULL);
 
 // stain
@@ -361,9 +361,9 @@ enum
     STAIN_RAIL_GLOW
 };
 
-extern void addstain(int type, const vec &center, const vec &surface, float radius, const bvec &color = bvec(0xFF, 0xFF, 0xFF), int info = 0);
+extern void addstain(int type, const vec3 &center, const vec3 &surface, float radius, const bvec &color = bvec(0xFF, 0xFF, 0xFF), int info = 0);
 
-static inline void addstain(int type, const vec &center, const vec &surface, float radius, int color, int info = 0)
+static inline void addstain(int type, const vec3 &center, const vec3 &surface, float radius, int color, int info = 0)
 {
     addstain(type, center, surface, radius, bvec::hexcolor(color), info);
 }
@@ -377,25 +377,25 @@ extern void clearmapcrc();
 extern bool loadents(const char *fname, vector<entity> &ents, uint *crc = NULL);
 
 // physics
-extern vec collidewall;
+extern vec3 collidewall;
 extern int collideinside;
 extern physent *collideplayer;
 
 extern void moveplayer(physent *pl, int moveres, bool local);
 extern bool moveplayer(physent *pl, int moveres, bool local, int curtime);
 extern void crouchplayer(physent *pl, int moveres, bool local);
-extern bool collide(physent *d, const vec &dir = vec(0, 0, 0), float cutoff = 0.0f, bool playercol = true, bool insideplayercol = false);
+extern bool collide(physent *d, const vec3 &dir = vec3(0, 0, 0), float cutoff = 0.0f, bool playercol = true, bool insideplayercol = false);
 extern bool bounce(physent *d, float secs, float elasticity, float waterfric, float grav);
 extern bool bounce(physent *d, float elasticity, float waterfric, float grav);
-extern void avoidcollision(physent *d, const vec &dir, physent *obstacle, float space);
-extern bool overlapsdynent(const vec &o, float radius);
-extern bool movecamera(physent *pl, const vec &dir, float dist, float stepdist);
+extern void avoidcollision(physent *d, const vec3 &dir, physent *obstacle, float space);
+extern bool overlapsdynent(const vec3 &o, float radius);
+extern bool movecamera(physent *pl, const vec3 &dir, float dist, float stepdist);
 extern void physicsframe();
 extern void dropenttofloor(entity *e);
-extern bool droptofloor(vec &o, float radius, float height);
+extern bool droptofloor(vec3 &o, float radius, float height);
 
-extern void vecfromyawpitch(float yaw, float pitch, int move, int strafe, vec &m);
-extern void vectoyawpitch(const vec &v, float &yaw, float &pitch);
+extern void vecfromyawpitch(float yaw, float pitch, int move, int strafe, vec3 &m);
+extern void vectoyawpitch(const vec3 &v, float &yaw, float &pitch);
 extern void updatephysstate(physent *d);
 extern void cleardynentcache();
 extern void updatedynentcache(physent *d);
@@ -408,8 +408,8 @@ enum
     SND_MAP = 1<<0
 };
 
-extern int playsound(int n, const vec *loc = NULL, extentity *ent = NULL, int flags = 0, int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1);
-extern int playsoundname(const char *s, const vec *loc = NULL, int vol = 0, int flags = 0, int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1);
+extern int playsound(int n, const vec3 *loc = NULL, extentity *ent = NULL, int flags = 0, int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1);
+extern int playsoundname(const char *s, const vec3 *loc = NULL, int vol = 0, int flags = 0, int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1);
 extern void preloadsound(int n);
 extern void preloadmapsound(int n);
 extern bool stopsound(int n, int chanid, int fade = 0);
@@ -424,17 +424,17 @@ struct modelattach
 {
     const char *tag, *name;
     int anim, basetime;
-    vec *pos;
+    vec3 *pos;
     model *m;
 
     modelattach() : tag(NULL), name(NULL), anim(-1), basetime(0), pos(NULL), m(NULL) {}
     modelattach(const char *tag, const char *name, int anim = -1, int basetime = 0) : tag(tag), name(name), anim(anim), basetime(basetime), pos(NULL), m(NULL) {}
-    modelattach(const char *tag, vec *pos) : tag(tag), name(NULL), anim(-1), basetime(0), pos(pos), m(NULL) {}
+    modelattach(const char *tag, vec3 *pos) : tag(tag), name(NULL), anim(-1), basetime(0), pos(pos), m(NULL) {}
 };
 
-extern void rendermodel(const char *mdl, int anim, const vec &o, float yaw = 0, float pitch = 0, float roll = 0, int cull = MDL_CULL_VFC | MDL_CULL_DIST | MDL_CULL_OCCLUDED, dynent *d = NULL, modelattach *a = NULL, int basetime = 0, int basetime2 = 0, float size = 1, const vec4 &color = vec4(1, 1, 1, 1));
-extern int intersectmodel(const char *mdl, int anim, const vec &pos, float yaw, float pitch, float roll, const vec &o, const vec &ray, float &dist, int mode = 0, dynent *d = NULL, modelattach *a = NULL, int basetime = 0, int basetime2 = 0, float size = 1);
-extern void abovemodel(vec &o, const char *mdl);
+extern void rendermodel(const char *mdl, int anim, const vec3 &o, float yaw = 0, float pitch = 0, float roll = 0, int cull = MDL_CULL_VFC | MDL_CULL_DIST | MDL_CULL_OCCLUDED, dynent *d = NULL, modelattach *a = NULL, int basetime = 0, int basetime2 = 0, float size = 1, const vec4 &color = vec4(1, 1, 1, 1));
+extern int intersectmodel(const char *mdl, int anim, const vec3 &pos, float yaw, float pitch, float roll, const vec3 &o, const vec3 &ray, float &dist, int mode = 0, dynent *d = NULL, modelattach *a = NULL, int basetime = 0, int basetime2 = 0, float size = 1);
+extern void abovemodel(vec3 &o, const char *mdl);
 extern void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int hold, int attack, int attackdelay, int lastaction, int lastpain, float scale = 1, bool ragdoll = false, float trans = 1);
 extern void interpolateorientation(dynent *d, float &interpyaw, float &interppitch);
 extern void setbbfrommodel(dynent *d, const char *mdl);

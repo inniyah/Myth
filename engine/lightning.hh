@@ -29,15 +29,15 @@ static void setuplightning()
     }
 }
 
-static void renderlightning(Texture *tex, const vec &o, const vec &d, float sz)
+static void renderlightning(Texture *tex, const vec3 &o, const vec3 &d, float sz)
 {
-    vec step(d);
+    vec3 step(d);
     step.sub(o);
     float len = step.magnitude();
     int numsteps = clamp(int(ceil(len/LIGHTNINGSTEP)), 2, MAXLIGHTNINGSTEPS);
     step.div(numsteps+1);
     int jitteroffset = detrnd(int(d.x+d.y+d.z), MAXLIGHTNINGSTEPS);
-    vec cur(o), up, right;
+    vec3 cur(o), up, right;
     up.orthogonal(step);
     up.normalize();
     right.cross(up, step);
@@ -49,16 +49,16 @@ static void renderlightning(Texture *tex, const vec &o, const vec &d, float sz)
     gle::begin(GL_TRIANGLE_STRIP);
     loopj(numsteps)
     {
-        vec next(cur);
+        vec3 next(cur);
         next.add(step);
         if(j+1==numsteps) next = d;
         else
         {
             int lj = (j+jitteroffset)%MAXLIGHTNINGSTEPS;
-            next.add(vec(right).mul((jitter1*lnjitterx[lnjitterframe][lj] + jitter0*lnjitterx[lnjitterframe^1][lj])));
-            next.add(vec(up).mul((jitter1*lnjittery[lnjitterframe][lj] + jitter0*lnjittery[lnjitterframe^1][lj])));
+            next.add(vec3(right).mul((jitter1*lnjitterx[lnjitterframe][lj] + jitter0*lnjitterx[lnjitterframe^1][lj])));
+            next.add(vec3(up).mul((jitter1*lnjittery[lnjitterframe][lj] + jitter0*lnjittery[lnjitterframe^1][lj])));
         }
-        vec dir1 = next, dir2 = next, across;
+        vec3 dir1 = next, dir2 = next, across;
         dir1.sub(cur);
         dir2.sub(camera1->o);
         across.cross(dir2, dir1).normalize().mul(sz);
@@ -99,14 +99,14 @@ struct lightningrenderer : listrenderer
         glEnable(GL_CULL_FACE);
     }
 
-    void seedemitter(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int gravity)
+    void seedemitter(particleemitter &pe, const vec3 &o, const vec3 &d, int fade, float size, int gravity)
     {
         pe.maxfade = max(pe.maxfade, fade);
         pe.extendbb(o, size);
         pe.extendbb(d, size);
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts)
+    void renderpart(listparticle *p, const vec3 &o, const vec3 &d, int blend, int ts)
     {
         blend = min(blend<<2, 255);
         if(type&PT_MOD) //multiply alpha into color

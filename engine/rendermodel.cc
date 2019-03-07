@@ -52,7 +52,7 @@ COMMAND(mdlcullface, "i");
 void mdlcolor(float *r, float *g, float *b)
 {
     checkmdl;
-    loadingmodel->setcolor(vec(*r, *g, *b));
+    loadingmodel->setcolor(vec3(*r, *g, *b));
 }
 COMMAND(mdlcolor, "fff");
 
@@ -160,7 +160,7 @@ COMMAND(mdlscale, "f");
 void mdltrans(float *x, float *y, float *z)
 {
     checkmdl;
-    loadingmodel->translate = vec(*x, *y, *z);
+    loadingmodel->translate = vec3(*x, *y, *z);
 }
 COMMAND(mdltrans, "fff");
 
@@ -211,7 +211,7 @@ COMMAND(mdlbb, "fff");
 void mdlextendbb(float *x, float *y, float *z)
 {
     checkmdl;
-    loadingmodel->bbextend = vec(*x, *y, *z);
+    loadingmodel->bbextend = vec3(*x, *y, *z);
 }
 COMMAND(mdlextendbb, "fff");
 
@@ -238,7 +238,7 @@ void rdvert(float *x, float *y, float *z, float *radius)
 {
     checkragdoll;
     ragdollskel::vert &v = ragdoll->verts.add();
-    v.pos = vec(*x, *y, *z);
+    v.pos = vec3(*x, *y, *z);
     v.radius = *radius > 0 ? *radius : 1;
 }
 COMMAND(rdvert, "ffff");
@@ -469,15 +469,15 @@ void clearmodel(char *name)
 
 COMMAND(clearmodel, "s");
 
-bool modeloccluded(const vec &center, float radius)
+bool modeloccluded(const vec3 &center, float radius)
 {
-    ivec bbmin(vec(center).sub(radius)), bbmax(vec(center).add(radius+1));
+    ivec bbmin(vec3(center).sub(radius)), bbmax(vec3(center).add(radius+1));
     return pvsoccluded(bbmin, bbmax) || bboccluded(bbmin, bbmax);
 }
 
 struct batchedmodel
 {
-    vec pos, center;
+    vec3 pos, center;
     float radius, yaw, pitch, roll, sizescale;
     vec4 colorscale;
     int anim, basetime, basetime2, flags, attached;
@@ -552,7 +552,7 @@ static inline void enablecullmodelquery()
     startbb();
 }
 
-static inline void rendercullmodelquery(model *m, dynent *d, const vec &center, float radius)
+static inline void rendercullmodelquery(model *m, dynent *d, const vec3 &center, float radius)
 {
     if(fabs(camera1->o.x-center.x) < radius+1 &&
        fabs(camera1->o.y-center.y) < radius+1 &&
@@ -574,7 +574,7 @@ static inline void disablecullmodelquery()
     endbb();
 }
 
-static inline int cullmodel(model *m, const vec &center, float radius, int flags, dynent *d = NULL)
+static inline int cullmodel(model *m, const vec3 &center, float radius, int flags, dynent *d = NULL)
 {
     if(flags&MDL_CULL_DIST && center.dist(camera1->o)/radius>maxmodelradiusdistance) return MDL_CULL_DIST;
     if(flags&MDL_CULL_VFC && isfoggedsphere(radius, center)) return MDL_CULL_VFC;
@@ -583,7 +583,7 @@ static inline int cullmodel(model *m, const vec &center, float radius, int flags
     return 0;
 }
 
-static inline int shadowmaskmodel(const vec &center, float radius)
+static inline int shadowmaskmodel(const vec3 &center, float radius)
 {
     switch(shadowmapping)
     {
@@ -591,7 +591,7 @@ static inline int shadowmaskmodel(const vec &center, float radius)
             return calcspherersmsplits(center, radius);
         case SM_CUBEMAP:
         {
-            vec scenter = vec(center).sub(shadoworigin);
+            vec3 scenter = vec3(center).sub(shadoworigin);
             float sradius = radius + shadowradius;
             if(scenter.squaredlen() >= sradius*sradius) return 0;
             return calcspheresidemask(scenter, radius, shadowbias);
@@ -600,7 +600,7 @@ static inline int shadowmaskmodel(const vec &center, float radius)
             return calcspherecsmsplits(center, radius);
         case SM_SPOT:
         {
-            vec scenter = vec(center).sub(shadoworigin);
+            vec3 scenter = vec3(center).sub(shadoworigin);
             float sradius = radius + shadowradius;
             return scenter.squaredlen() < sradius*sradius && sphereinsidespot(shadowdir, shadowspot, scenter, radius) ? 1 : 0;
         }
@@ -641,7 +641,7 @@ int batcheddynamicmodels()
     return visible;
 }
 
-int batcheddynamicmodelbounds(int mask, vec &bbmin, vec &bbmax)
+int batcheddynamicmodelbounds(int mask, vec3 &bbmin, vec3 &bbmax)
 {
     int vis = 0;
     loopv(batchedmodels)
@@ -650,8 +650,8 @@ int batcheddynamicmodelbounds(int mask, vec &bbmin, vec &bbmax)
         if(b.flags&MDL_MAPMODEL) break;
         if(b.visible&mask)
         {
-            bbmin.min(vec(b.center).sub(b.radius));
-            bbmax.max(vec(b.center).add(b.radius));
+            bbmin.min(vec3(b.center).sub(b.radius));
+            bbmax.max(vec3(b.center).add(b.radius));
             ++vis;
         }
     }
@@ -665,8 +665,8 @@ int batcheddynamicmodelbounds(int mask, vec &bbmin, vec &bbmax)
             j = bm.next;
             if(bm.visible&mask)
             {
-                bbmin.min(vec(bm.center).sub(bm.radius));
-                bbmax.max(vec(bm.center).add(bm.radius));
+                bbmin.min(vec3(bm.center).sub(bm.radius));
+                bbmax.max(vec3(bm.center).add(bm.radius));
                 ++vis;
             }
         }
@@ -737,7 +737,7 @@ void rendermodelbatches()
             if(bm.colorscale.a < 1 || bm.flags&MDL_FORCETRANSPARENT)
             {
                 float sx1, sy1, sx2, sy2;
-                ivec bbmin(vec(bm.center).sub(bm.radius)), bbmax(vec(bm.center).add(bm.radius+1));
+                ivec bbmin(vec3(bm.center).sub(bm.radius)), bbmax(vec3(bm.center).add(bm.radius+1));
                 if(calcbbscissor(bbmin, bbmax, sx1, sy1, sx2, sy2))
                 {
                     transmdlsx1 = min(transmdlsx1, sx1);
@@ -890,14 +890,14 @@ void clearbatchedmapmodels()
     }
 }
 
-void rendermapmodel(int idx, int anim, const vec &o, float yaw, float pitch, float roll, int flags, int basetime, float size)
+void rendermapmodel(int idx, int anim, const vec3 &o, float yaw, float pitch, float roll, int flags, int basetime, float size)
 {
     if(!mapmodels.inrange(idx)) return;
     mapmodelinfo &mmi = mapmodels[idx];
     model *m = mmi.m ? mmi.m : loadmodel(mmi.name);
     if(!m) return;
 
-    vec center, bbradius;
+    vec3 center, bbradius;
     m->boundbox(center, bbradius);
     float radius = bbradius.magnitude();
     center.mul(size);
@@ -936,12 +936,12 @@ void rendermapmodel(int idx, int anim, const vec &o, float yaw, float pitch, flo
     addbatchedmodel(m, b, batchedmodels.length()-1);
 }
 
-void rendermodel(const char *mdl, int anim, const vec &o, float yaw, float pitch, float roll, int flags, dynent *d, modelattach *a, int basetime, int basetime2, float size, const vec4 &color)
+void rendermodel(const char *mdl, int anim, const vec3 &o, float yaw, float pitch, float roll, int flags, dynent *d, modelattach *a, int basetime, int basetime2, float size, const vec4 &color)
 {
     model *m = loadmodel(mdl);
     if(!m) return;
 
-    vec center, bbradius;
+    vec3 center, bbradius;
     m->boundbox(center, bbradius);
     float radius = bbradius.magnitude();
     if(d)
@@ -1027,7 +1027,7 @@ hasboundbox:
     addbatchedmodel(m, b, batchedmodels.length()-1);
 }
 
-int intersectmodel(const char *mdl, int anim, const vec &pos, float yaw, float pitch, float roll, const vec &o, const vec &ray, float &dist, int mode, dynent *d, modelattach *a, int basetime, int basetime2, float size)
+int intersectmodel(const char *mdl, int anim, const vec3 &pos, float yaw, float pitch, float roll, const vec3 &o, const vec3 &ray, float &dist, int mode, dynent *d, modelattach *a, int basetime, int basetime2, float size)
 {
     model *m = loadmodel(mdl);
     if(!m) return -1;
@@ -1039,7 +1039,7 @@ int intersectmodel(const char *mdl, int anim, const vec &pos, float yaw, float p
     return m->intersect(anim, basetime, basetime2, pos, yaw, pitch, roll, d, a, size, o, ray, dist, mode);
 }
 
-void abovemodel(vec &o, const char *mdl)
+void abovemodel(vec3 &o, const char *mdl)
 {
     model *m = loadmodel(mdl);
     if(!m) return;
@@ -1113,7 +1113,7 @@ void setbbfrommodel(dynent *d, const char *mdl)
 {
     model *m = loadmodel(mdl);
     if(!m) return;
-    vec center, radius;
+    vec3 center, radius;
     m->collisionbox(center, radius);
     if(m->collide != COLLIDE_ELLIPSE) d->collidetype = COLLIDE_OBB;
     d->xradius   = radius.x + fabs(center.x);

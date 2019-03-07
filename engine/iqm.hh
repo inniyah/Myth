@@ -60,21 +60,21 @@ struct iqmjoint
 {
     uint name;
     int parent;
-    vec pos;
+    vec3 pos;
     quat orient;
-    vec size;
+    vec3 size;
 };
 
 struct iqmpose
 {
     int parent;
     uint mask;
-    vec offsetpos;
+    vec3 offsetpos;
     vec4 offsetorient;
-    vec offsetsize;
-    vec scalepos;
+    vec3 offsetsize;
+    vec3 scalepos;
     vec4 scaleorient;
-    vec scalesize;
+    vec3 scalesize;
 };
 
 struct iqmanim
@@ -204,7 +204,7 @@ struct iqm : skelloader<iqm>
                 loopj(im.num_vertexes)
                 {
                     vert &v = m->verts[j];
-                    v.pos = vec(mpos[0], -mpos[1], mpos[2]);
+                    v.pos = vec3(mpos[0], -mpos[1], mpos[2]);
                     mpos += 3;
                     if(mtc)
                     {
@@ -214,15 +214,15 @@ struct iqm : skelloader<iqm>
                     else v.tc = vec2(0, 0);
                     if(mnorm)
                     {
-                        v.norm = vec(mnorm[0], -mnorm[1], mnorm[2]);
+                        v.norm = vec3(mnorm[0], -mnorm[1], mnorm[2]);
                         mnorm += 3;
                         if(mtan)
                         {
-                            m->calctangent(v, v.norm, vec(mtan[0], -mtan[1], mtan[2]), mtan[3]);
+                            m->calctangent(v, v.norm, vec3(mtan[0], -mtan[1], mtan[2]), mtan[3]);
                             mtan += 4;
                         }
                     }
-                    else { v.norm = vec(0, 0, 0); v.tangent = quat(0, 0, 0, 1); }
+                    else { v.norm = vec3(0, 0, 0); v.tangent = quat(0, 0, 0, 1); }
                     if(noblend < 0)
                     {
                         blendcombo c;
@@ -299,7 +299,7 @@ struct iqm : skelloader<iqm>
                     loopk(skel->numbones)
                     {
                         iqmpose &p = poses[k];
-                        vec pos;
+                        vec3 pos;
                         quat orient;
                         pos.x = p.offsetpos.x; if(p.mask&0x01) pos.x += *animdata++ * p.scalepos.x;
                         pos.y = -p.offsetpos.y; if(p.mask&0x02) pos.y -= *animdata++ * p.scalepos.y;

@@ -11,9 +11,9 @@ struct obj : vertloader<obj>
 
     struct objmeshgroup : vertmeshgroup
     {
-        void parsevert(char *s, vector<vec> &out)
+        void parsevert(char *s, vector<vec3> &out)
         {
-            vec &v = out.add(vec(0, 0, 0));
+            vec3 &v = out.add(vec3(0, 0, 0));
             while(isalpha(*s)) s++;
             loopi(3)
             {
@@ -35,7 +35,7 @@ struct obj : vertloader<obj>
 
             numframes = 1;
 
-            vector<vec> attrib[3];
+            vector<vec3> attrib[3];
             char buf[512];
 
             hashtable<ivec, int> verthash(1<<11);
@@ -130,10 +130,10 @@ struct obj : vertloader<obj>
                                 index = &verthash[vkey];
                                 *index = verts.length();
                                 vert &v = verts.add();
-                                v.pos = vkey.x < 0 ? vec(0, 0, 0) : attrib[0][vkey.x];
-                                v.pos = vec(v.pos.z, -v.pos.x, v.pos.y);
-                                v.norm = vkey.z < 0 ? vec(0, 0, 0) : attrib[2][vkey.z];
-                                v.norm = vec(v.norm.z, -v.norm.x, v.norm.y);
+                                v.pos = vkey.x < 0 ? vec3(0, 0, 0) : attrib[0][vkey.x];
+                                v.pos = vec3(v.pos.z, -v.pos.x, v.pos.y);
+                                v.norm = vkey.z < 0 ? vec3(0, 0, 0) : attrib[2][vkey.z];
+                                v.norm = vec3(v.norm.z, -v.norm.x, v.norm.y);
                                 tcvert &tcv = tcverts.add();
                                 tcv.tc = vkey.y < 0 ? vec2(0, 0) : vec2(attrib[1][vkey.y].x, 1-attrib[1][vkey.y].y);
                             }

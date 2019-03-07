@@ -8,9 +8,9 @@ namespace mpr
 
         CubePlanes(const clipplanes &p) : p(p) {}
 
-        vec center() const { return p.o; }
+        vec3 center() const { return p.o; }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
             int besti = 7;
             float bestd = n.dot(p.v[7]);
@@ -25,18 +25,18 @@ namespace mpr
 
     struct SolidCube
     {
-        vec o;
+        vec3 o;
         int size;
 
         SolidCube(float x, float y, float z, int size) : o(x, y, z), size(size) {}
-        SolidCube(const vec &o, int size) : o(o), size(size) {}
+        SolidCube(const vec3 &o, int size) : o(o), size(size) {}
         SolidCube(const ivec &o, int size) : o(o), size(size) {}
 
-        vec center() const { return vec(o).add(size/2); }
+        vec3 center() const { return vec3(o).add(size/2); }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
-            vec p(o);
+            vec3 p(o);
             if(n.x > 0) p.x += size;
             if(n.y > 0) p.y += size;
             if(n.z > 0) p.z += size;
@@ -50,7 +50,7 @@ namespace mpr
 
         Ent(physent *ent) : ent(ent) {}
 
-        vec center() const { return vec(ent->o.x, ent->o.y, ent->o.z + (ent->aboveeye - ent->eyeheight)/2); }
+        vec3 center() const { return vec3(ent->o.x, ent->o.y, ent->o.z + (ent->aboveeye - ent->eyeheight)/2); }
     };
 
     struct EntOBB : Ent
@@ -62,9 +62,9 @@ namespace mpr
             orient.setyaw(ent->yaw*RAD);
         }
 
-        vec contactface(const vec &wn, const vec &wdir) const
+        vec3 contactface(const vec3 &wn, const vec3 &wdir) const
         {
-            vec n = orient.transform(wn).div(vec(ent->xradius, ent->yradius, (ent->aboveeye + ent->eyeheight)/2)),
+            vec3 n = orient.transform(wn).div(vec3(ent->xradius, ent->yradius, (ent->aboveeye + ent->eyeheight)/2)),
                 dir = orient.transform(wdir),
                 an(fabs(n.x), fabs(n.y), dir.z ? fabs(n.z) : 0),
                 fn(0, 0, 0);
@@ -78,23 +78,23 @@ namespace mpr
             return orient.transposedtransform(fn);
         }
 
-        vec localsupportpoint(const vec &ln) const
+        vec3 localsupportpoint(const vec3 &ln) const
         {
-            return vec(ln.x > 0 ? ent->xradius : -ent->xradius,
+            return vec3(ln.x > 0 ? ent->xradius : -ent->xradius,
                        ln.y > 0 ? ent->yradius : -ent->yradius,
                        ln.z > 0 ? ent->aboveeye : -ent->eyeheight);
         }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
             return orient.transposedtransform(localsupportpoint(orient.transform(n))).add(ent->o);
         }
 
-        float supportcoordneg(const vec &p) const
+        float supportcoordneg(const vec3 &p) const
         {
-            return localsupportpoint(vec(p).neg()).dot(p);
+            return localsupportpoint(vec3(p).neg()).dot(p);
         }
-        float supportcoord(const vec &p) const
+        float supportcoord(const vec3 &p) const
         {
             return localsupportpoint(p).dot(p);
         }
@@ -123,10 +123,10 @@ namespace mpr
     {
         EntCylinder(physent *ent) : EntFuzzy(ent) {}
 
-        vec contactface(const vec &n, const vec &dir) const
+        vec3 contactface(const vec3 &n, const vec3 &dir) const
         {
             float dxy = n.dot2(n)/(ent->radius*ent->radius), dz = n.z*n.z*4/(ent->aboveeye + ent->eyeheight);
-            vec fn(0, 0, 0);
+            vec3 fn(0, 0, 0);
             if(dz > dxy && dir.z) fn.z = n.z*dir.z < 0 ? (n.z > 0 ? 1 : -1) : 0;
             else if(n.dot2(dir) < 0)
             {
@@ -137,9 +137,9 @@ namespace mpr
             return fn;
         }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
-            vec p(ent->o);
+            vec3 p(ent->o);
             if(n.z > 0) p.z += ent->aboveeye;
             else p.z -= ent->eyeheight;
             if(n.x || n.y)
@@ -156,12 +156,12 @@ namespace mpr
     {
         EntCapsule(physent *ent) : EntFuzzy(ent) {}
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
-            vec p(ent->o);
+            vec3 p(ent->o);
             if(n.z > 0) p.z += ent->aboveeye - ent->radius;
             else p.z -= ent->eyeheight - ent->radius;
-            p.add(vec(n).mul(ent->radius / n.magnitude()));
+            p.add(vec3(n).mul(ent->radius / n.magnitude()));
             return p;
         }
     };
@@ -170,9 +170,9 @@ namespace mpr
     {
         EntEllipsoid(physent *ent) : EntFuzzy(ent) {}
 
-        vec supportpoint(const vec &dir) const
+        vec3 supportpoint(const vec3 &dir) const
         {
-            vec p(ent->o), n = vec(dir).normalize();
+            vec3 p(ent->o), n = vec3(dir).normalize();
             p.x += ent->radius*n.x;
             p.y += ent->radius*n.y;
             p.z += (ent->aboveeye + ent->eyeheight)/2*(1 + n.z) - ent->eyeheight;
@@ -182,10 +182,10 @@ namespace mpr
 
     struct Model
     {
-        vec o, radius;
+        vec3 o, radius;
         matrix3 orient;
 
-        Model(const vec &ent, const vec &center, const vec &radius, int yaw, int pitch, int roll) : o(ent), radius(radius)
+        Model(const vec3 &ent, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll) : o(ent), radius(radius)
         {
             orient.identity();
             if(roll) orient.rotate_around_y(sincosmod360(roll));
@@ -194,18 +194,18 @@ namespace mpr
             o.add(orient.transposedtransform(center));
         }
 
-        vec center() const { return o; }
+        vec3 center() const { return o; }
     };
 
     struct ModelOBB : Model
     {
-        ModelOBB(const vec &ent, const vec &center, const vec &radius, int yaw, int pitch, int roll) :
+        ModelOBB(const vec3 &ent, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll) :
             Model(ent, center, radius, yaw, pitch, roll)
         {}
 
-        vec contactface(const vec &wn, const vec &wdir) const
+        vec3 contactface(const vec3 &wn, const vec3 &wdir) const
         {
-            vec n = orient.transform(wn).div(radius), dir = orient.transform(wdir),
+            vec3 n = orient.transform(wn).div(radius), dir = orient.transform(wdir),
                 an(fabs(n.x), fabs(n.y), dir.z ? fabs(n.z) : 0),
                 fn(0, 0, 0);
             if(an.x > an.y)
@@ -218,9 +218,9 @@ namespace mpr
             return orient.transposedtransform(fn);
         }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
-            vec ln = orient.transform(n), p(0, 0, 0);
+            vec3 ln = orient.transform(n), p(0, 0, 0);
             if(ln.x > 0) p.x += radius.x;
             else p.x -= radius.x;
             if(ln.y > 0) p.y += radius.y;
@@ -233,15 +233,15 @@ namespace mpr
 
     struct ModelEllipse : Model
     {
-        ModelEllipse(const vec &ent, const vec &center, const vec &radius, int yaw, int pitch, int roll) :
+        ModelEllipse(const vec3 &ent, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll) :
             Model(ent, center, radius, yaw, pitch, roll)
         {}
 
-        vec contactface(const vec &wn, const vec &wdir) const
+        vec3 contactface(const vec3 &wn, const vec3 &wdir) const
         {
-            vec n = orient.transform(wn).div(radius), dir = orient.transform(wdir);
+            vec3 n = orient.transform(wn).div(radius), dir = orient.transform(wdir);
             float dxy = n.dot2(n), dz = n.z*n.z;
-            vec fn(0, 0, 0);
+            vec3 fn(0, 0, 0);
             if(dz > dxy && dir.z) fn.z = n.z*dir.z < 0 ? (n.z > 0 ? 1 : -1) : 0;
             else if(n.dot2(dir) < 0)
             {
@@ -252,9 +252,9 @@ namespace mpr
             return orient.transposedtransform(fn);
         }
 
-        vec supportpoint(const vec &n) const
+        vec3 supportpoint(const vec3 &n) const
         {
-            vec ln = orient.transform(n), p(0, 0, 0);
+            vec3 ln = orient.transform(n), p(0, 0, 0);
             if(ln.z > 0) p.z += radius.z;
             else p.z -= radius.z;
             if(ln.x || ln.y)
@@ -273,18 +273,18 @@ namespace mpr
     bool collide(const T &p1, const U &p2)
     {
         // v0 = center of Minkowski difference
-        vec v0 = p2.center().sub(p1.center());
+        vec3 v0 = p2.center().sub(p1.center());
         if(v0.iszero()) return true;  // v0 and origin overlap ==> hit
 
         // v1 = support in direction of origin
-        vec n = vec(v0).neg();
-        vec v1 = p2.supportpoint(n).sub(p1.supportpoint(vec(n).neg()));
+        vec3 n = vec3(v0).neg();
+        vec3 v1 = p2.supportpoint(n).sub(p1.supportpoint(vec3(n).neg()));
         if(v1.dot(n) <= 0) return false;  // origin outside v1 support plane ==> miss
 
         // v2 = support perpendicular to plane containing origin, v0 and v1
         n.cross(v1, v0);
         if(n.iszero()) return true;   // v0, v1 and origin colinear (and origin inside v1 support plane) == > hit
-        vec v2 = p2.supportpoint(n).sub(p1.supportpoint(vec(n).neg()));
+        vec3 v2 = p2.supportpoint(n).sub(p1.supportpoint(vec3(n).neg()));
         if(v2.dot(n) <= 0) return false;  // origin outside v2 support plane ==> miss
 
         // v3 = support perpendicular to plane containing v0, v1 and v2
@@ -303,11 +303,11 @@ namespace mpr
         loopi(100)
         {
             // Obtain the next support point
-            vec v3 = p2.supportpoint(n).sub(p1.supportpoint(vec(n).neg()));
+            vec3 v3 = p2.supportpoint(n).sub(p1.supportpoint(vec3(n).neg()));
             if(v3.dot(n) <= 0) return false;  // origin outside v3 support plane ==> miss
 
             // If origin is outside (v1,v0,v3), then portal is invalid -- eliminate v2 and find new support outside face
-            vec v3xv0;
+            vec3 v3xv0;
             v3xv0.cross(v3, v0);
             if(v1.dot(v3xv0) < 0)
             {
@@ -338,17 +338,17 @@ namespace mpr
                 n.normalize();
 
                 // Find the support point in the direction of the portal's normal
-                vec v4 = p2.supportpoint(n).sub(p1.supportpoint(vec(n).neg()));
+                vec3 v4 = p2.supportpoint(n).sub(p1.supportpoint(vec3(n).neg()));
 
                 // If the origin is outside the support plane or the boundary is thin enough, we have a miss
-                if(v4.dot(n) <= 0 || vec(v4).sub(v3).dot(n) <= boundarytolerance || j > 100) return false;
+                if(v4.dot(n) <= 0 || vec3(v4).sub(v3).dot(n) <= boundarytolerance || j > 100) return false;
 
                 // Test origin against the three planes that separate the new portal candidates: (v1,v4,v0) (v2,v4,v0) (v3,v4,v0)
                 // Note:  We're taking advantage of the triple product identities here as an optimization
                 //        (v1 % v4) * v0 == v1 * (v4 % v0)    > 0 if origin inside (v1, v4, v0)
                 //        (v2 % v4) * v0 == v2 * (v4 % v0)    > 0 if origin inside (v2, v4, v0)
                 //        (v3 % v4) * v0 == v3 * (v4 % v0)    > 0 if origin inside (v3, v4, v0)
-                vec v4xv0;
+                vec3 v4xv0;
                 v4xv0.cross(v4, v0);
                 if(v1.dot(v4xv0) > 0)
                 {
@@ -366,21 +366,21 @@ namespace mpr
     }
 
     template<class T, class U>
-    bool collide(const T &p1, const U &p2, vec *contactnormal, vec *contactpoint1, vec *contactpoint2)
+    bool collide(const T &p1, const U &p2, vec3 *contactnormal, vec3 *contactpoint1, vec3 *contactpoint2)
     {
         // v0 = center of Minkowski sum
-        vec v01 = p1.center();
-        vec v02 = p2.center();
-        vec v0 = vec(v02).sub(v01);
+        vec3 v01 = p1.center();
+        vec3 v02 = p2.center();
+        vec3 v0 = vec3(v02).sub(v01);
 
         // Avoid case where centers overlap -- any direction is fine in this case
-        if(v0.iszero()) v0 = vec(0, 0, 1e-5f);
+        if(v0.iszero()) v0 = vec3(0, 0, 1e-5f);
 
         // v1 = support in direction of origin
-        vec n = vec(v0).neg();
-        vec v11 = p1.supportpoint(vec(n).neg());
-        vec v12 = p2.supportpoint(n);
-        vec v1 = vec(v12).sub(v11);
+        vec3 n = vec3(v0).neg();
+        vec3 v11 = p1.supportpoint(vec3(n).neg());
+        vec3 v12 = p2.supportpoint(n);
+        vec3 v1 = vec3(v12).sub(v11);
         if(v1.dot(n) <= 0)
         {
             if(contactnormal) *contactnormal = n;
@@ -391,16 +391,16 @@ namespace mpr
         n.cross(v1, v0);
         if(n.iszero())
         {
-            n = vec(v1).sub(v0);
+            n = vec3(v1).sub(v0);
             n.normalize();
             if(contactnormal) *contactnormal = n;
             if(contactpoint1) *contactpoint1 = v11;
             if(contactpoint2) *contactpoint2 = v12;
             return true;
         }
-        vec v21 = p1.supportpoint(vec(n).neg());
-        vec v22 = p2.supportpoint(n);
-        vec v2 = vec(v22).sub(v21);
+        vec3 v21 = p1.supportpoint(vec3(n).neg());
+        vec3 v22 = p2.supportpoint(n);
+        vec3 v2 = vec3(v22).sub(v21);
         if(v2.dot(n) <= 0)
         {
             if(contactnormal) *contactnormal = n;
@@ -426,9 +426,9 @@ namespace mpr
         {
             // Obtain the support point in a direction perpendicular to the existing plane
             // Note: This point is guaranteed to lie off the plane
-            vec v31 = p1.supportpoint(vec(n).neg());
-            vec v32 = p2.supportpoint(n);
-            vec v3 = vec(v32).sub(v31);
+            vec3 v31 = p1.supportpoint(vec3(n).neg());
+            vec3 v32 = p2.supportpoint(n);
+            vec3 v3 = vec3(v32).sub(v31);
             if(v3.dot(n) <= 0)
             {
                 if(contactnormal) *contactnormal = n;
@@ -436,7 +436,7 @@ namespace mpr
             }
 
             // If origin is outside (v1,v0,v3), then eliminate v2 and loop
-            vec v3xv0;
+            vec3 v3xv0;
             v3xv0.cross(v3, v0);
             if(v1.dot(v3xv0) < 0)
             {
@@ -499,9 +499,9 @@ namespace mpr
                             sum = b1 + b2 + b3;
                         }
                         if(contactpoint1)
-                            *contactpoint1 = (vec(v01).mul(b0).add(vec(v11).mul(b1)).add(vec(v21).mul(b2)).add(vec(v31).mul(b3))).mul(1.0f/sum);
+                            *contactpoint1 = (vec3(v01).mul(b0).add(vec3(v11).mul(b1)).add(vec3(v21).mul(b2)).add(vec3(v31).mul(b3))).mul(1.0f/sum);
                         if(contactpoint2)
-                            *contactpoint2 = (vec(v02).mul(b0).add(vec(v12).mul(b1)).add(vec(v22).mul(b2)).add(vec(v32).mul(b3))).mul(1.0f/sum);
+                            *contactpoint2 = (vec3(v02).mul(b0).add(vec3(v12).mul(b1)).add(vec3(v22).mul(b2)).add(vec3(v32).mul(b3))).mul(1.0f/sum);
                     }
 
                     // HIT!!!
@@ -509,12 +509,12 @@ namespace mpr
                 }
 
                 // Find the support point in the direction of the wedge face
-                vec v41 = p1.supportpoint(vec(n).neg());
-                vec v42 = p2.supportpoint(n);
-                vec v4 = vec(v42).sub(v41);
+                vec3 v41 = p1.supportpoint(vec3(n).neg());
+                vec3 v42 = p2.supportpoint(n);
+                vec3 v4 = vec3(v42).sub(v41);
 
                 // If the boundary is thin enough or the origin is outside the support plane for the newly discovered vertex, then we can terminate
-                if(v4.dot(n) <= 0 || vec(v4).sub(v3).dot(n) <= boundarytolerance || j > 100)
+                if(v4.dot(n) <= 0 || vec3(v4).sub(v3).dot(n) <= boundarytolerance || j > 100)
                 {
                     if(contactnormal) *contactnormal = n;
                     return hit;
@@ -525,7 +525,7 @@ namespace mpr
                 //        (v1 % v4) * v0 == v1 * (v4 % v0)    > 0 if origin inside (v1, v4, v0)
                 //        (v2 % v4) * v0 == v2 * (v4 % v0)    > 0 if origin inside (v2, v4, v0)
                 //        (v3 % v4) * v0 == v3 * (v4 % v0)    > 0 if origin inside (v3, v4, v0)
-                vec v4xv0;
+                vec3 v4xv0;
                 v4xv0.cross(v4, v0);
                 if(v1.dot(v4xv0) > 0) // Compute the tetrahedron dividing face d1 = (v4,v0,v1)
                 {

@@ -15,14 +15,14 @@ CVAR1FR(sunlight, 0,
 });
 FVARFR(sunlightscale, 0, 1, 16, setupsunlight());
 
-vec sunlightdir(0, 0, 1);
+vec3 sunlightdir(0, 0, 1);
 extern void setsunlightdir();
 FVARFR(sunlightyaw, 0, 0, 360, setsunlightdir());
 FVARFR(sunlightpitch, -90, 90, 90, setsunlightdir());
 
 void setsunlightdir()
 {
-    sunlightdir = vec(sunlightyaw*RAD, sunlightpitch*RAD);
+    sunlightdir = vec3(sunlightyaw*RAD, sunlightpitch*RAD);
     loopk(3) if(fabs(sunlightdir[k]) < 1e-5f) sunlightdir[k] = 0;
     sunlightdir.normalize();
     setupsunlight();
@@ -419,8 +419,8 @@ static void calcsurfaces(cube &c, const ivec &co, int size, int usefacemask, int
             if(usefaces&2) curlitverts[numverts++].set(v[(order+3)&3].mul(size).add(vo));
         }
 
-        vec pos[MAXFACEVERTS], n[MAXFACEVERTS], po(ivec(co).mask(~0xFFF));
-        loopj(numverts) pos[j] = vec(curlitverts[j].getxyz()).mul(1.0f/8).add(po);
+        vec3 pos[MAXFACEVERTS], n[MAXFACEVERTS], po(ivec(co).mask(~0xFFF));
+        loopj(numverts) pos[j] = vec3(curlitverts[j].getxyz()).mul(1.0f/8).add(po);
 
         int smooth = vslot.slot->smooth;
         plane planes[2];
@@ -430,7 +430,7 @@ static void calcsurfaces(cube &c, const ivec &co, int size, int usefacemask, int
         else
         {
             planes[numplanes++].toplane(pos[0], pos[2], pos[3]);
-            vec avg = vec(planes[0]).add(planes[1]).normalize();
+            vec3 avg = vec3(planes[0]).add(planes[1]).normalize();
             findnormal(pos[0], smooth, avg, n[0]);
             findnormal(pos[1], smooth, planes[0], n[1]);
             findnormal(pos[2], smooth, avg, n[2]);
@@ -629,16 +629,16 @@ void initlights()
     loaddeferredlightshaders();
 }
 
-void lightreaching(const vec &target, vec &color, vec &dir, bool fast, extentity *t, float minambient)
+void lightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool fast, extentity *t, float minambient)
 {
     if(fullbright && editmode)
     {
-        color = vec(1, 1, 1);
-        dir = vec(0, 0, 1);
+        color = vec3(1, 1, 1);
+        dir = vec3(0, 0, 1);
         return;
     }
 
-    color = dir = vec(0, 0, 0);
+    color = dir = vec3(0, 0, 0);
     const vector<extentity *> &ents = entities::getents();
     const vector<int> &lights = checklightcache(int(target.x), int(target.y));
     loopv(lights)
@@ -647,13 +647,13 @@ void lightreaching(const vec &target, vec &color, vec &dir, bool fast, extentity
         if(e.type != ET_LIGHT || e.attr1 <= 0)
             continue;
 
-        vec ray(target);
+        vec3 ray(target);
         ray.sub(e.o);
         float mag = ray.magnitude();
         if(mag >= float(e.attr1))
             continue;
 
-        if(mag < 1e-4f) ray = vec(0, 0, -1);
+        if(mag < 1e-4f) ray = vec3(0, 0, -1);
         else
         {
             ray.div(mag);
@@ -664,7 +664,7 @@ void lightreaching(const vec &target, vec &color, vec &dir, bool fast, extentity
         float intensity = 1 - mag / float(e.attr1);
         if(e.attached && e.attached->type==ET_SPOTLIGHT)
         {
-            vec spot = vec(e.attached->o).sub(e.o).normalize();
+            vec3 spot = vec3(e.attached->o).sub(e.o).normalize();
             float spotatten = 1 - (1 - ray.dot(spot)) / (1 - cos360(clamp(int(e.attached->attr1), 1, 89)));
             if(spotatten <= 0) continue;
             intensity *= spotatten;
@@ -675,18 +675,18 @@ void lightreaching(const vec &target, vec &color, vec &dir, bool fast, extentity
         //    conoutf(CON_DEBUG, "%d - %f %f", i, intensity, mag);
         //}
 
-        vec lightcol = vec(e.attr2, e.attr3, e.attr4).mul(1.0f/255).max(0);
-        color.add(vec(lightcol).mul(intensity));
-        dir.add(vec(ray).mul(-intensity*lightcol.x*lightcol.y*lightcol.z));
+        vec3 lightcol = vec3(e.attr2, e.attr3, e.attr4).mul(1.0f/255).max(0);
+        color.add(vec3(lightcol).mul(intensity));
+        dir.add(vec3(ray).mul(-intensity*lightcol.x*lightcol.y*lightcol.z));
     }
     if(!sunlight.iszero() && shadowray(target, sunlightdir, 1e16f, RAY_SHADOW | RAY_POLY, t) > 1e15f)
     {
-        vec lightcol = sunlight.tocolor().mul(sunlightscale);
+        vec3 lightcol = sunlight.tocolor().mul(sunlightscale);
         color.add(lightcol);
-        dir.add(vec(sunlightdir).mul(lightcol.x*lightcol.y*lightcol.z));
+        dir.add(vec3(sunlightdir).mul(lightcol.x*lightcol.y*lightcol.z));
     }
     color.max(ambient.tocolor().max(minambient)).min(1.5f);
-    if(dir.iszero()) dir = vec(0, 0, 1);
+    if(dir.iszero()) dir = vec3(0, 0, 1);
     else dir.normalize();
 }
 

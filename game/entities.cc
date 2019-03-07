@@ -103,7 +103,7 @@ namespace entities
             const char *mdlname = entmodel(e);
             if(mdlname)
             {
-                vec p = e.o;
+                vec3 p = e.o;
                 p.z += 1+sinf(lastmillis/100.0+e.o.x+e.o.y)/20;
                 rendermodel(mdlname, ANIM_MAPMODEL|ANIM_LOOP, p, lastmillis/(float)revs, 0, 0, MDL_CULL_VFC | MDL_CULL_DIST | MDL_CULL_OCCLUDED);
             }
@@ -217,13 +217,13 @@ namespace entities
                 d->yaw = ents[e]->attr1;
                 if(ents[e]->attr3 > 0)
                 {
-                    vec dir;
+                    vec3 dir;
                     vecfromyawpitch(d->yaw, 0, 1, 0, dir);
                     float speed = d->vel.magnitude2();
                     d->vel.x = dir.x*speed;
                     d->vel.y = dir.y*speed;
                 }
-                else d->vel = vec(0, 0, 0);
+                else d->vel = vec3(0, 0, 0);
                 entinmap(d);
                 updatedynentcache(d);
                 ai::inferwaypoints(d, ents[n]->o, ents[e]->o, 16.f);
@@ -268,10 +268,10 @@ namespace entities
                 d->lastpickupmillis = lastmillis;
                 jumppadeffects(d, n, true);
                 if(d->ai) d->ai->becareful = true;
-                d->falling = vec(0, 0, 0);
+                d->falling = vec3(0, 0, 0);
                 d->physstate = PHYS_FALL;
                 d->timeinair = 1;
-                d->vel = vec(ents[n]->attr3*10.0f, ents[n]->attr2*10.0f, ents[n]->attr1*12.5f);
+                d->vel = vec3(ents[n]->attr3*10.0f, ents[n]->attr2*10.0f, ents[n]->attr1*12.5f);
                 break;
             }
         }
@@ -280,7 +280,7 @@ namespace entities
     void checkitems(gameent *d)
     {
         if(d->state!=CS_ALIVE) return;
-        vec o = d->feetpos();
+        vec3 o = d->feetpos();
         loopv(ents)
         {
             extentity &e = *ents[i];
@@ -348,19 +348,19 @@ namespace entities
             case TELEPORT:
                 loopv(ents) if(ents[i]->type == TELEDEST && e.attr1==ents[i]->attr2)
                 {
-                    renderentarrow(e, vec(ents[i]->o).sub(e.o).normalize(), e.o.dist(ents[i]->o));
+                    renderentarrow(e, vec3(ents[i]->o).sub(e.o).normalize(), e.o.dist(ents[i]->o));
                     break;
                 }
                 break;
 
             case JUMPPAD:
-                renderentarrow(e, vec((int)(char)e.attr3*10.0f, (int)(char)e.attr2*10.0f, e.attr1*12.5f).normalize(), 4);
+                renderentarrow(e, vec3((int)(char)e.attr3*10.0f, (int)(char)e.attr2*10.0f, e.attr1*12.5f).normalize(), 4);
                 break;
 
             case FLAG:
             case TELEDEST:
             {
-                vec dir;
+                vec3 dir;
                 vecfromyawpitch(e.attr1, 0, 1, 0, dir);
                 renderentarrow(e, dir, 4);
                 break;

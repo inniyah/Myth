@@ -49,9 +49,9 @@ bool matrix4::invert(const matrix4 &m, double mindet)
     return true;
 }
 
-bool raysphereintersect(const vec &center, float radius, const vec &o, const vec &ray, float &dist)
+bool raysphereintersect(const vec3 &center, float radius, const vec3 &o, const vec3 &ray, float &dist)
 {
-    vec c(center);
+    vec3 c(center);
     c.sub(o);
     float v = c.dot(ray),
           inside = radius*radius - c.squaredlen();
@@ -62,13 +62,13 @@ bool raysphereintersect(const vec &center, float radius, const vec &o, const vec
     return true;
 }
 
-bool rayboxintersect(const vec &b, const vec &s, const vec &o, const vec &ray, float &dist, int &orient)
+bool rayboxintersect(const vec3 &b, const vec3 &s, const vec3 &o, const vec3 &ray, float &dist, int &orient)
 {
     loop(d, 3) if(ray[d])
     {
         int dc = ray[d]<0 ? 1 : 0;
         float pdist = (b[d]+s[d]*dc - o[d]) / ray[d];
-        vec v(ray);
+        vec3 v(ray);
         v.mul(pdist).add(o);
         if(v[R[d]] >= b[R[d]] && v[R[d]] <= b[R[d]]+s[R[d]]
         && v[C[d]] >= b[C[d]] && v[C[d]] <= b[C[d]]+s[C[d]])
@@ -81,9 +81,9 @@ bool rayboxintersect(const vec &b, const vec &s, const vec &o, const vec &ray, f
     return false;
 }
 
-bool linecylinderintersect(const vec &from, const vec &to, const vec &start, const vec &end, float radius, float &dist)
+bool linecylinderintersect(const vec3 &from, const vec3 &to, const vec3 &start, const vec3 &end, float radius, float &dist)
 {
-    vec d(end), m(from), n(to);
+    vec3 d(end), m(from), n(to);
     d.sub(start);
     m.sub(start);
     n.sub(from);
@@ -129,32 +129,32 @@ bool linecylinderintersect(const vec &from, const vec &to, const vec &start, con
     return dist >= 0 && dist <= 1;
 }
 
-int polyclip(const vec *in, int numin, const vec &dir, float below, float above, vec *out)
+int polyclip(const vec3 *in, int numin, const vec3 &dir, float below, float above, vec3 *out)
 {
     int numout = 0;
-    const vec *p = &in[numin-1];
+    const vec3 *p = &in[numin-1];
     float pc = dir.dot(*p);
     loopi(numin)
     {
-        const vec &v = in[i];
+        const vec3 &v = in[i];
         float c = dir.dot(v);
         if(c < below)
         {
-            if(pc > above) out[numout++] = vec(*p).sub(v).mul((above - c)/(pc - c)).add(v);
-            if(pc > below) out[numout++] = vec(*p).sub(v).mul((below - c)/(pc - c)).add(v);
+            if(pc > above) out[numout++] = vec3(*p).sub(v).mul((above - c)/(pc - c)).add(v);
+            if(pc > below) out[numout++] = vec3(*p).sub(v).mul((below - c)/(pc - c)).add(v);
         }
         else if(c > above)
         {
-            if(pc < below) out[numout++] = vec(*p).sub(v).mul((below - c)/(pc - c)).add(v);
-            if(pc < above) out[numout++] = vec(*p).sub(v).mul((above - c)/(pc - c)).add(v);
+            if(pc < below) out[numout++] = vec3(*p).sub(v).mul((below - c)/(pc - c)).add(v);
+            if(pc < above) out[numout++] = vec3(*p).sub(v).mul((above - c)/(pc - c)).add(v);
         }
         else
         {
             if(pc < below)
             {
-                if(c > below) out[numout++] = vec(*p).sub(v).mul((below - c)/(pc - c)).add(v);
+                if(c > below) out[numout++] = vec3(*p).sub(v).mul((below - c)/(pc - c)).add(v);
             }
-            else if(pc > above && c < above) out[numout++] = vec(*p).sub(v).mul((above - c)/(pc - c)).add(v);
+            else if(pc > above && c < above) out[numout++] = vec3(*p).sub(v).mul((above - c)/(pc - c)).add(v);
             out[numout++] = v;
         }
         p = &v;

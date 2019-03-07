@@ -75,7 +75,7 @@ extern bool floatformat(GLenum format);
 extern void cleanuptexture(Texture *t);
 extern uchar *loadalphamask(Texture *t);
 extern Texture *cubemapload(const char *name, bool mipit = true, bool msg = true, bool transient = false);
-extern void drawcubemap(int size, const vec &o, float yaw, float pitch, const cubemapside &side, bool onlysky = false);
+extern void drawcubemap(int size, const vec3 &o, float yaw, float pitch, const cubemapside &side, bool onlysky = false);
 extern void loadshaders();
 extern void setuptexparameters(int tnum, const void *pixels, int clamp, int filter, GLenum format = GL_RGB, GLenum target = GL_TEXTURE_2D, bool swizzle = false);
 extern void createtexture(int tnum, int w, int h, const void *pixels, int clamp, int filter, GLenum component = GL_RGB, GLenum target = GL_TEXTURE_2D, int pw = 0, int ph = 0, int pitch = 0, bool resize = true, GLenum format = GL_FALSE, bool swizzle = false);
@@ -87,7 +87,7 @@ extern void cleanuppostfx(bool fullclean = false);
 extern void renderpostfx(GLuint outfbo = 0);
 extern void initenvmaps();
 extern void genenvmaps();
-extern ushort closestenvmap(const vec &o);
+extern ushort closestenvmap(const vec3 &o);
 extern ushort closestenvmap(int orient, const ivec &o, int size);
 extern GLuint lookupenvmap(ushort emid);
 extern GLuint lookupenvmap(Slot &slot);
@@ -107,9 +107,9 @@ extern void cleanuptextures();
 // pvs
 extern void clearpvs();
 extern bool pvsoccluded(const ivec &bbmin, const ivec &bbmax);
-extern bool pvsoccludedsphere(const vec &center, float radius);
+extern bool pvsoccludedsphere(const vec3 &center, float radius);
 extern bool waterpvsoccluded(int height);
-extern void setviewcell(const vec &p);
+extern void setviewcell(const vec3 &p);
 extern void savepvs(stream *f);
 extern void loadpvs(stream *f, int numpvs);
 extern int getnumviewcells();
@@ -137,7 +137,7 @@ extern const matrix4 viewmatrix, invviewmatrix;
 extern matrix4 cammatrix, projmatrix, camprojmatrix, invcammatrix, invcamprojmatrix, invprojmatrix;
 extern int fog;
 extern bvec fogcolour;
-extern vec curfogcolor;
+extern vec3 curfogcolor;
 extern int wireframe;
 
 extern int glerr;
@@ -157,9 +157,9 @@ extern void cleanupgl();
 extern void drawminimap();
 extern void enablepolygonoffset(GLenum type);
 extern void disablepolygonoffset(GLenum type);
-extern bool calcspherescissor(const vec &center, float size, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2);
+extern bool calcspherescissor(const vec3 &center, float size, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2);
 extern bool calcbbscissor(const ivec &bbmin, const ivec &bbmax, float &sx1, float &sy1, float &sx2, float &sy2);
-extern bool calcspotscissor(const vec &origin, float radius, const vec &dir, int spot, const vec &spotx, const vec &spoty, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2);
+extern bool calcspotscissor(const vec3 &origin, float radius, const vec3 &dir, int spot, const vec3 &spotx, const vec3 &spoty, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2);
 extern void screenquad();
 extern void screenquad(float sw, float sh);
 extern void screenquadflipped(float sw, float sh);
@@ -169,8 +169,8 @@ extern void screenquadoffset(float x, float y, float w, float h, float x2, float
 extern void hudquad(float x, float y, float w, float h, float tx = 0, float ty = 0, float tw = 1, float th = 1);
 extern void debugquad(float x, float y, float w, float h, float tx = 0, float ty = 0, float tw = 1, float th = 1);
 extern void recomputecamera();
-extern float calcfrustumboundsphere(float nearplane, float farplane,  const vec &pos, const vec &view, vec &center);
-extern void setfogcolor(const vec &v);
+extern float calcfrustumboundsphere(float nearplane, float farplane,  const vec3 &pos, const vec3 &view, vec3 &center);
+extern void setfogcolor(const vec3 &v);
 extern void zerofogcolor();
 extern void resetfogcolor();
 extern float calcfogdensity(float dist);
@@ -189,7 +189,7 @@ extern timer *begintimer(const char *name, bool gpu = true);
 extern void endtimer(timer *t);
 
 // renderextras
-extern void render3dbox(vec &o, float tofloor, float toceil, float xradius, float yradius = 0);
+extern void render3dbox(vec3 &o, float tofloor, float toceil, float xradius, float yradius = 0);
 
 // octa
 extern cube *newcubes(uint face = F_EMPTY, int mat = MAT_AIR);
@@ -219,14 +219,14 @@ extern int faceconvexity(const ivec v[4], int &vis);
 extern int faceconvexity(const vertinfo *verts, int numverts, int size);
 extern int faceconvexity(const cube &c, int orient);
 extern void calcvert(const cube &c, const ivec &co, int size, ivec &vert, int i, bool solid = false);
-extern void calcvert(const cube &c, const ivec &co, int size, vec &vert, int i, bool solid = false);
+extern void calcvert(const cube &c, const ivec &co, int size, vec3 &vert, int i, bool solid = false);
 extern uint faceedges(const cube &c, int orient);
 extern bool collapsedface(const cube &c, int orient);
 extern bool touchingface(const cube &c, int orient);
 extern bool flataxisface(const cube &c, int orient);
 extern bool collideface(const cube &c, int orient);
 extern void genclipbounds(const cube &c, const ivec &co, int size, clipplanes &p);
-extern int genclipplane(const cube &c, int i, vec *v, plane *clip);
+extern int genclipplane(const cube &c, int i, vec3 *v, plane *clip);
 extern void genclipplanes(const cube &c, const ivec &co, int size, clipplanes &p, bool collide = true, bool noclip = false);
 extern bool visibleface(const cube &c, int orient, const ivec &co, int size, ushort mat = MAT_AIR, ushort nmat = MAT_AIR, ushort matmask = MATF_VOLUME);
 extern int classifyface(const cube &c, int orient, const ivec &co, int size);
@@ -276,7 +276,7 @@ enum { SM_NONE = 0, SM_REFLECT, SM_CUBEMAP, SM_CASCADE, SM_SPOT };
 
 extern int shadowmapping;
 
-extern vec shadoworigin, shadowdir;
+extern vec3 shadoworigin, shadowdir;
 extern float shadowradius, shadowbias;
 extern int shadowside, shadowspot;
 extern matrix4 shadowmatrix;
@@ -291,8 +291,8 @@ extern void cleanupvolumetric();
 extern void findshadowvas();
 extern void findshadowmms();
 
-extern int calcshadowinfo(const extentity &e, vec &origin, float &radius, vec &spotloc, int &spotangle, float &bias);
-extern int dynamicshadowvabounds(int mask, vec &bbmin, vec &bbmax);
+extern int calcshadowinfo(const extentity &e, vec3 &origin, float &radius, vec3 &spotloc, int &spotangle, float &bias);
+extern int dynamicshadowvabounds(int mask, vec3 &bbmin, vec3 &bbmax);
 extern void rendershadowmapworld();
 extern void batchshadowmapmodels(bool skipmesh = false);
 extern void rendershadowatlas();
@@ -303,24 +303,24 @@ extern void clearradiancehintscache();
 extern void cleanuplights();
 extern void workinoq();
 
-extern int calcbbsidemask(const vec &bbmin, const vec &bbmax, const vec &lightpos, float lightradius, float bias);
-extern int calcspheresidemask(const vec &p, float radius, float bias);
-extern int calctrisidemask(const vec &p1, const vec &p2, const vec &p3, float bias);
-extern int cullfrustumsides(const vec &lightpos, float lightradius, float size, float border);
+extern int calcbbsidemask(const vec3 &bbmin, const vec3 &bbmax, const vec3 &lightpos, float lightradius, float bias);
+extern int calcspheresidemask(const vec3 &p, float radius, float bias);
+extern int calctrisidemask(const vec3 &p1, const vec3 &p2, const vec3 &p3, float bias);
+extern int cullfrustumsides(const vec3 &lightpos, float lightradius, float size, float border);
 extern int calcbbcsmsplits(const ivec &bbmin, const ivec &bbmax);
-extern int calcspherecsmsplits(const vec &center, float radius);
+extern int calcspherecsmsplits(const vec3 &center, float radius);
 extern int calcbbrsmsplits(const ivec &bbmin, const ivec &bbmax);
-extern int calcspherersmsplits(const vec &center, float radius);
+extern int calcspherersmsplits(const vec3 &center, float radius);
 
-static inline bool sphereinsidespot(const vec &dir, int spot, const vec &center, float radius)
+static inline bool sphereinsidespot(const vec3 &dir, int spot, const vec3 &center, float radius)
 {
     const vec2 &sc = sincos360[spot];
     float cdist = dir.dot(center), cradius = radius + sc.y*cdist;
     return sc.x*sc.x*(center.dot(center) - cdist*cdist) <= cradius*cradius;
 }
-static inline bool bbinsidespot(const vec &origin, const vec &dir, int spot, const ivec &bbmin, const ivec &bbmax)
+static inline bool bbinsidespot(const vec3 &origin, const vec3 &dir, int spot, const ivec &bbmin, const ivec &bbmax)
 {
-    vec radius = vec(ivec(bbmax).sub(bbmin)).mul(0.5f), center = vec(bbmin).add(radius);
+    vec3 radius = vec3(ivec(bbmax).sub(bbmin)).mul(0.5f), center = vec3(bbmin).add(radius);
     return sphereinsidespot(dir, spot, center.sub(origin), radius.magnitude());
 }
 
@@ -344,7 +344,7 @@ extern void preparegbuffer(bool depthclear = true);
 extern void rendergbuffer(bool depthclear = true);
 extern void shadesky();
 extern void shadegbuffer();
-extern void shademinimap(const vec &color = vec(-1, -1, -1));
+extern void shademinimap(const vec3 &color = vec3(-1, -1, -1));
 extern void shademodelpreview(int x, int y, int w, int h, bool background = true, bool scissor = false);
 extern void rendertransparent();
 extern void renderao();
@@ -395,8 +395,8 @@ extern void changed(const block3 &sel, bool commit = true);
 extern void rendereditcursor();
 extern void tryedit();
 
-extern void renderprefab(const char *name, const vec &o, float yaw, float pitch, float roll, float size = 1, const vec &color = vec(1, 1, 1));
-extern void previewprefab(const char *name, const vec &color);
+extern void renderprefab(const char *name, const vec3 &o, float yaw, float pitch, float roll, float size = 1, const vec3 &color = vec3(1, 1, 1));
+extern void previewprefab(const char *name, const vec3 &color);
 extern void cleanupprefabs();
 
 // octarender
@@ -404,9 +404,9 @@ extern ivec worldmin, worldmax, nogimin, nogimax;
 extern vector<tjoint> tjoints;
 extern vector<vtxarray *> varoot, valist;
 
-extern ushort encodenormal(const vec &n);
-extern vec decodenormal(ushort norm);
-extern void guessnormals(const vec *pos, int numverts, vec *normals);
+extern ushort encodenormal(const vec3 &n);
+extern vec3 decodenormal(ushort norm);
+extern void guessnormals(const vec3 *pos, int numverts, vec3 *normals);
 extern void reduceslope(ivec &n);
 extern void findtjoints();
 extern void octarender();
@@ -424,7 +424,7 @@ extern uint alphatiles[LIGHTTILE_MAXH];
 extern vtxarray *visibleva;
 
 extern void visiblecubes(bool cull = true);
-extern void setvfcP(const vec &bbmin = vec(-1, -1, -1), const vec &bbmax = vec(1, 1, 1));
+extern void setvfcP(const vec3 &bbmin = vec3(-1, -1, -1), const vec3 &bbmax = vec3(1, 1, 1));
 extern void savevfcP();
 extern void restorevfcP();
 extern void rendergeom();
@@ -435,8 +435,8 @@ extern void rendermapmodels();
 extern void renderoutline();
 extern void cleanupva();
 
-extern bool isfoggedsphere(float rad, const vec &cv);
-extern int isvisiblesphere(float rad, const vec &cv);
+extern bool isfoggedsphere(float rad, const vec3 &cv);
+extern int isvisiblesphere(float rad, const vec3 &cv);
 extern int isvisiblebb(const ivec &bo, const ivec &br);
 extern bool bboccluded(const ivec &bo, const ivec &br);
 
@@ -464,7 +464,7 @@ extern void rendershadowmesh(shadowmesh *m);
 
 extern void updatedynlights();
 extern int finddynlights();
-extern bool getdynlight(int n, vec &o, float &radius, vec &color, vec &dir, int &spot, int &flags);
+extern bool getdynlight(int n, vec3 &o, float &radius, vec3 &color, vec3 &dir, int &spot, int &flags);
 
 // material
 
@@ -473,7 +473,7 @@ extern float matsolidsx1, matsolidsy1, matsolidsx2, matsolidsy2;
 extern float matrefractsx1, matrefractsy1, matrefractsx2, matrefractsy2;
 extern uint matliquidtiles[LIGHTTILE_MAXH], matsolidtiles[LIGHTTILE_MAXH];
 extern vector<materialsurface> editsurfs, glasssurfs[4], watersurfs[4], waterfallsurfs[4], lavasurfs[4], lavafallsurfs[4];
-extern const vec matnormals[6];
+extern const vec3 matnormals[6];
 
 extern int showmat;
 
@@ -636,9 +636,9 @@ extern void textinput(bool on, int mask = ~0);
 // physics
 extern void modifyorient(float yaw, float pitch);
 extern void mousemove(int dx, int dy);
-extern bool overlapsdynent(const vec &o, float radius);
-extern void rotatebb(vec &center, vec &radius, int yaw, int pitch, int roll = 0);
-extern float shadowray(const vec &o, const vec &ray, float radius, int mode, extentity *t = NULL);
+extern bool overlapsdynent(const vec3 &o, float radius);
+extern void rotatebb(vec3 &center, vec3 &radius, int yaw, int pitch, int roll = 0);
+extern float shadowray(const vec3 &o, const vec3 &ray, float radius, int mode, extentity *t = NULL);
 
 // world
 
@@ -648,7 +648,7 @@ extern void entcancel();
 extern void entitiesinoctanodes();
 extern void attachentities();
 extern void freeoctaentities(cube &c);
-extern bool pointinsel(const selinfo &sel, const vec &o);
+extern bool pointinsel(const selinfo &sel, const vec3 &o);
 
 extern void resetmap();
 extern void startmap(const char *name);
@@ -670,11 +670,11 @@ extern void shadowmaskbatchedmodels(bool dynshadow = true);
 extern void rendermapmodelbatches();
 extern void rendermodelbatches();
 extern void rendertransparentmodelbatches(int stencil = 0);
-extern void rendermapmodel(int idx, int anim, const vec &o, float yaw = 0, float pitch = 0, float roll = 0, int flags = MDL_CULL_VFC | MDL_CULL_DIST, int basetime = 0, float size = 1);
+extern void rendermapmodel(int idx, int anim, const vec3 &o, float yaw = 0, float pitch = 0, float roll = 0, int flags = MDL_CULL_VFC | MDL_CULL_DIST, int basetime = 0, float size = 1);
 extern void clearbatchedmapmodels();
 extern void preloadusedmapmodels(bool msg = false, bool bih = false);
 extern int batcheddynamicmodels();
-extern int batcheddynamicmodelbounds(int mask, vec &bbmin, vec &bbmax);
+extern int batcheddynamicmodelbounds(int mask, vec3 &bbmin, vec3 &bbmax);
 extern void cleanupmodels();
 
 static inline model *loadmapmodel(int n)
@@ -713,7 +713,7 @@ extern void initstains();
 extern void clearstains();
 extern bool renderstains(int sbuf, bool gbuf, int layer = 0);
 extern void cleanupstains();
-extern void genstainmmtri(stainrenderer *s, const vec v[3]);
+extern void genstainmmtri(stainrenderer *s, const vec3 v[3]);
 
 // rendersky
 extern int skytexture, skyshadow, explicitsky;
@@ -775,7 +775,7 @@ extern BlendMapCache *newblendmapcache();
 extern void freeblendmapcache(BlendMapCache *&cache);
 extern bool setblendmaporigin(BlendMapCache *cache, const ivec &o, int size);
 extern bool hasblendmap(BlendMapCache *cache);
-extern uchar lookupblendmap(BlendMapCache *cache, const vec &pos);
+extern uchar lookupblendmap(BlendMapCache *cache, const vec3 &pos);
 extern void resetblendmap();
 extern void enlargeblendmap();
 extern void shrinkblendmap(int octant);

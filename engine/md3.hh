@@ -2,7 +2,7 @@ struct md3;
 
 struct md3frame
 {
-    vec bbmin, bbmax, origin;
+    vec3 bbmin, bbmax, origin;
     float radius;
     uchar name[16];
 };
@@ -112,11 +112,11 @@ struct md3 : vertloader<md3>
                     f->read(&v, sizeof(md3vertex)); // read the vertices
                     lilswap(v.vertex, 4);
 
-                    m.verts[j].pos = vec(v.vertex[0]/64.0f, -v.vertex[1]/64.0f, v.vertex[2]/64.0f);
+                    m.verts[j].pos = vec3(v.vertex[0]/64.0f, -v.vertex[1]/64.0f, v.vertex[2]/64.0f);
 
                     float lng = (v.normal&0xFF)*2*M_PI/255.0f; // decode vertex normals
                     float lat = ((v.normal>>8)&0xFF)*2*M_PI/255.0f;
-                    m.verts[j].norm = vec(cosf(lat)*sinf(lng), -sinf(lat)*sinf(lng), cosf(lng));
+                    m.verts[j].norm = vec3(cosf(lat)*sinf(lng), -sinf(lat)*sinf(lng), cosf(lng));
                 }
 
                 m.calctangents();
@@ -142,10 +142,10 @@ struct md3 : vertloader<md3>
                     loopj(3) tag.rotation[1][j] *= -1;
                     // then restore it
                     loopj(3) tag.rotation[j][1] *= -1;
-                    m.a = vec(tag.rotation[0]);
-                    m.b = vec(tag.rotation[1]);
-                    m.c = vec(tag.rotation[2]);
-                    m.d = vec(tag.translation);
+                    m.a = vec3(tag.rotation[0]);
+                    m.b = vec3(tag.rotation[1]);
+                    m.c = vec3(tag.rotation[2]);
+                    m.d = vec3(tag.translation);
                 }
             }
 

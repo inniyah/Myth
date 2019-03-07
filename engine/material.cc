@@ -396,7 +396,7 @@ void setupmaterials(int start, int len)
             else if(matvol==MAT_GLASS)
             {
                 int dim = dimension(m.orient);
-                vec center(m.o);
+                vec3 center(m.o);
                 center[R[dim]] += m.rsize/2;
                 center[C[dim]] += m.csize/2;
                 m.envmap = closestenvmap(center);
@@ -463,7 +463,7 @@ static inline bool editmatcmp(const materialsurface &x, const materialsurface &y
 void sorteditmaterials()
 {
     sortorigin = ivec(camera1->o);
-    vec dir = vec(camdir).abs();
+    vec3 dir = vec3(camdir).abs();
     loopi(3) sortdim[i] = i;
     if(dir[sortdim[2]] > dir[sortdim[1]]) swap(sortdim[2], sortdim[1]);
     if(dir[sortdim[1]] > dir[sortdim[0]]) swap(sortdim[1], sortdim[0]);
@@ -508,7 +508,7 @@ void rendermatgrid()
 
 static float glassxscale = 0, glassyscale = 0;
 
-static void drawglass(const materialsurface &m, float offset, const vec *normal = NULL)
+static void drawglass(const materialsurface &m, float offset, const vec3 *normal = NULL)
 {
     if(gle::attribbuf.empty())
     {
@@ -522,7 +522,7 @@ static void drawglass(const materialsurface &m, float offset, const vec *normal 
     #undef GENFACEVERTX
     #define GENFACEVERTX(orient, vert, mx,my,mz, sx,sy,sz) \
         { \
-            vec v(mx sx, my sy, mz sz); \
+            vec3 v(mx sx, my sy, mz sz); \
             gle::attribf(v.x, v.y, v.z); \
             GENFACENORMAL \
             gle::attribf(glassxscale*v.y, -glassyscale*v.z); \
@@ -530,7 +530,7 @@ static void drawglass(const materialsurface &m, float offset, const vec *normal 
     #undef GENFACEVERTY
     #define GENFACEVERTY(orient, vert, mx,my,mz, sx,sy,sz) \
         { \
-            vec v(mx sx, my sy, mz sz); \
+            vec3 v(mx sx, my sy, mz sz); \
             gle::attribf(v.x, v.y, v.z); \
             GENFACENORMAL \
             gle::attribf(glassxscale*v.x, -glassyscale*v.z); \
@@ -538,7 +538,7 @@ static void drawglass(const materialsurface &m, float offset, const vec *normal 
     #undef GENFACEVERTZ
     #define GENFACEVERTZ(orient, vert, mx,my,mz, sx,sy,sz) \
         { \
-            vec v(mx sx, my sy, mz sz); \
+            vec3 v(mx sx, my sy, mz sz); \
             gle::attribf(v.x, v.y, v.z); \
             GENFACENORMAL \
             gle::attribf(glassxscale*v.x, glassyscale*v.y); \
@@ -547,7 +547,7 @@ static void drawglass(const materialsurface &m, float offset, const vec *normal 
     float x = m.o.x, y = m.o.y, z = m.o.z, csize = m.csize, rsize = m.rsize;
     if(normal)
     {
-        vec n = *normal;
+        vec3 n = *normal;
         switch(m.orient) { GENFACEVERTS(x, x, y, y, z, z, /**/, + csize, /**/, + rsize, + offset, - offset) }
     }
     #undef GENFACENORMAL
@@ -667,14 +667,14 @@ void rendermaterialmask()
     glEnable(GL_CULL_FACE);
 }
 
-extern const vec matnormals[6] =
+extern const vec3 matnormals[6] =
 {
-    vec(-1, 0, 0),
-    vec( 1, 0, 0),
-    vec(0, -1, 0),
-    vec(0,  1, 0),
-    vec(0, 0, -1),
-    vec(0, 0,  1)
+    vec3(-1, 0, 0),
+    vec3( 1, 0, 0),
+    vec3(0, -1, 0),
+    vec3(0,  1, 0),
+    vec3(0, 0, -1),
+    vec3(0, 0,  1)
 };
 
 #define GLASSVARS(name) \

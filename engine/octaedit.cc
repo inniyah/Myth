@@ -4,37 +4,37 @@ extern int outline;
 
 bool boxoutline = false;
 
-void boxs(int orient, vec o, const vec &s, float size)
+void boxs(int orient, vec3 o, const vec3 &s, float size)
 {   
     int d = dimension(orient), dc = dimcoord(orient);
     float f = boxoutline ? (dc>0 ? 0.2f : -0.2f) : 0;
     o[D[d]] += dc * s[D[d]] + f;
 
-    vec r(0, 0, 0), c(0, 0, 0);
+    vec3 r(0, 0, 0), c(0, 0, 0);
     r[R[d]] = s[R[d]];
     c[C[d]] = s[C[d]];
 
-    vec v1 = o, v2 = vec(o).add(r), v3 = vec(o).add(r).add(c), v4 = vec(o).add(c);
+    vec3 v1 = o, v2 = vec3(o).add(r), v3 = vec3(o).add(r).add(c), v4 = vec3(o).add(c);
 
     r[R[d]] = 0.5f*size;
     c[C[d]] = 0.5f*size;
 
     gle::defvertex();
     gle::begin(GL_TRIANGLE_STRIP);
-    gle::attrib(vec(v1).sub(r).sub(c));
-        gle::attrib(vec(v1).add(r).add(c));
-    gle::attrib(vec(v2).add(r).sub(c));
-        gle::attrib(vec(v2).sub(r).add(c));
-    gle::attrib(vec(v3).add(r).add(c));
-        gle::attrib(vec(v3).sub(r).sub(c));
-    gle::attrib(vec(v4).sub(r).add(c));
-        gle::attrib(vec(v4).add(r).sub(c));
-    gle::attrib(vec(v1).sub(r).sub(c));
-        gle::attrib(vec(v1).add(r).add(c));
+    gle::attrib(vec3(v1).sub(r).sub(c));
+        gle::attrib(vec3(v1).add(r).add(c));
+    gle::attrib(vec3(v2).add(r).sub(c));
+        gle::attrib(vec3(v2).sub(r).add(c));
+    gle::attrib(vec3(v3).add(r).add(c));
+        gle::attrib(vec3(v3).sub(r).sub(c));
+    gle::attrib(vec3(v4).sub(r).add(c));
+        gle::attrib(vec3(v4).add(r).sub(c));
+    gle::attrib(vec3(v1).sub(r).sub(c));
+        gle::attrib(vec3(v1).add(r).add(c));
     xtraverts += gle::end();
 }
 
-void boxs(int orient, vec o, const vec &s)
+void boxs(int orient, vec3 o, const vec3 &s)
 {
     int d = dimension(orient), dc = dimcoord(orient);
     float f = boxoutline ? (dc>0 ? 0.2f : -0.2f) : 0;
@@ -51,14 +51,14 @@ void boxs(int orient, vec o, const vec &s)
     xtraverts += gle::end();
 }
 
-void boxs3D(const vec &o, vec s, int g)
+void boxs3D(const vec3 &o, vec3 s, int g)
 {
     s.mul(g);
     loopi(6)
         boxs(i, o, s);
 }
 
-void boxsgrid(int orient, vec o, vec s, int g)
+void boxsgrid(int orient, vec3 o, vec3 s, int g)
 {
     int d = dimension(orient), dc = dimcoord(orient);
     float ox = o[R[d]],
@@ -118,7 +118,7 @@ ICOMMAND(moving, "b", (int *n),
 {
     if(*n >= 0)
     {
-        if(!*n || (moving<=1 && !pointinsel(sel, vec(cur).add(1)))) moving = 0;
+        if(!*n || (moving<=1 && !pointinsel(sel, vec3(cur).add(1)))) moving = 0;
         else if(!moving) moving = 1;
     }
     intret(moving);
@@ -187,7 +187,7 @@ bool noedit(bool view, bool msg)
 {
     if(!editmode) { if(msg) conoutf(CON_ERROR, "operation only allowed in edit mode"); return true; }
     if(view || haveselent()) return false;
-    vec o(sel.o), s(sel.s);
+    vec3 o(sel.o), s(sel.s);
     s.mul(sel.grid / 2.0f);
     o.add(s);
     float r = max(s.x, s.y, s.z);
@@ -304,24 +304,24 @@ void updateselection()
     sel.s.z = abs(lastcur.z-cur.z)/sel.grid+1;
 }
 
-bool editmoveplane(const vec &o, const vec &ray, int d, float off, vec &handle, vec &dest, bool first)
+bool editmoveplane(const vec3 &o, const vec3 &ray, int d, float off, vec3 &handle, vec3 &dest, bool first)
 {
     plane pl(d, off);
     float dist = 0.0f;
     if(!pl.rayintersect(player->o, ray, dist))
         return false;
 
-    dest = vec(ray).mul(dist).add(player->o);
-    if(first) handle = vec(dest).sub(o);
+    dest = vec3(ray).mul(dist).add(player->o);
+    if(first) handle = vec3(dest).sub(o);
     dest.sub(handle);
     return true;
 }
 
 namespace hmap { inline bool isheightmap(int orient, int d, bool empty, cube *c); }
-extern void entdrag(const vec &ray);
+extern void entdrag(const vec3 &ray);
 extern bool hoveringonent(int ent, int orient);
-extern void renderentselection(const vec &o, const vec &ray, bool entmoving);
-extern float rayent(const vec &o, const vec &ray, float radius, int mode, int size, int &orient, int &ent);
+extern void renderentselection(const vec3 &o, const vec3 &ray, bool entmoving);
+extern float rayent(const vec3 &o, const vec3 &ray, float radius, int mode, int size, int &orient, int &ent);
 
 VAR(gridlookup, 0, 0, 1);
 VAR(passthroughcube, 0, 1, 1);
@@ -337,13 +337,13 @@ void rendereditcursor()
 
     if(moving)
     {
-        static vec dest, handle;
-        if(editmoveplane(vec(sel.o), camdir, od, sel.o[D[od]]+odc*sel.grid*sel.s[D[od]], handle, dest, moving==1))
+        static vec3 dest, handle;
+        if(editmoveplane(vec3(sel.o), camdir, od, sel.o[D[od]]+odc*sel.grid*sel.s[D[od]], handle, dest, moving==1))
         {
             if(moving==1)
             {
                 dest.add(handle);
-                handle = vec(ivec(handle).mask(~(sel.grid-1)));
+                handle = vec3(ivec(handle).mask(~(sel.grid-1)));
                 dest.sub(handle);
                 moving = 2;
             }
@@ -369,7 +369,7 @@ void rendereditcursor()
                        | (passthroughcube==1 ? RAY_PASS : 0), gridsize, entorient, ent);
 
         if((havesel || dragging) && !passthroughsel && !hmapedit)     // now try selecting the selection
-            if(rayboxintersect(vec(sel.o), vec(sel.s).mul(sel.grid), player->o, camdir, sdist, orient))
+            if(rayboxintersect(vec3(sel.o), vec3(sel.s).mul(sel.grid), player->o, camdir, sdist, orient))
             {   // and choose the nearest of the two
                 if(sdist < wdist)
                 {
@@ -389,11 +389,11 @@ void rendereditcursor()
         }
         else
         {
-            vec w = vec(camdir).mul(wdist+0.05f).add(player->o);
+            vec3 w = vec3(camdir).mul(wdist+0.05f).add(player->o);
             if(!insideworld(w))
             {
                 loopi(3) wdist = min(wdist, ((camdir[i] > 0 ? worldsize : 0) - player->o[i]) / camdir[i]);
-                w = vec(camdir).mul(wdist-0.05f).add(player->o);
+                w = vec3(camdir).mul(wdist-0.05f).add(player->o);
                 if(!insideworld(w))
                 {
                     wdist = 0;
@@ -404,9 +404,9 @@ void rendereditcursor()
             if(gridlookup && !dragging && !moving && !havesel && hmapedit!=1) gridsize = lusize;
             int mag = lusize / gridsize;
             normalizelookupcube(ivec(w));
-            if(sdist == 0 || sdist > wdist) rayboxintersect(vec(lu), vec(gridsize), player->o, camdir, t=0, orient); // just getting orient
+            if(sdist == 0 || sdist > wdist) rayboxintersect(vec3(lu), vec3(gridsize), player->o, camdir, t=0, orient); // just getting orient
             cur = lu;
-            cor = ivec(vec(w).mul(2).div(gridsize));
+            cor = ivec(vec3(w).mul(2).div(gridsize));
             od = dimension(orient);
             d = dimension(sel.orient);
 
@@ -487,7 +487,7 @@ void rendereditcursor()
             gle::colorub(0, hmapsel ? 255 : 40, 0);
         else
             gle::colorub(120,120,120);
-        boxs(orient, vec(lu), vec(lusize));
+        boxs(orient, vec3(lu), vec3(lusize));
     }
 
     // selections
@@ -495,11 +495,11 @@ void rendereditcursor()
     {
         d = dimension(sel.orient);
         gle::colorub(50,50,50);   // grid
-        boxsgrid(sel.orient, vec(sel.o), vec(sel.s), sel.grid);
+        boxsgrid(sel.orient, vec3(sel.o), vec3(sel.s), sel.grid);
         gle::colorub(200,0,0);    // 0 reference
-        boxs3D(vec(sel.o).sub(0.5f*min(gridsize*0.25f, 2.0f)), vec(min(gridsize*0.25f, 2.0f)), 1);
+        boxs3D(vec3(sel.o).sub(0.5f*min(gridsize*0.25f, 2.0f)), vec3(min(gridsize*0.25f, 2.0f)), 1);
         gle::colorub(200,200,200);// 2D selection box
-        vec co(sel.o.v), cs(sel.s.v);
+        vec3 co(sel.o.v), cs(sel.s.v);
         co[R[d]] += 0.5f*(sel.cx*gridsize);
         co[C[d]] += 0.5f*(sel.cy*gridsize);
         cs[R[d]]  = 0.5f*(sel.cxs*gridsize);
@@ -510,7 +510,7 @@ void rendereditcursor()
             gle::colorub(0,120,0);
         else
             gle::colorub(0,0,120);
-        boxs3D(vec(sel.o), vec(sel.s), sel.grid);
+        boxs3D(vec3(sel.o), vec3(sel.s), sel.grid);
     }
 
     disablepolygonoffset(GL_POLYGON_OFFSET_LINE);
@@ -1268,7 +1268,7 @@ COMMAND(pasteprefab, "s");
 
 struct prefabmesh
 {
-    struct vertex { vec pos; bvec4 norm; };
+    struct vertex { vec3 pos; bvec4 norm; };
 
     static const int SIZE = 1<<9;
     int table[SIZE];
@@ -1292,7 +1292,7 @@ struct prefabmesh
         return table[h] = verts.length()-1;
     }
 
-    int addvert(const vec &pos, const bvec &norm)
+    int addvert(const vec3 &pos, const bvec &norm)
     {
         vertex vtx;
         vtx.pos = pos;
@@ -1344,11 +1344,11 @@ static void genprefabmesh(prefabmesh &r, cube &c, const ivec &co, int size)
             int convex = 0;
             if(!flataxisface(c, i)) convex = faceconvexity(v);
             int order = vis&4 || convex < 0 ? 1 : 0, numverts = 0;
-            vec vo(co), pos[4], norm[4];
-            pos[numverts++] = vec(v[order]).mul(size/8.0f).add(vo);
-            if(vis&1) pos[numverts++] = vec(v[order+1]).mul(size/8.0f).add(vo);
-            pos[numverts++] = vec(v[order+2]).mul(size/8.0f).add(vo);
-            if(vis&2) pos[numverts++] = vec(v[(order+3)&3]).mul(size/8.0f).add(vo);
+            vec3 vo(co), pos[4], norm[4];
+            pos[numverts++] = vec3(v[order]).mul(size/8.0f).add(vo);
+            if(vis&1) pos[numverts++] = vec3(v[order+1]).mul(size/8.0f).add(vo);
+            pos[numverts++] = vec3(v[order+2]).mul(size/8.0f).add(vo);
+            if(vis&2) pos[numverts++] = vec3(v[(order+3)&3]).mul(size/8.0f).add(vo);
             guessnormals(pos, numverts, norm);
             int index[4];
             loopj(numverts) index[j] = r.addvert(pos[j], bvec(norm[j]));
@@ -1399,7 +1399,7 @@ void genprefabmesh(prefab &p)
 
 extern bvec outlinecolour;
 
-static void renderprefab(prefab &p, const vec &o, float yaw, float pitch, float roll, float size, const vec &color)
+static void renderprefab(prefab &p, const vec3 &o, float yaw, float pitch, float roll, float size, const vec3 &color)
 {
     if(!p.numtris)
     {
@@ -1417,7 +1417,7 @@ static void renderprefab(prefab &p, const vec &o, float yaw, float pitch, float 
     if(roll) m.rotate_around_y(-roll*RAD);
     matrix3 w(m);
     if(size > 0 && size != 1) m.scale(size);
-    m.translate(vec(b.s).mul(-b.grid*0.5f));
+    m.translate(vec3(b.s).mul(-b.grid*0.5f));
 
     gle::bindvbo(p.vbo);
     gle::bindebo(p.ebo);
@@ -1432,7 +1432,7 @@ static void renderprefab(prefab &p, const vec &o, float yaw, float pitch, float 
     GLOBALPARAM(prefabmatrix, pm);
     GLOBALPARAM(prefabworld, w);
     SETSHADER(prefab);
-    gle::color(vec(color).mul(ldrscale));
+    gle::color(vec3(color).mul(ldrscale));
     glDrawRangeElements_(GL_TRIANGLES, 0, p.numverts-1, p.numtris*3, GL_UNSIGNED_SHORT, (ushort *)0);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -1453,20 +1453,20 @@ static void renderprefab(prefab &p, const vec &o, float yaw, float pitch, float 
     gle::clearvbo();
 }
 
-void renderprefab(const char *name, const vec &o, float yaw, float pitch, float roll, float size, const vec &color)
+void renderprefab(const char *name, const vec3 &o, float yaw, float pitch, float roll, float size, const vec3 &color)
 {
     prefab *p = loadprefab(name, false);
     if(p) renderprefab(*p, o, yaw, pitch, roll, size, color);
 }
 
-void previewprefab(const char *name, const vec &color)
+void previewprefab(const char *name, const vec3 &color)
 {
     prefab *p = loadprefab(name, false);
     if(p)
     {
         block3 &b = *p->copy;
         float yaw;
-        vec o = calcmodelpreviewpos(vec(b.s).mul(b.grid*0.5f), yaw);
+        vec3 o = calcmodelpreviewpos(vec3(b.s).mul(b.grid*0.5f), yaw);
         renderprefab(*p, o, yaw, 0, 0, 1, color);
     }
 }
@@ -2275,7 +2275,7 @@ void vcolor(float *r, float *g, float *b)
     if(noedit()) return;
     VSlot ds;
     ds.changed = 1<<VSLOT_COLOR;
-    ds.colorscale = vec(clamp(*r, 0.0f, 2.0f), clamp(*g, 0.0f, 2.0f), clamp(*b, 0.0f, 2.0f));
+    ds.colorscale = vec3(clamp(*r, 0.0f, 2.0f), clamp(*g, 0.0f, 2.0f), clamp(*b, 0.0f, 2.0f));
     mpeditvslot(usevdelta, ds, allfaces, sel, true);
 }
 COMMAND(vcolor, "fff");
@@ -2287,9 +2287,9 @@ void vrefract(float *k, float *r, float *g, float *b)
     ds.changed = 1<<VSLOT_REFRACT;
     ds.refractscale = clamp(*k, 0.0f, 1.0f);
     if(ds.refractscale > 0 && (*r > 0 || *g > 0 || *b > 0))
-        ds.refractcolor = vec(clamp(*r, 0.0f, 1.0f), clamp(*g, 0.0f, 1.0f), clamp(*b, 0.0f, 1.0f));
+        ds.refractcolor = vec3(clamp(*r, 0.0f, 1.0f), clamp(*g, 0.0f, 1.0f), clamp(*b, 0.0f, 1.0f));
     else
-        ds.refractcolor = vec(1, 1, 1);
+        ds.refractcolor = vec3(1, 1, 1);
     mpeditvslot(usevdelta, ds, allfaces, sel, true);
 
 }
@@ -2772,7 +2772,7 @@ void rendertexturepanel(int w, int h)
                 glBindTexture(GL_TEXTURE_2D, tex->id);
                 loopj(glowtex ? 3 : 2)
                 {
-                    if(j < 2) gle::color(vec(vslot.colorscale).mul(j), texpaneltimer/1000.0f);
+                    if(j < 2) gle::color(vec3(vslot.colorscale).mul(j), texpaneltimer/1000.0f);
                     else
                     {
                         glBindTexture(GL_TEXTURE_2D, glowtex->id);

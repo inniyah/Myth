@@ -155,7 +155,7 @@ struct verthash
         return table[h] = verts.length()-1;
     }
 
-    int addvert(const vec &pos, const vec &tc = vec(0, 0, 0), const bvec &norm = bvec(128, 128, 128), const bvec4 &tangent = bvec4(128, 128, 128, 128))
+    int addvert(const vec3 &pos, const vec3 &tc = vec3(0, 0, 0), const bvec &norm = bvec(128, 128, 128), const bvec4 &tangent = bvec4(128, 128, 128, 128))
     {
         vertex vtx;
         vtx.pos = pos;
@@ -280,9 +280,9 @@ struct vacollect : verthash
     vector<materialsurface> matsurfs;
     vector<octaentities *> mapmodels, decals, extdecals;
     int worldtris, skytris, decaltris;
-    vec alphamin, alphamax;
-    vec refractmin, refractmax;
-    vec skymin, skymax;
+    vec3 alphamin, alphamax;
+    vec3 refractmin, refractmax;
+    vec3 skymin, skymax;
     ivec nogimin, nogimax;
 
     void clear()
@@ -299,8 +299,8 @@ struct vacollect : verthash
         grasstris.setsize(0);
         texs.setsize(0);
         decaltexs.setsize(0);
-        alphamin = refractmin = skymin = vec(1e16f, 1e16f, 1e16f);
-        alphamax = refractmax = skymax = vec(-1e16f, -1e16f, -1e16f);
+        alphamin = refractmin = skymin = vec3(1e16f, 1e16f, 1e16f);
+        alphamax = refractmax = skymax = vec3(-1e16f, -1e16f, -1e16f);
         nogimin = ivec(INT_MAX, INT_MAX, INT_MAX);
         nogimax = ivec(INT_MIN, INT_MIN, INT_MIN);
     }
@@ -339,7 +339,7 @@ struct vacollect : verthash
         if(e.attr2) orient.rotate_around_z(sincosmod360(e.attr2));
         if(e.attr3) orient.rotate_around_x(sincosmod360(e.attr3));
         if(e.attr4) orient.rotate_around_y(sincosmod360(-e.attr4));
-        vec size(max(float(e.attr5), 1.0f));
+        vec3 size(max(float(e.attr5), 1.0f));
         size.y *= s.depth;
         if(!s.sts.empty())
         {
@@ -347,9 +347,9 @@ struct vacollect : verthash
             if(t->xs < t->ys) size.x *= t->xs / float(t->ys);
             else if(t->xs > t->ys) size.z *= t->ys / float(t->xs);
         }
-        vec center = orient.transform(vec(0, size.y*0.5f, 0)).add(e.o), radius = orient.abstransform(vec(size).mul(0.5f));
-        vec bbmin = vec(center).sub(radius), bbmax = vec(center).add(radius);
-        vec clipoffset = orient.transposedtransform(center).msub(size, 0.5f);
+        vec3 center = orient.transform(vec3(0, size.y*0.5f, 0)).add(e.o), radius = orient.abstransform(vec3(size).mul(0.5f));
+        vec3 bbmin = vec3(center).sub(radius), bbmax = vec3(center).add(radius);
+        vec3 clipoffset = orient.transposedtransform(center).msub(size, 0.5f);
         loopv(texs)
         {
             const sortkey &k = texs[i];
@@ -361,14 +361,14 @@ struct vacollect : verthash
             for(int j = 0; j < t.tris.length(); j += 3)
             {
                 const vertex &t0 = verts[t.tris[j]], &t1 = verts[t.tris[j+1]], &t2 = verts[t.tris[j+2]];
-                vec v0 = t0.pos, v1 = t1.pos, v2 = t2.pos;
-                vec tmin = vec(v0).min(v1).min(v2), tmax = vec(v0).max(v1).max(v2);
+                vec3 v0 = t0.pos, v1 = t1.pos, v2 = t2.pos;
+                vec3 tmin = vec3(v0).min(v1).min(v2), tmax = vec3(v0).max(v1).max(v2);
                 if(tmin.x >= bbmax.x || tmin.y >= bbmax.y || tmin.z >= bbmax.z ||
                    tmax.x <= bbmin.x || tmax.y <= bbmin.y || tmax.z <= bbmin.z)
                     continue;
                 float f0 = t0.norm.tonormal().dot(orient.b), f1 = t1.norm.tonormal().dot(orient.b), f2 = t2.norm.tonormal().dot(orient.b);
                 if(f0 >= 0 && f1 >= 0 && f2 >= 0) continue; 
-                vec p1[9], p2[9];
+                vec3 p1[9], p2[9];
                 p1[0] = v0; p1[1] = v1; p1[2] = v2;
                 int nump = polyclip(p1, 3, orient.b, clipoffset.y, clipoffset.y + size.y, p2);
                 if(nump < 3) continue;
@@ -379,22 +379,22 @@ struct vacollect : verthash
 
                 bvec4 n0 = t0.norm, n1 = t1.norm, n2 = t2.norm,
                       x0 = t0.tangent, x1 = t1.tangent, x2 = t2.tangent;
-                vec e1 = vec(v1).sub(v0), e2 = vec(v2).sub(v0);
+                vec3 e1 = vec3(v1).sub(v0), e2 = vec3(v2).sub(v0);
                 float d11 = e1.dot(e1), d12 = e1.dot(e2), d22 = e2.dot(e2);
                 int idx[9];
                 loopk(nump)
                 {
                     vertex v;
                     v.pos = p2[k];
-                    vec ep = vec(v.pos).sub(v0);
+                    vec3 ep = vec3(v.pos).sub(v0);
                     float dp1 = ep.dot(e1), dp2 = ep.dot(e2), denom = d11*d22 - d12*d12,
                           b1 = (d22*dp1 - d12*dp2) / denom,
                           b2 = (d11*dp2 - d12*dp1) / denom,
                           b0 = 1 - b1 - b2;
                     v.norm.lerp(n0, n1, n2, b0, b1, b2);
                     v.norm.w = uchar(127.5f - 127.5f*(f0*b0 + f1*b1 + f2*b2));
-                    vec tc = orient.transposedtransform(vec(center).sub(v.pos)).div(size).add(0.5f);
-                    v.tc = vec(tc.x, tc.z, s.fade ? tc.y * s.depth / s.fade : 1.0f);
+                    vec3 tc = orient.transposedtransform(vec3(center).sub(v.pos)).div(size).add(0.5f);
+                    v.tc = vec3(tc.x, tc.z, s.fade ? tc.y * s.depth / s.fade : 1.0f);
                     v.tangent.lerp(x0, x1, x2, b0, b1, b2);
                     idx[k] = addvert(v);
                 }
@@ -645,27 +645,27 @@ void reduceslope(ivec &n)
 }
 
 // [rotation][orient]
-extern const vec orientation_tangent[8][6] =
+extern const vec3 orientation_tangent[8][6] =
 {
-    { vec( 0,  1,  0), vec( 0, -1,  0), vec(-1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0) },
-    { vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0, -1,  0), vec( 0,  1,  0) },
-    { vec( 0, -1,  0), vec( 0,  1,  0), vec( 1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0) },
-    { vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  1,  0), vec( 0, -1,  0) },
-    { vec( 0, -1,  0), vec( 0,  1,  0), vec( 1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0) },
-    { vec( 0,  1,  0), vec( 0, -1,  0), vec(-1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0) },
-    { vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0, -1,  0), vec( 0,  1,  0) },
-    { vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  1,  0), vec( 0, -1,  0) },
+    { vec3( 0,  1,  0), vec3( 0, -1,  0), vec3(-1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0) },
+    { vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0, -1,  0), vec3( 0,  1,  0) },
+    { vec3( 0, -1,  0), vec3( 0,  1,  0), vec3( 1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0) },
+    { vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  1,  0), vec3( 0, -1,  0) },
+    { vec3( 0, -1,  0), vec3( 0,  1,  0), vec3( 1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0) },
+    { vec3( 0,  1,  0), vec3( 0, -1,  0), vec3(-1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0) },
+    { vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0, -1,  0), vec3( 0,  1,  0) },
+    { vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  1,  0), vec3( 0, -1,  0) },
 };
-extern const vec orientation_bitangent[8][6] =
+extern const vec3 orientation_bitangent[8][6] =
 {
-    { vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0, -1,  0), vec( 0,  1,  0) },
-    { vec( 0, -1,  0), vec( 0,  1,  0), vec( 1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0) },
-    { vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  1,  0), vec( 0, -1,  0) },
-    { vec( 0,  1,  0), vec( 0, -1,  0), vec(-1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0) },
-    { vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0,  0, -1), vec( 0, -1,  0), vec( 0,  1,  0) },
-    { vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  0,  1), vec( 0,  1,  0), vec( 0, -1,  0) },
-    { vec( 0,  1,  0), vec( 0, -1,  0), vec(-1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0), vec( 1,  0,  0) },
-    { vec( 0, -1,  0), vec( 0,  1,  0), vec( 1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0), vec(-1,  0,  0) },
+    { vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0, -1,  0), vec3( 0,  1,  0) },
+    { vec3( 0, -1,  0), vec3( 0,  1,  0), vec3( 1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0) },
+    { vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  1,  0), vec3( 0, -1,  0) },
+    { vec3( 0,  1,  0), vec3( 0, -1,  0), vec3(-1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0) },
+    { vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0,  0, -1), vec3( 0, -1,  0), vec3( 0,  1,  0) },
+    { vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  0,  1), vec3( 0,  1,  0), vec3( 0, -1,  0) },
+    { vec3( 0,  1,  0), vec3( 0, -1,  0), vec3(-1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0), vec3( 1,  0,  0) },
+    { vec3( 0, -1,  0), vec3( 0,  1,  0), vec3( 1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0), vec3(-1,  0,  0) },
 };
 
 void addtris(VSlot &vslot, int orient, const sortkey &key, vertex *verts, int *index, int numverts, int convex, int tj)
@@ -709,14 +709,14 @@ void addtris(VSlot &vslot, int orient, const sortkey &key, vertex *verts, int *i
             {
                 int e1 = cedge%(MAXFACEVERTS+1), e2 = (e1+1)%numverts;
                 vertex &v1 = verts[e1], &v2 = verts[e2];
-                ivec d(vec(v2.pos).sub(v1.pos).mul(8));
+                ivec d(vec3(v2.pos).sub(v1.pos).mul(8));
                 int axis = abs(d.x) > abs(d.y) ? (abs(d.x) > abs(d.z) ? 0 : 2) : (abs(d.y) > abs(d.z) ? 1 : 2);
                 if(d[axis] < 0) d.neg();
                 reduceslope(d);
                 int origin = int(min(v1.pos[axis], v2.pos[axis])*8)&~0x7FFF,
                     offset1 = (int(v1.pos[axis]*8) - origin) / d[axis],
                     offset2 = (int(v2.pos[axis]*8) - origin) / d[axis];
-                vec o = vec(v1.pos).sub(vec(d).mul(offset1/8.0f));
+                vec3 o = vec3(v1.pos).sub(vec3(d).mul(offset1/8.0f));
                 float doffset = 1.0f / (offset2 - offset1);
 
                 if(i1 < 0) for(;;)
@@ -731,7 +731,7 @@ void addtris(VSlot &vslot, int orient, const sortkey &key, vertex *verts, int *i
                     if(t.edge != cedge) break;
                     float offset = (t.offset - offset1) * doffset;
                     vertex vt;
-                    vt.pos = vec(d).mul(t.offset/8.0f).add(o);
+                    vt.pos = vec3(d).mul(t.offset/8.0f).add(o);
                     vt.tc.lerp(v1.tc, v2.tc, offset);
                     vt.norm.lerp(v1.norm, v2.norm, offset);
                     vt.tangent.lerp(v1.tangent, v2.tangent, offset);
@@ -774,7 +774,7 @@ void addgrasstri(int face, vertex *verts, int numv, ushort texture, int layer)
     g.minz = min(min(g.v[0].z, g.v[1].z), min(g.v[2].z, g.v[3].z));
     g.maxz = max(max(g.v[0].z, g.v[1].z), max(g.v[2].z, g.v[3].z));
 
-    g.center = vec(0, 0, 0);
+    g.center = vec3(0, 0, 0);
     loopk(numv) g.center.add(g.v[k]);
     g.center.div(numv);
     g.radius = 0;
@@ -816,24 +816,24 @@ static inline void calctexgen(VSlot &vslot, int orient, vec4 &sgen, vec4 &tgen)
     }
 }
 
-ushort encodenormal(const vec &n)
+ushort encodenormal(const vec3 &n)
 {
     if(n.iszero()) return 0;
     int yaw = int(-atan2(n.x, n.y)/RAD), pitch = int(asin(n.z)/RAD);
     return ushort(clamp(pitch + 90, 0, 180)*360 + (yaw < 0 ? yaw%360 + 360 : yaw%360) + 1);
 }
 
-vec decodenormal(ushort norm)
+vec3 decodenormal(ushort norm)
 {
-    if(!norm) return vec(0, 0, 1);
+    if(!norm) return vec3(0, 0, 1);
     norm--;
     const vec2 &yaw = sincos360[norm%360], &pitch = sincos360[norm/360+270];
-    return vec(-yaw.y*pitch.x, yaw.x*pitch.x, pitch.y);
+    return vec3(-yaw.y*pitch.x, yaw.x*pitch.x, pitch.y);
 }
 
-void guessnormals(const vec *pos, int numverts, vec *normals)
+void guessnormals(const vec3 *pos, int numverts, vec3 *normals)
 {
-    vec n1, n2;
+    vec3 n1, n2;
     n1.cross(pos[0], pos[1], pos[2]);
     if(numverts != 4)
     {
@@ -855,28 +855,28 @@ void guessnormals(const vec *pos, int numverts, vec *normals)
         return;
     }
     else n2.normalize();
-    vec avg = vec(n1).add(n2).normalize();
+    vec3 avg = vec3(n1).add(n2).normalize();
     normals[0] = avg;
     normals[1] = n1;
     normals[2] = avg;
     normals[3] = n2;
 }
 
-void addcubeverts(VSlot &vslot, int orient, int size, vec *pos, int convex, ushort texture, vertinfo *vinfo, int numverts, int tj = -1, ushort envmap = EMID_NONE, int grassy = 0, bool alpha = false, int layer = LAYER_TOP)
+void addcubeverts(VSlot &vslot, int orient, int size, vec3 *pos, int convex, ushort texture, vertinfo *vinfo, int numverts, int tj = -1, ushort envmap = EMID_NONE, int grassy = 0, bool alpha = false, int layer = LAYER_TOP)
 {
     vec4 sgen, tgen;
     calctexgen(vslot, orient, sgen, tgen);
     vertex verts[MAXFACEVERTS];
     int index[MAXFACEVERTS];
-    vec normals[MAXFACEVERTS];
+    vec3 normals[MAXFACEVERTS];
     loopk(numverts)
     {
         vertex &v = verts[k];
         v.pos = pos[k];
-        v.tc = vec(sgen.dot(v.pos), tgen.dot(v.pos), 0);
+        v.tc = vec3(sgen.dot(v.pos), tgen.dot(v.pos), 0);
         if(vinfo && vinfo[k].norm)
         {
-            vec n = decodenormal(vinfo[k].norm), t = orientation_tangent[vslot.rotation][orient];
+            vec3 n = decodenormal(vinfo[k].norm), t = orientation_tangent[vslot.rotation][orient];
             t.project(n).normalize();
             v.norm = bvec(n);
             v.tangent = bvec4(bvec(t), orientation_bitangent[vslot.rotation][orient].scalartriple(n, t) < 0 ? 0 : 255);
@@ -884,8 +884,8 @@ void addcubeverts(VSlot &vslot, int orient, int size, vec *pos, int convex, usho
         else if(texture != DEFAULT_SKY)
         {
             if(!k) guessnormals(pos, numverts, normals);
-            const vec &n = normals[k];
-            vec t = orientation_tangent[vslot.rotation][orient];
+            const vec3 &n = normals[k];
+            vec3 t = orientation_tangent[vslot.rotation][orient];
             t.project(n).normalize();
             v.norm = bvec(n);
             v.tangent = bvec4(bvec(t), orientation_bitangent[vslot.rotation][orient].scalartriple(n, t) < 0 ? 0 : 255);
@@ -1091,14 +1091,14 @@ void gencubeverts(cube &c, const ivec &co, int size, int csi)
     int tj = filltjoints && c.ext ? c.ext->tjoints : -1, vis;
     loopi(6) if(vismask&(1<<i) && (vis = visibletris(c, i, co, size)))
     {
-        vec pos[MAXFACEVERTS];
+        vec3 pos[MAXFACEVERTS];
         vertinfo *verts = NULL;
         int numverts = c.ext ? c.ext->surfaces[i].numverts&MAXFACEVERTS : 0, convex = 0;
         if(numverts)
         {
             verts = c.ext->verts() + c.ext->surfaces[i].verts;
-            vec vo(ivec(co).mask(~0xFFF));
-            loopj(numverts) pos[j] = vec(verts[j].getxyz()).mul(1.0f/8).add(vo);
+            vec3 vo(ivec(co).mask(~0xFFF));
+            loopj(numverts) pos[j] = vec3(verts[j].getxyz()).mul(1.0f/8).add(vo);
             if(!flataxisface(c, i)) convex = faceconvexity(verts, numverts, size);
         }
         else
@@ -1107,11 +1107,11 @@ void gencubeverts(cube &c, const ivec &co, int size, int csi)
             genfaceverts(c, i, v);
             if(!flataxisface(c, i)) convex = faceconvexity(v);
             int order = vis&4 || convex < 0 ? 1 : 0;
-            vec vo(co);
-            pos[numverts++] = vec(v[order]).mul(size/8.0f).add(vo);
-            if(vis&1) pos[numverts++] = vec(v[order+1]).mul(size/8.0f).add(vo);
-            pos[numverts++] = vec(v[order+2]).mul(size/8.0f).add(vo);
-            if(vis&2) pos[numverts++] = vec(v[(order+3)&3]).mul(size/8.0f).add(vo);
+            vec3 vo(co);
+            pos[numverts++] = vec3(v[order]).mul(size/8.0f).add(vo);
+            if(vis&1) pos[numverts++] = vec3(v[order+1]).mul(size/8.0f).add(vo);
+            pos[numverts++] = vec3(v[order+2]).mul(size/8.0f).add(vo);
+            if(vis&2) pos[numverts++] = vec3(v[(order+3)&3]).mul(size/8.0f).add(vo);
         }
 
         VSlot &vslot = lookupvslot(c.texture[i], true),
@@ -1158,20 +1158,20 @@ vtxarray *newva(const ivec &o, int size)
 
     if(va->alphafronttris || va->alphabacktris || va->refracttris)
     {
-        va->alphamin = ivec(vec(vc.alphamin).mul(8)).shr(3);
-        va->alphamax = ivec(vec(vc.alphamax).mul(8)).add(7).shr(3);
+        va->alphamin = ivec(vec3(vc.alphamin).mul(8)).shr(3);
+        va->alphamax = ivec(vec3(vc.alphamax).mul(8)).add(7).shr(3);
     }
 
     if(va->refracttris)
     {
-        va->refractmin = ivec(vec(vc.refractmin).mul(8)).shr(3);
-        va->refractmax = ivec(vec(vc.refractmax).mul(8)).add(7).shr(3);
+        va->refractmin = ivec(vec3(vc.refractmin).mul(8)).shr(3);
+        va->refractmax = ivec(vec3(vc.refractmax).mul(8)).add(7).shr(3);
     }
 
     if(va->sky && vc.skymax.x >= 0)
     {
-        va->skymin = ivec(vec(vc.skymin).mul(8)).shr(3);
-        va->skymax = ivec(vec(vc.skymax).mul(8)).add(7).shr(3);
+        va->skymin = ivec(vec3(vc.skymin).mul(8)).shr(3);
+        va->skymax = ivec(vec3(vc.skymax).mul(8)).add(7).shr(3);
     }
         
     va->nogimin = vc.nogimin;
@@ -1371,8 +1371,8 @@ void addmergedverts(int level, const ivec &o)
 {
     vector<mergedface> &mfl = vamerges[level];
     if(mfl.empty()) return;
-    vec vo(ivec(o).mask(~0xFFF));
-    vec pos[MAXFACEVERTS];
+    vec3 vo(ivec(o).mask(~0xFFF));
+    vec3 pos[MAXFACEVERTS];
     loopv(mfl)
     {
         mergedface &mf = mfl[i];
@@ -1380,7 +1380,7 @@ void addmergedverts(int level, const ivec &o)
         loopi(numverts)
         {
             vertinfo &v = mf.verts[i];
-            pos[i] = vec(v.x, v.y, v.z).mul(1.0f/8).add(vo);
+            pos[i] = vec3(v.x, v.y, v.z).mul(1.0f/8).add(vo);
         }
         VSlot &vslot = lookupvslot(mf.tex, true);
         int grassy = vslot.slot->grass && mf.orient!=O_BOTTOM && mf.numverts&LAYER_TOP ? 2 : 0;
@@ -1460,12 +1460,12 @@ void rendercube(cube &c, const ivec &co, int size, int csi, int &maxlevel) // cr
 
 void calcgeombb(const ivec &co, int size, ivec &bbmin, ivec &bbmax)
 {
-    vec vmin(co), vmax = vmin;
+    vec3 vmin(co), vmax = vmin;
     vmin.add(size);
 
     loopv(vc.verts)
     {
-        const vec &v = vc.verts[i].pos;
+        const vec3 &v = vc.verts[i].pos;
         vmin.min(v);
         vmax.max(v);
     }

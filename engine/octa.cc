@@ -190,7 +190,7 @@ bool isvalidcube(const cube &c)
     genclipplanes(c, ivec(0, 0, 0), 256, p);
     loopi(8) // test that cube is convex
     {
-        vec v = p.v[i];
+        vec3 v = p.v[i];
         loopj(p.size) if(p.p[j].dist(v)>1e-3f) return false;
     }
     return true;
@@ -258,7 +258,7 @@ cube &lookupcube(const ivec &to, int tsize, ivec &ro, int &rsize)
     return *c;
 }
 
-int lookupmaterial(const vec &v)
+int lookupmaterial(const vec3 &v)
 {
     ivec o(v);
     if(!insideworld(o)) return MAT_AIR;
@@ -1185,17 +1185,17 @@ void calcvert(const cube &c, const ivec &co, int size, ivec &v, int i, bool soli
     v.add(ivec(co).shl(3));
 }
 
-void calcvert(const cube &c, const ivec &co, int size, vec &v, int i, bool solid)
+void calcvert(const cube &c, const ivec &co, int size, vec3 &v, int i, bool solid)
 {
-    if(solid) v = vec(cubecoords[i]); else gencubevert(c, i, v);
-    v.mul(size/8.0f).add(vec(co));
+    if(solid) v = vec3(cubecoords[i]); else gencubevert(c, i, v);
+    v.mul(size/8.0f).add(vec3(co));
 }
 
 void genclipbounds(const cube &c, const ivec &co, int size, clipplanes &p)
 {
     // generate tight bounding box
     calcvert(c, co, size, p.v[0], 0);
-    vec mx = p.v[0], mn = p.v[0];
+    vec3 mx = p.v[0], mn = p.v[0];
     for(int i = 1; i < 8; i++)
     {
         calcvert(c, co, size, p.v[i], i);
@@ -1210,10 +1210,10 @@ void genclipbounds(const cube &c, const ivec &co, int size, clipplanes &p)
     p.visible = 0x80;
 }
 
-int genclipplane(const cube &c, int orient, vec *v, plane *clip)
+int genclipplane(const cube &c, int orient, vec3 *v, plane *clip)
 {
     int planes = 0, convex = faceconvexity(c, orient), order = convex < 0 ? 1 : 0;
-    const vec &v0 = v[fv[orient][order]], &v1 = v[fv[orient][order+1]], &v2 = v[fv[orient][order+2]], &v3 = v[fv[orient][(order+3)&3]];
+    const vec3 &v0 = v[fv[orient][order]], &v1 = v[fv[orient][order+1]], &v2 = v[fv[orient][order+2]], &v3 = v[fv[orient][(order+3)&3]];
     if(v0==v2) return 0;
     if(v0!=v1 && v1!=v2) clip[planes++].toplane(v0, v1, v2);
     if(v0!=v3 && v2!=v3 && (!planes || convex)) clip[planes++].toplane(v0, v2, v3);
@@ -1232,7 +1232,7 @@ void genclipplanes(const cube &c, const ivec &co, int size, clipplanes &p, bool 
             else if((vis = visibletris(c, i, co, size, MAT_CLIP, MAT_NOCLIP, MATF_CLIP)))
             {
                 int convex = faceconvexity(c, i), order = vis&4 || convex < 0 ? 1 : 0;
-                const vec &v0 = p.v[fv[i][order]], &v1 = p.v[fv[i][order+1]], &v2 = p.v[fv[i][order+2]], &v3 = p.v[fv[i][(order+3)&3]];
+                const vec3 &v0 = p.v[fv[i][order]], &v1 = p.v[fv[i][order+1]], &v2 = p.v[fv[i][order+2]], &v3 = p.v[fv[i][(order+3)&3]];
                 if(vis&1) { p.side[p.size] = i; p.p[p.size++].toplane(v0, v1, v2); }
                 if(vis&2 && (!(vis&1) || convex)) { p.side[p.size] = i; p.p[p.size++].toplane(v0, v2, v3); }
             }
@@ -1249,7 +1249,7 @@ void genclipplanes(const cube &c, const ivec &co, int size, clipplanes &p, bool 
             else
             {
                 int convex = faceconvexity(c, i), order = vis&4 || convex < 0 ? 1 : 0;
-                const vec &v0 = p.v[fv[i][order]], &v1 = p.v[fv[i][order+1]], &v2 = p.v[fv[i][order+2]], &v3 = p.v[fv[i][(order+3)&3]];
+                const vec3 &v0 = p.v[fv[i][order]], &v1 = p.v[fv[i][order+1]], &v2 = p.v[fv[i][order+2]], &v3 = p.v[fv[i][(order+3)&3]];
                 if(vis&1) { p.side[p.size] = i; p.p[p.size++].toplane(v0, v1, v2); }
                 if(vis&2 && (!(vis&1) || convex)) { p.side[p.size] = i; p.p[p.size++].toplane(v0, v2, v3); }
             }

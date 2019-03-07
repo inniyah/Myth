@@ -870,7 +870,7 @@ ICOMMAND(getcampos, "", (),
     result(pos);
 });
 
-vec worldpos, camdir, camright, camup;
+vec3 worldpos, camdir, camright, camup;
 
 void setcammatrix()
 {
@@ -879,16 +879,16 @@ void setcammatrix()
     cammatrix.rotate_around_y(camera1->roll*RAD);
     cammatrix.rotate_around_x(camera1->pitch*-RAD);
     cammatrix.rotate_around_z(camera1->yaw*-RAD);
-    cammatrix.translate(vec(camera1->o).neg());
+    cammatrix.translate(vec3(camera1->o).neg());
 
-    cammatrix.transposedtransformnormal(vec(viewmatrix.b), camdir);
-    cammatrix.transposedtransformnormal(vec(viewmatrix.a).neg(), camright);
-    cammatrix.transposedtransformnormal(vec(viewmatrix.c), camup);
+    cammatrix.transposedtransformnormal(vec3(viewmatrix.b), camdir);
+    cammatrix.transposedtransformnormal(vec3(viewmatrix.a).neg(), camright);
+    cammatrix.transposedtransformnormal(vec3(viewmatrix.c), camup);
 
     if(!drawtex)
     {
         if(raycubepos(camera1->o, camdir, worldpos, 0, RAY_CLIPMAT|RAY_SKIPFIRST) == -1)
-            worldpos = vec(camdir).mul(2*worldsize).add(camera1->o); // if nothing is hit, just far away in the view direction
+            worldpos = vec3(camdir).mul(2*worldsize).add(camera1->o); // if nothing is hit, just far away in the view direction
     }
 }
 
@@ -1088,7 +1088,7 @@ void recomputecamera()
         orient.rotate_around_z(camera1->yaw*RAD);
         orient.rotate_around_x(camera1->pitch*RAD);
         orient.rotate_around_y(camera1->roll*-RAD);
-        vec dir = vec(orient.b).neg(), side = vec(orient.a).neg(), up = orient.c;
+        vec3 dir = vec3(orient.b).neg(), side = vec3(orient.a).neg(), up = orient.c;
 
         if(game::collidecamera())
         {
@@ -1096,7 +1096,7 @@ void recomputecamera()
             movecamera(camera1, dir, clamp(thirdpersondistance - camera1->o.dist(player->o), 0.0f, 1.0f), 0.1f);
             if(thirdpersonup)
             {
-                vec pos = camera1->o;
+                vec3 pos = camera1->o;
                 float dist = fabs(thirdpersonup);
                 if(thirdpersonup < 0) up.neg();
                 movecamera(camera1, up, dist, 1);
@@ -1104,7 +1104,7 @@ void recomputecamera()
             }
             if(thirdpersonside)
             {
-                vec pos = camera1->o;
+                vec3 pos = camera1->o;
                 float dist = fabs(thirdpersonside);
                 if(thirdpersonside < 0) side.neg();
                 movecamera(camera1, side, dist, 1);
@@ -1113,16 +1113,16 @@ void recomputecamera()
         }
         else
         {
-            camera1->o.add(vec(dir).mul(thirdpersondistance));
-            if(thirdpersonup) camera1->o.add(vec(up).mul(thirdpersonup));
-            if(thirdpersonside) camera1->o.add(vec(side).mul(thirdpersonside));
+            camera1->o.add(vec3(dir).mul(thirdpersondistance));
+            if(thirdpersonup) camera1->o.add(vec3(up).mul(thirdpersonup));
+            if(thirdpersonside) camera1->o.add(vec3(side).mul(thirdpersonside));
         }
     }
 
     setviewcell(camera1->o);
 }
 
-float calcfrustumboundsphere(float nearplane, float farplane,  const vec &pos, const vec &view, vec &center)
+float calcfrustumboundsphere(float nearplane, float farplane,  const vec3 &pos, const vec3 &view, vec3 &center)
 {
     if(drawtex == DRAWTEX_MINIMAP)
     {
@@ -1134,25 +1134,25 @@ float calcfrustumboundsphere(float nearplane, float farplane,  const vec &pos, c
           cdist = ((nearplane + farplane)/2)*(1 + width*width + height*height);
     if(cdist <= farplane)
     {
-        center = vec(view).mul(cdist).add(pos);
-        return vec(width*nearplane, height*nearplane, cdist-nearplane).magnitude();
+        center = vec3(view).mul(cdist).add(pos);
+        return vec3(width*nearplane, height*nearplane, cdist-nearplane).magnitude();
     }
     else
     {
-        center = vec(view).mul(farplane).add(pos);
-        return vec(width*farplane, height*farplane, 0).magnitude();
+        center = vec3(view).mul(farplane).add(pos);
+        return vec3(width*farplane, height*farplane, 0).magnitude();
     }
 }
 
-extern const matrix4 viewmatrix(vec(-1, 0, 0), vec(0, 0, 1), vec(0, -1, 0));
-extern const matrix4 invviewmatrix(vec(-1, 0, 0), vec(0, 0, -1), vec(0, 1, 0));
+extern const matrix4 viewmatrix(vec3(-1, 0, 0), vec3(0, 0, 1), vec3(0, -1, 0));
+extern const matrix4 invviewmatrix(vec3(-1, 0, 0), vec3(0, 0, -1), vec3(0, 1, 0));
 matrix4 cammatrix, projmatrix, camprojmatrix, invcammatrix, invcamprojmatrix, invprojmatrix;
 
 FVAR(nearplane, 0.01f, 0.54f, 2.0f);
 
-vec calcavatarpos(const vec &pos, float dist)
+vec3 calcavatarpos(const vec3 &pos, float dist)
 {
-    vec eyepos;
+    vec3 eyepos;
     cammatrix.transform(pos, eyepos);
     GLdouble ydist = nearplane * tan(curavatarfov/2*RAD), xdist = ydist * aspect;
     vec4 scrpos;
@@ -1161,8 +1161,8 @@ vec calcavatarpos(const vec &pos, float dist)
     scrpos.z = (eyepos.z*(farplane + nearplane) - 2*nearplane*farplane) / (farplane - nearplane);
     scrpos.w = -eyepos.z;
 
-    vec worldpos = invcamprojmatrix.perspectivetransform(scrpos);
-    vec dir = vec(worldpos).sub(camera1->o).rescale(dist);
+    vec3 worldpos = invcamprojmatrix.perspectivetransform(scrpos);
+    vec3 dir = vec3(worldpos).sub(camera1->o).rescale(dist);
     return dir.add(camera1->o);
 }
 
@@ -1216,14 +1216,14 @@ void disablepolygonoffset(GLenum type)
     setcamprojmatrix(false, true);
 }
 
-bool calcspherescissor(const vec &center, float size, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2)
+bool calcspherescissor(const vec3 &center, float size, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2)
 {
-    vec e;
+    vec3 e;
     cammatrix.transform(center, e);
     if(e.z > 2*size) { sx1 = sy1 = sz1 = 1; sx2 = sy2 = sz2 = -1; return false; }
     if(drawtex == DRAWTEX_MINIMAP)
     {
-        vec dir(size, size, size);
+        vec3 dir(size, size, size);
         if(projmatrix.a.x < 0) dir.x = -dir.x;
         if(projmatrix.b.y < 0) dir.y = -dir.y;
         if(projmatrix.c.z < 0) dir.z = -dir.z;
@@ -1285,21 +1285,21 @@ bool calcbbscissor(const ivec &bbmin, const ivec &bbmax, float &sx1, float &sy1,
     vec4 v[8];
     sx1 = sy1 = 1;
     sx2 = sy2 = -1;
-    camprojmatrix.transform(vec(bbmin.x, bbmin.y, bbmin.z), v[0]);
+    camprojmatrix.transform(vec3(bbmin.x, bbmin.y, bbmin.z), v[0]);
     ADDXYSCISSOR(v[0]);
-    camprojmatrix.transform(vec(bbmax.x, bbmin.y, bbmin.z), v[1]);
+    camprojmatrix.transform(vec3(bbmax.x, bbmin.y, bbmin.z), v[1]);
     ADDXYSCISSOR(v[1]);
-    camprojmatrix.transform(vec(bbmin.x, bbmax.y, bbmin.z), v[2]);
+    camprojmatrix.transform(vec3(bbmin.x, bbmax.y, bbmin.z), v[2]);
     ADDXYSCISSOR(v[2]);
-    camprojmatrix.transform(vec(bbmax.x, bbmax.y, bbmin.z), v[3]);
+    camprojmatrix.transform(vec3(bbmax.x, bbmax.y, bbmin.z), v[3]);
     ADDXYSCISSOR(v[3]);
-    camprojmatrix.transform(vec(bbmin.x, bbmin.y, bbmax.z), v[4]);
+    camprojmatrix.transform(vec3(bbmin.x, bbmin.y, bbmax.z), v[4]);
     ADDXYSCISSOR(v[4]);
-    camprojmatrix.transform(vec(bbmax.x, bbmin.y, bbmax.z), v[5]);
+    camprojmatrix.transform(vec3(bbmax.x, bbmin.y, bbmax.z), v[5]);
     ADDXYSCISSOR(v[5]);
-    camprojmatrix.transform(vec(bbmin.x, bbmax.y, bbmax.z), v[6]);
+    camprojmatrix.transform(vec3(bbmin.x, bbmax.y, bbmax.z), v[6]);
     ADDXYSCISSOR(v[6]);
-    camprojmatrix.transform(vec(bbmax.x, bbmax.y, bbmax.z), v[7]);
+    camprojmatrix.transform(vec3(bbmax.x, bbmax.y, bbmax.z), v[7]);
     ADDXYSCISSOR(v[7]);
     if(sx1 > sx2 || sy1 > sy2) return false;
     loopi(8)
@@ -1330,10 +1330,10 @@ bool calcbbscissor(const ivec &bbmin, const ivec &bbmax, float &sx1, float &sy1,
     return true;
 }
 
-bool calcspotscissor(const vec &origin, float radius, const vec &dir, int spot, const vec &spotx, const vec &spoty, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2)
+bool calcspotscissor(const vec3 &origin, float radius, const vec3 &dir, int spot, const vec3 &spotx, const vec3 &spoty, float &sx1, float &sy1, float &sx2, float &sy2, float &sz1, float &sz2)
 {
     float spotscale = radius * tan360(spot);
-    vec up = vec(spotx).mul(spotscale), right = vec(spoty).mul(spotscale), center = vec(dir).mul(radius).add(origin);
+    vec3 up = vec3(spotx).mul(spotscale), right = vec3(spoty).mul(spotscale), center = vec3(dir).mul(radius).add(origin);
 #define ADDXYZSCISSOR(p) do { \
         if(p.z >= -p.w) \
         { \
@@ -1349,13 +1349,13 @@ bool calcspotscissor(const vec &origin, float radius, const vec &dir, int spot, 
     vec4 v[5];
     sx1 = sy1 = sz1 = 1;
     sx2 = sy2 = sz2 = -1;
-    camprojmatrix.transform(vec(center).sub(right).sub(up), v[0]);
+    camprojmatrix.transform(vec3(center).sub(right).sub(up), v[0]);
     ADDXYZSCISSOR(v[0]);
-    camprojmatrix.transform(vec(center).add(right).sub(up), v[1]);
+    camprojmatrix.transform(vec3(center).add(right).sub(up), v[1]);
     ADDXYZSCISSOR(v[1]);
-    camprojmatrix.transform(vec(center).sub(right).add(up), v[2]);
+    camprojmatrix.transform(vec3(center).sub(right).add(up), v[2]);
     ADDXYZSCISSOR(v[2]);
-    camprojmatrix.transform(vec(center).add(right).add(up), v[3]);
+    camprojmatrix.transform(vec3(center).add(right).add(up), v[3]);
     ADDXYZSCISSOR(v[3]);
     camprojmatrix.transform(origin, v[4]);
     ADDXYZSCISSOR(v[4]);
@@ -1492,7 +1492,7 @@ VARR(fog, 16, 4000, 1000024);
 CVARR(fogcolour, 0x8099B3);
 VAR(fogoverlay, 0, 1, 1);
 
-static float findsurface(int fogmat, const vec &v, int &abovemat)
+static float findsurface(int fogmat, const vec3 &v, int &abovemat)
 {
     fogmat &= MATF_VOLUME;
     ivec o(v), co;
@@ -1513,7 +1513,7 @@ static float findsurface(int fogmat, const vec &v, int &abovemat)
     return worldsize;
 }
 
-static void blendfog(int fogmat, float below, float blend, float logblend, float &start, float &end, vec &fogc)
+static void blendfog(int fogmat, float below, float blend, float logblend, float &start, float &end, vec3 &fogc)
 {
     switch(fogmat&MATF_VOLUME)
     {
@@ -1522,9 +1522,9 @@ static void blendfog(int fogmat, float below, float blend, float logblend, float
             const bvec &wcol = getwatercolour(fogmat), &wdeepcol = getwaterdeepcolour(fogmat);
             int wfog = getwaterfog(fogmat), wdeep = getwaterdeep(fogmat);
             float deepfade = clamp(below/max(wdeep, wfog), 0.0f, 1.0f);
-            vec color;
+            vec3 color;
             color.lerp(wcol.tocolor(), wdeepcol.tocolor(), deepfade);
-            fogc.add(vec(color).mul(blend));
+            fogc.add(vec3(color).mul(blend));
             end += logblend*min(fog, max(wfog*2, 16));
             break;
         }
@@ -1546,16 +1546,16 @@ static void blendfog(int fogmat, float below, float blend, float logblend, float
     }
 }
 
-vec curfogcolor(0, 0, 0);
+vec3 curfogcolor(0, 0, 0);
 
-void setfogcolor(const vec &v)
+void setfogcolor(const vec3 &v)
 {
     GLOBALPARAM(fogcolor, v);
 }
 
 void zerofogcolor()
 {
-    setfogcolor(vec(0, 0, 0));
+    setfogcolor(vec3(0, 0, 0));
 }
 
 void resetfogcolor()
@@ -1582,7 +1582,7 @@ static void setfog(int fogmat, float below = 0, float blend = 1, int abovemat = 
     float start = 0, end = 0;
     float logscale = 256, logblend = log(1 + (logscale - 1)*blend) / log(logscale);
 
-    curfogcolor = vec(0, 0, 0);
+    curfogcolor = vec3(0, 0, 0);
     blendfog(fogmat, below, blend, logblend, start, end, curfogcolor);
     if(blend < 1) blendfog(abovemat, 0, 1-blend, 1-logblend, start, end, curfogcolor);
     curfogcolor.mul(ldrscale);
@@ -1593,7 +1593,7 @@ static void setfog(int fogmat, float below = 0, float blend = 1, int abovemat = 
     GLOBALPARAMF(fogdensity, fogdensity, 1/exp(M_LN2*start*fogdensity));
 }
 
-static void blendfogoverlay(int fogmat, float below, float blend, vec &overlay)
+static void blendfogoverlay(int fogmat, float below, float blend, vec3 &overlay)
 {
     float maxc;
     switch(fogmat&MATF_VOLUME)
@@ -1603,7 +1603,7 @@ static void blendfogoverlay(int fogmat, float below, float blend, vec &overlay)
             const bvec &wcol = getwatercolour(fogmat), &wdeepcol = getwaterdeepcolour(fogmat);
             int wfog = getwaterfog(fogmat), wdeep = getwaterdeep(fogmat);
             float deepfade = clamp(below/max(wdeep, wfog), 0.0f, 1.0f);
-            vec color = vec(wcol.r, wcol.g, wcol.b).lerp(vec(wdeepcol.r, wdeepcol.g, wdeepcol.b), deepfade);
+            vec3 color = vec3(wcol.r, wcol.g, wcol.b).lerp(vec3(wdeepcol.r, wdeepcol.g, wdeepcol.b), deepfade);
             overlay.add(color.div(min(32.0f + max(color.r, max(color.g, color.b))*7.0f/8.0f, 255.0f)).max(0.4f).mul(blend));
             break;
         }
@@ -1612,7 +1612,7 @@ static void blendfogoverlay(int fogmat, float below, float blend, vec &overlay)
         {
             const bvec &lcol = getlavacolour(fogmat);
             maxc = max(lcol.r, max(lcol.g, lcol.b));
-            overlay.add(vec(lcol.r, lcol.g, lcol.b).div(min(32.0f + maxc*7.0f/8.0f, 255.0f)).max(0.4f).mul(blend));
+            overlay.add(vec3(lcol.r, lcol.g, lcol.b).div(min(32.0f + maxc*7.0f/8.0f, 255.0f)).max(0.4f).mul(blend));
             break;
         }
 
@@ -1628,7 +1628,7 @@ void drawfogoverlay(int fogmat, float fogbelow, float fogblend, int abovemat)
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-    vec overlay(0, 0, 0);
+    vec3 overlay(0, 0, 0);
     blendfogoverlay(fogmat, fogbelow, fogblend, overlay);
     blendfogoverlay(abovemat, 0, 1-fogblend, overlay);
 
@@ -1641,7 +1641,7 @@ void drawfogoverlay(int fogmat, float fogbelow, float fogblend, int abovemat)
 int drawtex = 0;
 
 GLuint minimaptex = 0;
-vec minimapcenter(0, 0, 0), minimapradius(0, 0, 0), minimapscale(0, 0, 0);
+vec3 minimapcenter(0, 0, 0), minimapradius(0, 0, 0), minimapscale(0, 0, 0);
 
 void clearminimap()
 {
@@ -1716,22 +1716,22 @@ void drawminimap()
         loopk(2) bbmax[k] = min(bbmax[k], clipmax[k]);
     }
 
-    minimapradius = vec(bbmax).sub(vec(bbmin)).mul(0.5f);
-    minimapcenter = vec(bbmin).add(minimapradius);
+    minimapradius = vec3(bbmax).sub(vec3(bbmin)).mul(0.5f);
+    minimapcenter = vec3(bbmin).add(minimapradius);
     minimapradius.x = minimapradius.y = max(minimapradius.x, minimapradius.y);
-    minimapscale = vec((0.5f - 1.0f/size)/minimapradius.x, (0.5f - 1.0f/size)/minimapradius.y, 1.0f);
+    minimapscale = vec3((0.5f - 1.0f/size)/minimapradius.x, (0.5f - 1.0f/size)/minimapradius.y, 1.0f);
 
     physent *oldcamera = camera1;
     static physent cmcamera;
     cmcamera = *player;
     cmcamera.reset();
     cmcamera.type = ENT_CAMERA;
-    cmcamera.o = vec(minimapcenter.x, minimapcenter.y, minimapheight > 0 ? minimapheight : minimapcenter.z + minimapradius.z + 1);
+    cmcamera.o = vec3(minimapcenter.x, minimapcenter.y, minimapheight > 0 ? minimapheight : minimapcenter.z + minimapradius.z + 1);
     cmcamera.yaw = 0;
     cmcamera.pitch = -90;
     cmcamera.roll = 0;
     camera1 = &cmcamera;
-    setviewcell(vec(-1, -1, -1));
+    setviewcell(vec3(-1, -1, -1));
 
     float oldldrscale = ldrscale, oldldrscaleb = ldrscaleb;
     int oldfarplane = farplane, oldvieww = vieww, oldviewh = viewh;
@@ -1799,7 +1799,7 @@ void drawminimap()
     glViewport(0, 0, hudw, hudh);
 }
 
-void drawcubemap(int size, const vec &o, float yaw, float pitch, const cubemapside &side, bool onlysky)
+void drawcubemap(int size, const vec3 &o, float yaw, float pitch, const cubemapside &side, bool onlysky)
 {
     drawtex = DRAWTEX_ENVMAP;
 
@@ -1816,11 +1816,11 @@ void drawcubemap(int size, const vec &o, float yaw, float pitch, const cubemapsi
     setviewcell(camera1->o);
 
     float fogmargin = 1 + WATER_AMPLITUDE + nearplane;
-    int fogmat = lookupmaterial(vec(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin))&(MATF_VOLUME|MATF_INDEX), abovemat = MAT_AIR;
+    int fogmat = lookupmaterial(vec3(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin))&(MATF_VOLUME|MATF_INDEX), abovemat = MAT_AIR;
     float fogbelow = 0;
     if(isliquid(fogmat&MATF_VOLUME))
     {
-        float z = findsurface(fogmat, vec(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin), abovemat) - WATER_OFFSET;
+        float z = findsurface(fogmat, vec3(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin), abovemat) - WATER_OFFSET;
         if(camera1->o.z < z + fogmargin)
         {
             fogbelow = z - camera1->o.z;
@@ -1934,7 +1934,7 @@ namespace modelpreview
         camera = *camera1;
         camera.reset();
         camera.type = ENT_CAMERA;
-        camera.o = vec(0, 0, 0);
+        camera.o = vec3(0, 0, 0);
         camera.yaw = 0;
         camera.pitch = modelpreviewpitch;
         camera.roll = 0;
@@ -1990,11 +1990,11 @@ namespace modelpreview
     }
 }
 
-vec calcmodelpreviewpos(const vec &radius, float &yaw)
+vec3 calcmodelpreviewpos(const vec3 &radius, float &yaw)
 {
     yaw = fmod(lastmillis/10000.0f*360.0f, 360.0f);
     float dist = max(radius.magnitude2()/aspect, radius.magnitude())/sinf(fovy/2*RAD);
-    return vec(0, dist, 0).rotate_around_x(camera1->pitch*RAD);
+    return vec3(0, dist, 0).rotate_around_x(camera1->pitch*RAD);
 }
 
 int xtraverts, xtravertsva;
@@ -2005,11 +2005,11 @@ void gl_drawview()
     if(scalefbo) { vieww = gw; viewh = gh; }
 
     float fogmargin = 1 + WATER_AMPLITUDE + nearplane;
-    int fogmat = lookupmaterial(vec(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin))&(MATF_VOLUME|MATF_INDEX), abovemat = MAT_AIR;
+    int fogmat = lookupmaterial(vec3(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin))&(MATF_VOLUME|MATF_INDEX), abovemat = MAT_AIR;
     float fogbelow = 0;
     if(isliquid(fogmat&MATF_VOLUME))
     {
-        float z = findsurface(fogmat, vec(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin), abovemat) - WATER_OFFSET;
+        float z = findsurface(fogmat, vec3(camera1->o.x, camera1->o.y, camera1->o.z - fogmargin), abovemat) - WATER_OFFSET;
         if(camera1->o.z < z + fogmargin)
         {
             fogbelow = z - camera1->o.z;
@@ -2124,10 +2124,10 @@ VARP(damagecompassmax, 1, 200, 1000);
 
 float damagedirs[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-void damagecompass(int n, const vec &loc)
+void damagecompass(int n, const vec3 &loc)
 {
     if(!usedamagecompass || minimized) return;
-    vec delta(loc);
+    vec3 delta(loc);
     delta.sub(camera1->o);
     float yaw = 0, pitch;
     if(delta.magnitude() > 4)
@@ -2268,7 +2268,7 @@ void drawcrosshair(int w, int h)
     bool windowhit = UI::hascursor();
     if(!windowhit && (hidehud || mainmenu)) return; //(hidehud || player->state==CS_SPECTATOR || player->state==CS_DEAD)) return;
 
-    vec color(1, 1, 1);
+    vec3 color(1, 1, 1);
     float cx = 0.5f, cy = 0.5f, chsize;
     Texture *crosshair;
     if(windowhit)
@@ -2284,7 +2284,7 @@ void drawcrosshair(int w, int h)
         int index = game::selectcrosshair(color);
         if(index < 0) return;
         if(!crosshairfx) index = 0;
-        if(!crosshairfx || !crosshaircolors) color = vec(1, 1, 1);
+        if(!crosshairfx || !crosshaircolors) color = vec3(1, 1, 1);
         crosshair = crosshairs[index];
         if(!crosshair)
         {

@@ -22,7 +22,7 @@ static const struct flaretype
 
 struct flare
 {
-    vec o, center;
+    vec3 o, center;
     float size;
     bvec color;
     bool sparkle;
@@ -52,11 +52,11 @@ struct flarerenderer : partrenderer
         numflares = 0;
     }
 
-    void newflare(vec &o,  const vec &center, uchar r, uchar g, uchar b, float mod, float size, bool sun, bool sparkle)
+    void newflare(vec3 &o,  const vec3 &center, uchar r, uchar g, uchar b, float mod, float size, bool sun, bool sparkle)
     {
         if(numflares >= maxflares) return;
         //occlusion check (neccessary as depth testing is turned off)
-        vec dir = vec(camera1->o).sub(o);
+        vec3 dir = vec3(camera1->o).sub(o);
         float dist = dir.magnitude();
         dir.mul(1/dist);
         if(raycube(o, dir, dist, RAY_CLIPMAT|RAY_POLY) < dist) return;
@@ -68,13 +68,13 @@ struct flarerenderer : partrenderer
         f.sparkle = sparkle;
     }
 
-    void addflare(vec &o, uchar r, uchar g, uchar b, bool sun, bool sparkle)
+    void addflare(vec3 &o, uchar r, uchar g, uchar b, bool sun, bool sparkle)
     {
         //frustrum + fog check
         if(isvisiblesphere(0.0f, o) > (sun?VFC_FOGGED:VFC_FULL_VISIBLE)) return;
         //find closest point between camera line of sight and flare pos
-        vec flaredir = vec(o).sub(camera1->o);
-        vec center = vec(camdir).mul(flaredir.dot(camdir)).add(camera1->o);
+        vec3 flaredir = vec3(o).sub(camera1->o);
+        vec3 center = vec3(camdir).mul(flaredir.dot(camdir)).add(camera1->o);
         float mod, size;
         if(sun) //fixed size
         {
@@ -83,7 +83,7 @@ struct flarerenderer : partrenderer
         }
         else
         {
-            mod = (flarecutoff-vec(o).sub(center).squaredlen())/flarecutoff;
+            mod = (flarecutoff-vec3(o).sub(center).squaredlen())/flarecutoff;
             if(mod < 0.0f) return;
             size = flaresize / 5.0f;
         }
@@ -117,12 +117,12 @@ struct flarerenderer : partrenderer
         loopi(numflares)
         {
             const flare &f = flares[i];
-            vec axis = vec(f.o).sub(f.center);
+            vec3 axis = vec3(f.o).sub(f.center);
             bvec4 color(f.color, 255);
             loopj(f.sparkle?12:9)
             {
                 const flaretype &ft = flaretypes[j];
-                vec o = vec(axis).mul(ft.loc).add(f.center);
+                vec3 o = vec3(axis).mul(ft.loc).add(f.center);
                 float sz = ft.scale * f.size;
                 int tex = ft.type;
                 if(ft.type < 0) //sparkles - always done last
@@ -156,7 +156,7 @@ struct flarerenderer : partrenderer
     }
 
     //square per round hole - use addflare(..) instead
-    particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity = 0) { return NULL; }
+    particle *addpart(const vec3 &o, const vec3 &d, int fade, int color, float size, int gravity = 0) { return NULL; }
 };
 static flarerenderer flares("<grey>media/particle/lensflares.png", 64);
 

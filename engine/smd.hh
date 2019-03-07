@@ -222,7 +222,7 @@ struct smd : skelloader<smd>
                 else if(!strncmp(curbuf, "end", 3)) break;
                 else if(frame != 0) continue;
                 int bone;
-                vec pos, rot;
+                vec3 pos, rot;
                 if(sscanf(curbuf, " %d %f %f %f %f %f %f", &bone, &pos.x, &pos.y, &pos.z, &rot.x, &rot.y, &rot.z) != 7)
                     continue;
                 if(bone < 0 || bone >= skel->numbones)
@@ -319,7 +319,7 @@ struct smd : skelloader<smd>
                 }
                 else if(!strncmp(curbuf, "end", 3)) break;
                 int bone;
-                vec pos, rot;
+                vec3 pos, rot;
                 if(sscanf(curbuf, " %d %f %f %f %f %f %f", &bone, &pos.x, &pos.y, &pos.z, &rot.x, &rot.y, &rot.z) != 7)
                     continue;
                 if(bone < 0 || bone >= skel->numbones)
