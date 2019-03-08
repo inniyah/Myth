@@ -1,7 +1,7 @@
 // generic useful stuff for any C++ program
 
-#ifndef _TOOLS_H
-#define _TOOLS_H
+#ifndef __TOOLS_H_39D08CC0_4195_11E9_9D79_2FBFDEE8E6C8__
+#define __TOOLS_H_39D08CC0_4195_11E9_9D79_2FBFDEE8E6C8__
 
 #ifdef NULL
 #undef NULL
@@ -1402,5 +1402,4 @@ struct ipmask
     bool check(enet_uint32 host) const { return (host & mask) == ip; }
 };
 
-#endif
-
+#endif // __TOOLS_H_39D08CC0_4195_11E9_9D79_2FBFDEE8E6C8__

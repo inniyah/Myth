@@ -1,5 +1,5 @@
-#ifndef __ENGINE_H__
-#define __ENGINE_H__
+#ifndef __ENGINE_H_39D08C66_4195_11E9_9D77_E7DF25A697AE__
+#define __ENGINE_H_39D08C66_4195_11E9_9D77_E7DF25A697AE__
 
 #include "cube.hh"
 #include "world.hh"
@@ -805,5 +805,4 @@ namespace recorder
 
 #endif
 
-#endif
-
+#endif // __ENGINE_H_39D08C66_4195_11E9_9D77_E7DF25A697AE__

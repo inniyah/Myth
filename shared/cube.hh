@@ -1,5 +1,5 @@
-#ifndef __CUBE_H__
-#define __CUBE_H__
+#ifndef __CUBE_H_39D08C98_4195_11E9_9D78_57E78AF59FD9__
+#define __CUBE_H_39D08C98_4195_11E9_9D78_57E78AF59FD9__
 
 #define _FILE_OFFSET_BITS 64
 
@@ -66,5 +66,4 @@
 #include "iengine.hh"
 #include "igame.hh"
 
-#endif
-
+#endif // __CUBE_H_39D08C98_4195_11E9_9D78_57E78AF59FD9__

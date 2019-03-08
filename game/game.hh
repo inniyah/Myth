@@ -1,5 +1,5 @@
-#ifndef __GAME_H__
-#define __GAME_H__
+#ifndef __GAME_H_39D08B58_4195_11E9_9D76_17EBC13DD4CB__
+#define __GAME_H_39D08B58_4195_11E9_9D76_17EBC13DD4CB__
 
 #include "cube.hh"
 
@@ -622,5 +622,4 @@ namespace server
     extern bool delayspawn(int type);
 }
 
-#endif
-
+#endif // __GAME_H_39D08B58_4195_11E9_9D76_17EBC13DD4CB__
