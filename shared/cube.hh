@@ -24,7 +24,7 @@
   #undef _WIN32_WINNT
   #endif
   #define _WIN32_WINNT 0x0500
-  #include "windows.hh"
+  #include "windows.h"
   #ifndef _WINDOWS
     #define _WINDOWS
   #endif
