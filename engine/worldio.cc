@@ -109,7 +109,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
         entity &e = ents.add();
         f->read(&e, sizeof(entity));
         lilswap(&e.o.x, 3);
-        lilswap(&e.attr1, 5);
+        lilswap(&e.attr[0], 5);
         fixent(e, hdr.version);
         if(eif > 0) f->seek(eif, SEEK_CUR);
         if(samegame)
@@ -652,7 +652,7 @@ bool save_world(const char *mname, bool nolms)
     f->putchar((int)strlen(game::gameident()));
     f->write(game::gameident(), (int)strlen(game::gameident())+1);
     f->putlil<ushort>(entities::extraentinfosize());
-    vector<char> extras;
+    vector<uchar> extras;
     game::writegamedata(extras);
     f->putlil<ushort>(extras.length());
     f->write(extras.getbuf(), extras.length());
@@ -666,7 +666,7 @@ bool save_world(const char *mname, bool nolms)
         {
             entity tmp = *ents[i];
             lilswap(&tmp.o.x, 3);
-            lilswap(&tmp.attr1, 5);
+            lilswap(&tmp.attr[0], 5);
             f->write(&tmp, sizeof(entity));
             entities::writeent(*ents[i], ebuf);
             if(entities::extraentinfosize()) f->write(ebuf, entities::extraentinfosize());
@@ -793,7 +793,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
     }
     int eif = f->getlil<ushort>();
     int extrasize = f->getlil<ushort>();
-    vector<char> extras;
+    vector<uchar> extras;
     f->read(extras.pad(extrasize), extrasize);
     if(samegame) game::readgamedata(extras);
 
@@ -812,7 +812,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
         ents.add(&e);
         f->read(&e, sizeof(entity));
         lilswap(&e.o.x, 3);
-        lilswap(&e.attr1, 5);
+        lilswap(&e.attr[0], 5);
         fixent(e, hdr.version);
         if(samegame)
         {
@@ -1038,19 +1038,19 @@ void writecollideobj(char *name)
         conoutf(CON_ERROR, "could not find map model in selection");
         return;
     }
-    model *m = loadmapmodel(mm->attr1);
+    model *m = loadmapmodel(mm->attr[0]);
     if(!m)
     {
-        mapmodelinfo *mmi = getmminfo(mm->attr1);
+        mapmodelinfo *mmi = getmminfo(mm->attr[0]);
         if(mmi) conoutf(CON_ERROR, "could not load map model: %s", mmi->name);
-        else conoutf(CON_ERROR, "could not find map model: %d", mm->attr1);
+        else conoutf(CON_ERROR, "could not find map model: %d", mm->attr[0]);
         return;
     }
 
     matrix4x3 xform;
     m->calctransform(xform);
-    float scale = mm->attr5 > 0 ? mm->attr5/100.0f : 1;
-    int yaw = mm->attr2, pitch = mm->attr3, roll = mm->attr4;
+    float scale = mm->attr[4] > 0 ? mm->attr[4]/100.0f : 1;
+    int yaw = mm->attr[1], pitch = mm->attr[2], roll = mm->attr[3];
     matrix3 orient;
     orient.identity();
     if(scale != 1) orient.scale(scale);

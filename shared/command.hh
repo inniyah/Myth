@@ -112,7 +112,7 @@ struct ident
         uchar numargs; // ID_COMMAND
     };
     ushort flags;
-    int index;   
+    int index;
     const char *name;
     union
     {
@@ -385,6 +385,7 @@ inline void ident::getcval(tagval &v) const
 #define SVARNP(name, global, cur) _SVAR(name, global, cur, IDF_PERSIST)
 #define SVARNR(name, global, cur) _SVAR(name, global, cur, IDF_OVERRIDE)
 #define SVAR(name, cur) _SVAR(name, name, cur, 0)
+#define SVARO(name, cur) _SVAR(name, name, cur, IDF_READONLY)
 #define SVARP(name, cur) _SVAR(name, name, cur, IDF_PERSIST)
 #define SVARR(name, cur) _SVAR(name, name, cur, IDF_OVERRIDE)
 #define _SVARF(name, global, cur, body, persist) void var_##name(ident *id); char *global = svariable(#name, cur, &global, var_##name, persist); void var_##name(ident *id) { body; }

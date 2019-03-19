@@ -466,9 +466,9 @@ void checkmapsounds()
     {
         extentity &e = *ents[i];
         if(e.type!=ET_SOUND) continue;
-        if(camera1->o.dist(e.o) < e.attr2)
+        if(camera1->o.dist(e.o) < e.attr[1])
         {
-            if(!(e.flags&EF_SOUND)) playsound(e.attr1, NULL, &e, SND_MAP, -1);
+            if(!(e.flags&EF_SOUND)) playsound(e.attr[0], NULL, &e, SND_MAP, -1);
         }
         else if(e.flags&EF_SOUND) stopmapsound(&e);
     }
@@ -489,11 +489,11 @@ bool updatechannel(soundchannel &chan)
         int rad = maxsoundradius;
         if(chan.ent)
         {
-            rad = chan.ent->attr2;
-            if(chan.ent->attr3)
+            rad = chan.ent->attr[1];
+            if(chan.ent->attr[2])
             {
-                rad -= chan.ent->attr3;
-                dist -= chan.ent->attr3;
+                rad -= chan.ent->attr[2];
+                dist -= chan.ent->attr[2];
             }
         }
         else if(chan.radius > 0) rad = maxsoundradius ? min(maxsoundradius, chan.radius) : chan.radius;
@@ -570,7 +570,7 @@ void preloadmapsounds()
     loopv(ents)
     {
         extentity &e = *ents[i];
-        if(e.type==ET_SOUND) mapsounds.preloadsound(e.attr1);
+        if(e.type==ET_SOUND) mapsounds.preloadsound(e.attr[0]);
     }
 }
 

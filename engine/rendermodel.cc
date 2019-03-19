@@ -368,7 +368,7 @@ void preloadusedmapmodels(bool msg, bool bih)
     loopv(ents)
     {
         extentity &e = *ents[i];
-        if(e.type==ET_MAPMODEL && e.attr1 >= 0 && used.find(e.attr1) < 0) used.add(e.attr1);
+        if(e.type==ET_MAPMODEL && e.attr[0] >= 0 && used.find(e.attr[0]) < 0) used.add(e.attr[0]);
     }
 
     vector<const char *> col;
@@ -1110,17 +1110,22 @@ void loadskin(const char *dir, const char *altdir, Texture *&skin, Texture *&mas
     tryload(masks, NULL, NULL, "masks");
 }
 
-void setbbfrommodel(dynent *d, const char *mdl)
+// convenient function that covers the usual anims for players/monsters/npcs
+
+void setbbfrommodel(physent *d, const char *mdl, float size)
 {
     model *m = loadmodel(mdl);
     if(!m) return;
     vec3 center, radius;
     m->collisionbox(center, radius);
+    if(size != 1) { center.mul(size); radius.mul(size); }
+
     if(m->collide != COLLIDE_ELLIPSE) d->collidetype = COLLIDE_OBB;
     d->xradius   = radius.x + fabs(center.x);
     d->yradius   = radius.y + fabs(center.y);
     d->radius    = d->collidetype==COLLIDE_OBB ? sqrtf(d->xradius*d->xradius + d->yradius*d->yradius) : max(d->xradius, d->yradius);
-    d->eyeheight = (center.z-radius.z) + radius.z*2*m->eyeheight;
+    d->eyeheight -= d->maxheight;
+    d->maxheight = (center.z-radius.z) + radius.z*2*m->eyeheight;
+    d->eyeheight += d->maxheight;
     d->aboveeye  = radius.z*2*(1.0f-m->eyeheight);
 }
-

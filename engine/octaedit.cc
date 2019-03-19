@@ -1082,7 +1082,7 @@ bool packundo(undoblock *u, int &inlen, uchar *&outbuf, int &outlen)
             entity &e = *(entity *)buf.pad(sizeof(entity));
             e = ue[i].e;
             lilswap(&e.o.x, 3);
-            lilswap(&e.attr1, 5); 
+            lilswap(&e.attr[0], 5); 
         }
     }
     else
@@ -1119,7 +1119,7 @@ bool unpackundo(const uchar *inbuf, int inlen, int outlen)
             int idx = lilswap(*(const ushort *)buf.pad(2));
             entity &e = *(entity *)buf.pad(sizeof(entity));
             lilswap(&e.o.x, 3);
-            lilswap(&e.attr1, 5);
+            lilswap(&e.attr[0], 5);
             pasteundoent(idx, e);
         }
     }

@@ -356,6 +356,23 @@ bool createdir(const char *path)
 #endif
 }
 
+//__offtools__ simple directory check (no other file attributes)
+bool isdir(char *file)
+{
+    path(file);
+#ifdef WIN32
+    if(GetFileAttributes(file) & FILE_ATTRIBUTE_DIRECTORY) return true;
+#else
+    struct stat attr;
+    if(-1 != stat(file, &attr)) {
+        if(attr.st_mode & S_IFDIR) {
+            return true;
+        }
+    }
+#endif
+    return false;
+}
+
 size_t fixpackagedir(char *dir)
 {
     path(dir);

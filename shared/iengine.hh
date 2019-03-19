@@ -222,15 +222,18 @@ extern bool emptymap(int factor, bool force, const char *mname = "", bool usecfg
 extern bool enlargemap(bool force);
 extern int findentity(int type, int index = 0, int attr1 = -1, int attr2 = -1);
 extern void findents(int low, int high, bool notspawned, const vec3 &pos, const vec3 &radius, vector<int> &found);
-extern void mpeditent(int i, const vec3 &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local);
+extern void mpeditent(int i, const vec3 &o, int type, int *attrs, bool local);
 extern vec3 getselpos();
 extern int getworldsize();
 extern int getmapversion();
+extern void renderentsimplebox(const extentity &e, const vec3 &radius);
+extern void renderentbox(const extentity &e, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll);
 extern void renderentcone(const extentity &e, const vec3 &dir, float radius, float angle);
 extern void renderentarrow(const extentity &e, const vec3 &dir, float radius);
 extern void renderentattachment(const extentity &e);
 extern void renderentsphere(const extentity &e, float radius);
 extern void renderentring(const extentity &e, float radius, int axis = 0);
+extern const int getattrnum(int type);
 
 // main
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
@@ -318,7 +321,7 @@ extern void resethudshader();
 
 // renderparticles
 enum
-{
+{ // These should match partrenderer *parts[], implemented in renderparticles.cc
     PART_BLOOD = 0,
     PART_WATER,
     PART_SMOKE,
@@ -353,7 +356,7 @@ extern void removetrackedparticles(physent *owner = NULL);
 
 // stain
 enum
-{
+{ // These should match stainrenderer stains[], implemented in stain.cc
     STAIN_BLOOD = 0,
     STAIN_PULSE_SCORCH,
     STAIN_RAIL_HOLE,
@@ -437,7 +440,7 @@ extern int intersectmodel(const char *mdl, int anim, const vec3 &pos, float yaw,
 extern void abovemodel(vec3 &o, const char *mdl);
 extern void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int hold, int attack, int attackdelay, int lastaction, int lastpain, float scale = 1, bool ragdoll = false, float trans = 1);
 extern void interpolateorientation(dynent *d, float &interpyaw, float &interppitch);
-extern void setbbfrommodel(dynent *d, const char *mdl);
+extern void setbbfrommodel(physent *d, const char *mdl, float size = 1);
 extern const char *mapmodelname(int i);
 extern model *loadmodel(const char *name, int i = -1, bool msg = false);
 extern void preloadmodel(const char *name);

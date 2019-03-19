@@ -509,7 +509,7 @@ static inline void rendermapmodel(extentity &e)
 {
     int anim = ANIM_MAPMODEL|ANIM_LOOP, basetime = 0;
     if(e.flags&EF_ANIM) entities::animatemapmodel(e, anim, basetime);
-    rendermapmodel(e.attr1, anim, e.o, e.attr2, e.attr3, e.attr4, MDL_CULL_VFC | MDL_CULL_DIST, basetime, e.attr5 > 0 ? e.attr5/100.0f : 1.0f);
+    rendermapmodel(e.attr[0], anim, e.o, e.attr[1], e.attr[2], e.attr[3], MDL_CULL_VFC | MDL_CULL_DIST, basetime, e.attr[4] > 0 ? e.attr[4]/100.0f : 1.0f);
 }
 
 void rendermapmodels()
@@ -2607,15 +2607,15 @@ static void genshadowmeshmapmodels(shadowmesh &m, int sides, shadowdrawinfo draw
         e.flags &= ~EF_RENDER;
 
 
-        model *mm = loadmapmodel(e.attr1);
+        model *mm = loadmapmodel(e.attr[0]);
         if(!mm || !mm->shadow || mm->animated() || (mm->alphashadow && mm->alphatested())) continue;
 
         matrix4x3 orient;
         orient.identity();
-        if(e.attr2) orient.rotate_around_z(sincosmod360(e.attr2));
-        if(e.attr3) orient.rotate_around_x(sincosmod360(e.attr3));
-        if(e.attr4) orient.rotate_around_y(sincosmod360(-e.attr4));
-        if(e.attr5 > 0) orient.scale(e.attr5/100.0f);
+        if(e.attr[1]) orient.rotate_around_z(sincosmod360(e.attr[1]));
+        if(e.attr[2]) orient.rotate_around_x(sincosmod360(e.attr[2]));
+        if(e.attr[3]) orient.rotate_around_y(sincosmod360(-e.attr[3]));
+        if(e.attr[4] > 0) orient.scale(e.attr[4]/100.0f);
         orient.settranslation(e.o);
         tris.setsize(0);
         mm->genshadowmesh(tris, orient);
@@ -2703,7 +2703,7 @@ shadowmesh *findshadowmesh(int idx, extentity &e)
     switch(m->type)
     {
         case SM_SPOT:
-            if(!e.attached || e.attached->type != ET_SPOTLIGHT || m->spotloc != e.attached->o || m->spotangle < clamp(int(e.attached->attr1), 1, 89))
+            if(!e.attached || e.attached->type != ET_SPOTLIGHT || m->spotloc != e.attached->o || m->spotangle < clamp(int(e.attached->attr[0]), 1, 89))
                 return NULL;
             break;
     }

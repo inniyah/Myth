@@ -336,10 +336,10 @@ struct vacollect : verthash
     {
         matrix3 orient;
         orient.identity();
-        if(e.attr2) orient.rotate_around_z(sincosmod360(e.attr2));
-        if(e.attr3) orient.rotate_around_x(sincosmod360(e.attr3));
-        if(e.attr4) orient.rotate_around_y(sincosmod360(-e.attr4));
-        vec3 size(max(float(e.attr5), 1.0f));
+        if(e.attr[1]) orient.rotate_around_z(sincosmod360(e.attr[1]));
+        if(e.attr[2]) orient.rotate_around_x(sincosmod360(e.attr[2]));
+        if(e.attr[3]) orient.rotate_around_y(sincosmod360(-e.attr[3]));
+        vec3 size(max(float(e.attr[4]), 1.0f));
         size.y *= s.depth;
         if(!s.sts.empty())
         {
@@ -423,10 +423,10 @@ struct vacollect : verthash
                 extentity &e = *ents[oe->decals[j]];
                 if(e.flags&EF_RENDER) continue;
                 e.flags |= EF_RENDER;
-                DecalSlot &s = lookupdecalslot(e.attr1, true);
+                DecalSlot &s = lookupdecalslot(e.attr[0], true);
                 if(!s.shader) continue;
                 ushort envmap = s.shader->type&SHADER_ENVMAP ? (s.texmask&(1<<TEX_ENVMAP) ? EMID_CUSTOM : closestenvmap(e.o)) : EMID_NONE;
-                decalkey k(e.attr1, envmap);
+                decalkey k(e.attr[0], envmap);
                 gendecal(e, s, k);
             }
         }
