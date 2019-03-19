@@ -276,7 +276,7 @@ void clearlightcache(int id)
     if(id >= 0)
     {
         const extentity &light = *entities::getents()[id];
-        int radius = light.attr1;
+        int radius = light.attr[0];
         if(radius <= 0) return;
         for(int x = int(max(light.o.x-radius, 0.0f))>>lightcachesize, ex = int(min(light.o.x+radius, worldsize-1.0f))>>lightcachesize; x <= ex; x++)
         for(int y = int(max(light.o.y-radius, 0.0f))>>lightcachesize, ey = int(min(light.o.y+radius, worldsize-1.0f))>>lightcachesize; y <= ey; y++)
@@ -313,7 +313,7 @@ const vector<int> &checklightcache(int x, int y)
         {
             case ET_LIGHT:
             {
-                int radius = light.attr1;
+                int radius = light.attr[0];
                 if(radius <= 0 ||
                    light.o.x + radius < cx || light.o.x - radius > cx + csize ||
                    light.o.y + radius < cy || light.o.y - radius > cy + csize)
@@ -644,13 +644,13 @@ void lightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool fast, extent
     loopv(lights)
     {
         extentity &e = *ents[lights[i]];
-        if(e.type != ET_LIGHT || e.attr1 <= 0)
+        if(e.type != ET_LIGHT || e.attr[0] <= 0)
             continue;
 
         vec3 ray(target);
         ray.sub(e.o);
         float mag = ray.magnitude();
-        if(mag >= float(e.attr1))
+        if(mag >= float(e.attr[0]))
             continue;
 
         if(mag < 1e-4f) ray = vec3(0, 0, -1);
@@ -661,11 +661,11 @@ void lightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool fast, extent
                 continue;
         }
 
-        float intensity = 1 - mag / float(e.attr1);
+        float intensity = 1 - mag / float(e.attr[0]);
         if(e.attached && e.attached->type==ET_SPOTLIGHT)
         {
             vec3 spot = vec3(e.attached->o).sub(e.o).normalize();
-            float spotatten = 1 - (1 - ray.dot(spot)) / (1 - cos360(clamp(int(e.attached->attr1), 1, 89)));
+            float spotatten = 1 - (1 - ray.dot(spot)) / (1 - cos360(clamp(int(e.attached->attr[0]), 1, 89)));
             if(spotatten <= 0) continue;
             intensity *= spotatten;
         }
@@ -675,7 +675,7 @@ void lightreaching(const vec3 &target, vec3 &color, vec3 &dir, bool fast, extent
         //    conoutf(CON_DEBUG, "%d - %f %f", i, intensity, mag);
         //}
 
-        vec3 lightcol = vec3(e.attr2, e.attr3, e.attr4).mul(1.0f/255).max(0);
+        vec3 lightcol = vec3(e.attr[1], e.attr[2], e.attr[3]).mul(1.0f/255).max(0);
         color.add(vec3(lightcol).mul(intensity));
         dir.add(vec3(ray).mul(-intensity*lightcol.x*lightcol.y*lightcol.z));
     }

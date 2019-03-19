@@ -210,30 +210,46 @@ Mix_Music *loadmusic(const char *name)
     return music;
 }
 
+const char *exts[] = { "", ".ogg", ".mid", ".flac", ".wav" };
+
+VAR(dbgmusic, 0, 0, 1);
+
 void startmusic(char *name, char *cmd)
 {
-    if(nosound) return;
+    if(nosound || !musicvol || !soundvol) { if(dbgmusic) conoutf("aborting, sound disabled"); return;}
     stopmusic();
-    if(soundvol && musicvol && *name)
+
+    const char *paths[] = { "media/", "", "media/music/" };
+    string sn;
+
+    if(*name)
     {
-        defformatstring(file, "media/%s", name);
-        path(file);
-        if(loadmusic(file))
+        loopi(sizeof(paths)/sizeof(paths[0]))
         {
-            DELETEA(musicfile);
-            DELETEA(musicdonecmd);
-            musicfile = newstring(file);
-            if(cmd[0]) musicdonecmd = newstring(cmd);
-            Mix_PlayMusic(music, cmd[0] ? 0 : -1);
-            Mix_VolumeMusic((musicvol*MIX_MAX_VOLUME)/255);
-            intret(1);
+            loopj(sizeof(exts)/sizeof(exts[0]))
+            {
+                formatstring(sn, "%s%s%s", paths[i], name, exts[j]);
+                if(dbgmusic) conoutf("trying path: %s", sn);
+                const char *file = path(sn);
+                if(loadmusic(file))
+                {
+                    if(dbgmusic) conoutf("File found!");
+                    DELETEA(musicfile);
+                    DELETEA(musicdonecmd);
+                    musicfile = newstring(file);
+                    if(cmd[0]) musicdonecmd = newstring(cmd);
+                    Mix_PlayMusic(music, cmd[0] ? 0 : -1);
+                    Mix_VolumeMusic((musicvol*MIX_MAX_VOLUME)/255);
+                    intret(1);
+                    return;
+                }
+            }
         }
-        else
-        {
-            conoutf(CON_ERROR, "could not play music: %s", file);
-            intret(0);
-        }
+        conoutf(CON_ERROR, "could not play music: %s", name);
     }
+    else if(dbgmusic) conoutf("no file name provided");
+
+    intret(0);
 }
 
 COMMANDN(music, startmusic, "ss");
@@ -265,14 +281,14 @@ bool soundsample::load(const char *dir, bool msg)
     string filename;
     loopi(sizeof(exts)/sizeof(exts[0]))
     {
-        formatstring(filename, "media/sound/%s%s%s", dir, name, exts[i]);
+        formatstring(filename, "media/sounds/%s%s%s", dir, name, exts[i]);
         if(msg && !i) renderprogress(0, filename);
         path(filename);
         chunk = loadwav(filename);
         if(chunk) return true;
     }
 
-    conoutf(CON_ERROR, "failed to load sample: media/sound/%s%s", dir, name);
+    conoutf(CON_ERROR, "failed to load sample: media/sounds/%s%s", dir, name);
     return false;
 }
 
@@ -446,6 +462,8 @@ void clearmapsounds()
     mapsounds.clear();
 }
 
+COMMANDN(mapsoundreset, clearmapsounds, "");
+
 void stopmapsound(extentity *e)
 {
     loopv(channels)
@@ -466,11 +484,11 @@ void checkmapsounds()
     {
         extentity &e = *ents[i];
         if(e.type!=ET_SOUND) continue;
-        if(camera1->o.dist(e.o) < e.attr2)
+        if(camera1->o.dist(e.o) < e.attr[1])
         {
-            if(!(e.flags&EF_SOUND)) playsound(e.attr1, NULL, &e, SND_MAP, -1);
+            if(!(e.flags&EF_SOUND)) playsound(e.attr[0], NULL, &e, SND_MAP, -1);
         }
-        else if(e.flags&EF_SOUND) stopmapsound(&e);
+        else if(!(e.flags&EF_SOUND)) stopmapsound(&e);
     }
 }
 
@@ -489,11 +507,11 @@ bool updatechannel(soundchannel &chan)
         int rad = maxsoundradius;
         if(chan.ent)
         {
-            rad = chan.ent->attr2;
-            if(chan.ent->attr3)
+            rad = chan.ent->attr[1];
+            if(chan.ent->attr[2])
             {
-                rad -= chan.ent->attr3;
-                dist -= chan.ent->attr3;
+                rad -= chan.ent->attr[2];
+                dist -= chan.ent->attr[2];
             }
         }
         else if(chan.radius > 0) rad = maxsoundradius ? min(maxsoundradius, chan.radius) : chan.radius;
@@ -570,7 +588,7 @@ void preloadmapsounds()
     loopv(ents)
     {
         extentity &e = *ents[i];
-        if(e.type==ET_SOUND) mapsounds.preloadsound(e.attr1);
+        if(e.type==ET_SOUND) preloadsound(e.attr[0]);
     }
 }
 
@@ -680,6 +698,28 @@ int playsoundname(const char *s, const vec3 *loc, int vol, int flags, int loops,
 
 ICOMMAND(playsound, "i", (int *n), playsound(*n));
 
+ICOMMAND(entsoundname, "i", (int *id),
+    if(mapsounds.configs.inrange(*id))
+    {
+        defformatstring(s, "%s", mapsounds.slots[mapsounds.configs[*id].slots].sample->name);
+        result(s);
+    }
+);
+
+void writemapsounds(stream *f)
+{
+    loopv(mapsounds.configs)
+    {
+        soundconfig &c = mapsounds.configs[i];
+        loopj(c.numslots)
+        {
+            soundslot &s = mapsounds.slots[c.slots + j];
+            if(!j) f->printf("mapsound %s %d %d // %d\n", escapestring(s.sample->name), s.volume, c.maxuses, i);
+            else f->printf("altmapsound %s %d\n", escapestring(s.sample->name), s.volume);
+        }
+    }
+}
+
 void resetsound()
 {
     clearchanges(CHANGE_SOUND);
@@ -774,7 +814,7 @@ void initmumble()
         if(mumblelink)
         {
             mumbleinfo = (MumbleInfo *)MapViewOfFile(mumblelink, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(MumbleInfo));
-            if(mumbleinfo) wcsncpy(mumbleinfo->name, L"Tesseract", 256);
+            if(mumbleinfo) wcsncpy(mumbleinfo->name, L"Lamiae", 256);
         }
     #elif defined(_POSIX_SHARED_MEMORY_OBJECTS)
         defformatstring(shmname, "/MumbleLink.%d", getuid());
@@ -782,7 +822,7 @@ void initmumble()
         if(mumblelink >= 0)
         {
             mumbleinfo = (MumbleInfo *)mmap(NULL, sizeof(MumbleInfo), PROT_READ|PROT_WRITE, MAP_SHARED, mumblelink, 0);
-            if(mumbleinfo != (MumbleInfo *)-1) wcsncpy(mumbleinfo->name, L"Tesseract", 256);
+            if(mumbleinfo != (MumbleInfo *)-1) wcsncpy(mumbleinfo->name, L"Lamiae", 256);
         }
     #endif
     if(!VALID_MUMBLELINK) closemumble();

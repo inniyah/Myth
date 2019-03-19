@@ -6,6 +6,9 @@ enum                            // hardcoded texture numbers
     NUMDEFAULTSLOTS
 };
 
+#define LAMIAEMAPVERSION 4
+//magic value is MLAM
+
 #define OCTAVERSION 33
 
 struct octaheader
@@ -22,7 +25,7 @@ struct octaheader
     int numvslots;
 };
 
-#define MAPVERSION 1            // bump if map format changes, see worldio.cpp
+#define TESSMAPVERSION 1            // bump if map format changes, see worldio.cpp
 
 struct mapheader
 {

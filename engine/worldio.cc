@@ -1,9 +1,9 @@
-// worldio.cpp: loading & saving of maps and savegames
+ // worldio.cpp: loading & saving of maps and savegames
 
 #include "engine.hh"
 
 void validmapname(char *dst, const char *src, const char *prefix = NULL, const char *alt = "untitled", size_t maxlen = 100)
-{
+{ // TODO: Check
     if(prefix) while(*prefix) *dst++ = *prefix++;
     const char *start = dst;
     if(src) loopi(maxlen)
@@ -17,13 +17,59 @@ void validmapname(char *dst, const char *src, const char *prefix = NULL, const c
 }
 
 void fixmapname(char *name)
-{
+{ // TODO: Check
     validmapname(name, name, NULL, "");
+}
+
+void cutogz(char *s)
+{
+    char *ogzp = strstr(s, ".ogz");
+    if(ogzp) *ogzp = '\0';
+}
+
+string mapdir = "media/maps/";
+
+void setmapdir(const char *pth)
+{
+    if(!pth) pth = "media/maps";
+    copystring(mapdir, pth);
+    concatstring(mapdir, "/");
+}
+ICOMMAND(maproot, "", (), result(mapdir));
+ICOMMAND(setmapdir, "sN", (const char *pth, int *numargs),
+    setmapdir(*numargs > 0 && pth[0] ? pth : NULL);
+)
+
+string mname, mpath; //holds the mapname and mappath
+
+void getmapfilenames(const char *map)
+{
+    copystring(mpath, mapdir);
+    const char *slash = NULL;
+    const char *next = NULL;
+
+    do
+    {
+        slash = next;
+        next = strpbrk(next ? (next + 1) : map, "/\\");
+    } while (next != NULL);
+
+    if(slash)
+    {
+        slash += 1;
+        int l = strlen(mpath);
+        copystring(mpath + l, map, min<int>(MAXSTRLEN - l, (slash - map) + 1));
+
+        map = slash;
+    }
+
+    copystring(mname, map);
+    createdir(mpath);
 }
 
 static void fixent(entity &e, int version)
 {
-    if(version <= 0)
+    if(version <= 3)
     {
         if(e.type >= ET_DECAL) e.type++;
     }
@@ -34,21 +80,44 @@ static bool loadmapheader(stream *f, const char *ogzname, mapheader &hdr, octahe
     if(f->read(&hdr, 3*sizeof(int)) != 3*sizeof(int)) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
     lilswap(&hdr.version, 2);
 
-    if(!memcmp(hdr.magic, "TMAP", 4))
+    if(!memcmp(hdr.magic, "MLAM", 4))
     {
-        if(hdr.version>MAPVERSION) { conoutf(CON_ERROR, "map %s requires a newer version of Tesseract", ogzname); return false; }
+        if(hdr.version>LAMIAEMAPVERSION) { conoutf(CON_ERROR, "map %s requires a newer version of Lamiae", ogzname); return false; }
+        if (hdr.version < 4)
+        {
+            if(f->read(&ohdr.worldsize, 7*sizeof(int)) != 7*sizeof(int)) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
+            lilswap(&ohdr.worldsize, 7);
+            hdr.headersize = sizeof(hdr);
+            hdr.worldsize = ohdr.worldsize;
+            hdr.numents = ohdr.numents;
+            hdr.numpvs = ohdr.numpvs;
+            hdr.blendmap = ohdr.blendmap;
+            hdr.numvars = ohdr.numvars;
+            hdr.numvslots = ohdr.numvslots;
+        }
+        else
+        {
+            if(f->read(&hdr.worldsize, 6*sizeof(int)) != 6*sizeof(int)) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
+            lilswap(&hdr.worldsize, 6);
+        }
+        if(hdr.worldsize <= 0|| hdr.numents < 0) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
+    }
+    else if(!memcmp(hdr.magic, "TMAP", 4))
+    {
+        if(hdr.version!=TESSMAPVERSION) { conoutf(CON_ERROR, "Tesseract map %s uses map version %i, Lamiae only supports loading version %i", ogzname, hdr.version, TESSMAPVERSION); return false; }
         if(f->read(&hdr.worldsize, 6*sizeof(int)) != 6*sizeof(int)) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
         lilswap(&hdr.worldsize, 6);
         if(hdr.worldsize <= 0|| hdr.numents < 0) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
+        hdr.version = 4;
     }
     else if(!memcmp(hdr.magic, "OCTA", 4))
     {
-        if(hdr.version!=OCTAVERSION) { conoutf(CON_ERROR, "map %s uses an unsupported map format version", ogzname); return false; }
+        if(hdr.version!=OCTAVERSION) { conoutf(CON_ERROR, "Octa map %s uses version %i, Lamiae only supports loading version %i", ogzname, hdr.version, OCTAVERSION); return false; }
         if(f->read(&ohdr.worldsize, 7*sizeof(int)) != 7*sizeof(int)) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
         lilswap(&ohdr.worldsize, 7);
         if(ohdr.worldsize <= 0|| ohdr.numents < 0) { conoutf(CON_ERROR, "map %s has malformatted header", ogzname); return false; }
-        memcpy(hdr.magic, "TMAP", 4);
-        hdr.version = 0;
+        //memcpy(hdr.magic, "MLAM", 4);
+        hdr.version = 3;
         hdr.headersize = sizeof(hdr);
         hdr.worldsize = ohdr.worldsize;
         hdr.numents = ohdr.numents;
@@ -57,13 +126,13 @@ static bool loadmapheader(stream *f, const char *ogzname, mapheader &hdr, octahe
         hdr.numvars = ohdr.numvars;
         hdr.numvslots = ohdr.numvslots;
     }
-    else { conoutf(CON_ERROR, "map %s uses an unsupported map type", ogzname); return false; }
+    else { conoutf(CON_ERROR, "garbage in header or unsupported map format (%4.4s) for %s", hdr.magic, ogzname); return false; }
 
     return true;
-}
+ }
 
 bool loadents(const char *fname, vector<entity> &ents, uint *crc)
-{
+{ // TODO: Check
     string name;
     validmapname(name, fname);
     defformatstring(ogzname, "media/map/%s.ogz", name);
@@ -109,7 +178,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
         entity &e = ents.add();
         f->read(&e, sizeof(entity));
         lilswap(&e.o.x, 3);
-        lilswap(&e.attr1, 5);
+        lilswap(&e.attr[0], 5);
         fixent(e, hdr.version);
         if(eif > 0) f->seek(eif, SEEK_CUR);
         if(samegame)
@@ -135,43 +204,45 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
 }
 
 #ifndef STANDALONE
-string ogzname, bakname, cfgname, picname;
+string ogzname, bakname, mcfname, acfname, acfbakname, picname;
 
 VARP(savebak, 0, 2, 2);
 
-void setmapfilenames(const char *fname, const char *cname = NULL)
+void setmapfilenames(const char *fname)
 {
-    string name;
-    validmapname(name, fname);
-    formatstring(ogzname, "media/map/%s.ogz", name);
-    formatstring(picname, "media/map/%s.png", name);
-    if(savebak==1) formatstring(bakname, "media/map/%s.BAK", name);
+    getmapfilenames(fname);
+
+    formatstring(ogzname, "%s%s.ogz", mpath, mname);
+    if(savebak==1)
+    {
+        formatstring(bakname, "%s%s.BAK", mpath, mname);
+        formatstring(acfbakname, "%s%s-art.BAK", mpath, mname);
+    }
     else
     {
         string baktime;
         time_t t = time(NULL);
         size_t len = strftime(baktime, sizeof(baktime), "%Y-%m-%d_%H.%M.%S", localtime(&t));
         baktime[min(len, sizeof(baktime)-1)] = '\0';
-        formatstring(bakname, "media/map/%s_%s.BAK", name, baktime);
+        formatstring(bakname, "%s%s_%s.BAK", mpath, mname, baktime);
+        formatstring(acfbakname, "%s%s-art_%s.BAK", mpath, mname, baktime);
     }
-
-    validmapname(name, cname ? cname : fname);
-    formatstring(cfgname, "media/map/%s.cfg", name);
+    formatstring(mcfname, "%s%s.cfg", mpath, mname);
+    formatstring(acfname, "%s%s-art.cfg", mpath, mname);
+    formatstring(picname, "%s%s", mpath, mname);
 
     path(ogzname);
     path(bakname);
-    path(cfgname);
+    path(mcfname);
+    path(acfname);
     path(picname);
 }
 
 void mapcfgname()
 {
-    const char *mname = game::getclientmap();
-    string name;
-    validmapname(name, mname);
-    defformatstring(cfgname, "media/map/%s.cfg", name);
-    path(cfgname);
-    result(cfgname);
+    defformatstring(res, "%s%s.cfg", mpath, mname);
+    path(res);
+    result(res);
 }
 
 COMMAND(mapcfgname, "");
@@ -319,6 +390,11 @@ void savec(cube *c, const ivec &o, int size, stream *f, bool nolms)
 
 cube *loadchildren(stream *f, const ivec &co, int size, bool &failed);
 
+static inline int convertoldmaterial(int mat)
+{
+    return ((mat&7)<<MATF_VOLUME_SHIFT) | (((mat>>3)&3)<<MATF_CLIP_SHIFT) | (((mat>>5)&7)<<MATF_FLAG_SHIFT);
+}
+
 void loadc(stream *f, cube &c, const ivec &co, int size, bool &failed)
 {
     int octsav = f->getchar();
@@ -333,8 +409,17 @@ void loadc(stream *f, cube &c, const ivec &co, int size, bool &failed)
         case OCTSAV_NORMAL: f->read(c.edges, 12); break;
         default: failed = true; return;
     }
-    loopi(6) c.texture[i] = f->getlil<ushort>();
-    if(octsav&0x40) c.material = f->getlil<ushort>();
+    loopi(6) c.texture[i] =  f->getlil<ushort>();
+
+    if(octsav&0x40)
+    {
+        if(mapversion <= 1)
+        {
+            int mat = f->getchar();
+            c.material = convertoldmaterial(mat);
+        }
+        else c.material = f->getlil<ushort>();
+    }
     if(octsav&0x80) c.merged = f->getchar();
     if(octsav&0x20)
     {
@@ -348,7 +433,7 @@ void loadc(stream *f, cube &c, const ivec &co, int size, bool &failed)
         loopi(6) if(surfmask&(1<<i))
         {
             surfaceinfo &surf = c.ext->surfaces[i];
-            if(mapversion <= 0)
+            if(mapversion <= 3)
             {
                 polysurfacecompat psurf;
                 f->read(&psurf, sizeof(polysurfacecompat));
@@ -364,7 +449,7 @@ void loadc(stream *f, cube &c, const ivec &co, int size, bool &failed)
             ivec v[4], n, vo = ivec(co).mask(0xFFF).shl(3);
             int layerverts = surf.numverts&MAXFACEVERTS, dim = dimension(i), vc = C[dim], vr = R[dim], bias = 0;
             genfaceverts(c, i, v);
-            bool hasxyz = (vertmask&0x04)!=0, hasuv = mapversion <= 0 && (vertmask&0x40)!=0, hasnorm = (vertmask&0x80)!=0;
+            bool hasxyz = (vertmask&0x04)!=0, hasuv = mapversion <= 3 && (vertmask&0x40)!=0, hasnorm = (vertmask&0x80)!=0;
             if(hasxyz)
             {
                 ivec e1, e2, e3;
@@ -436,6 +521,117 @@ cube *loadchildren(stream *f, const ivec &co, int size, bool &failed)
         if(failed) break;
     }
     return c;
+}
+
+
+//the following is from redeclipse... thanks quin!
+void saveslotconfig(stream *h, Slot &s, int index)
+{
+    VSlot &vs = *s.variants;
+
+    if(index >= 0)
+    {
+        if(s.shader)
+        {
+            h->printf("setshader %s\n", s.shader->name);
+        }
+        loopvj(s.params)
+        {
+            h->printf("setshaderparam \"%s\"", s.params[j].name);
+            loopk(4) h->printf(" %g", s.params[j].val[k]);
+            h->printf("\n");
+        }
+    }
+    loopvj(s.sts)
+    {
+        h->printf("texture %s %s", index >= 0 ? textypename(s.sts[j].type) : "1", escapestring(s.sts[j].name));
+        if(!j && index >= 0) h->printf(" // %d", index);
+        h->putchar('\n');
+    }
+    if(index >= 0)
+    {
+        if(s.grass) h->printf("texgrass \"%s\"\n", s.grass);
+        if(s.smooth >= 0) h->printf("texsmooth %i -1\n", s.smooth);
+
+        if(vs.scroll.x != 0.f || vs.scroll.y != 0.f)
+            h->printf("texscroll %g %g\n", vs.scroll.x * 1000.0f, vs.scroll.y * 1000.0f);
+        if(vs.offset.x || vs.offset.y)
+            h->printf("texoffset %d %d\n", vs.offset.x, vs.offset.y);
+        if(vs.rotation)
+            h->printf("texrotate %d\n", vs.rotation);
+        if(vs.scale != 1)
+            h->printf("texscale %g\n", vs.scale);
+        if(vs.layer != 0)
+            h->printf("texlayer %d\n", vs.layer);
+        if(vs.detail != 0)
+            h->printf("texdetail %d\n", vs.detail);
+        if(vs.alphafront != 0.5f || vs.alphaback != 0)
+            h->printf("texalpha %g %g\n", vs.alphafront, vs.alphaback);
+        if(vs.colorscale != vec3(1, 1, 1))
+            h->printf("texcolor %g %g %g\n", vs.colorscale.x, vs.colorscale.y, vs.colorscale.z);
+        if(vs.refractscale > 0)
+            h->printf("texrefract %g %g %g %g", vs.refractscale, vs.refractcolor.x,  vs.refractcolor.y, vs.refractcolor.z);
+    }
+    h->printf("\n");
+}
+
+VARP(writeartcfg, 0, 1, 1);
+void writemapcfg()
+{
+    if(!writeartcfg) return;
+
+    if (savebak) backup(acfname, acfbakname);
+    stream *f = openutf8file(path(acfname, true), "w");
+
+    f->printf("//Configuration generated by Lamiae, modify with caution\n//This file contains map variables, and art definitions\n//to add anything, add them onto the end of the file or it's given section.\n\n//Part 1: World Variables\n//Part 2: Mapsounds\n//Part 3: Mapmodels\n//Part 4: Textures\n\n");
+
+    f->printf("//world variables\n//uncomment to override\n\n");
+
+    vector<ident *> ids;
+    enumerate(idents, ident, id, ids.add(&id));
+    ids.sortname();
+    loopv(ids)
+    {
+        ident &id = *ids[i];
+        if(!(id.flags&IDF_OVERRIDDEN) || id.flags&IDF_READONLY) continue;
+        switch(id.type)
+        {
+            case ID_VAR: f->printf(id.flags & IDF_HEX ? "//%s 0x%.6X\n" : "//%s %d\n", escapeid(id.name), *id.storage.i); break;
+            case ID_FVAR: f->printf("//%s %s\n", escapeid(id.name), floatstr(*id.storage.f)); break;
+            case ID_SVAR: f->printf("//%s %s\n", escapeid(id.name), escapestring(*id.storage.s)); break;
+        }
+    }
+
+    f->printf("\n//mapsounds\n\nmapsoundreset\n\n");
+
+    writemapsounds(f);
+
+    f->printf("//map models\n\nmapmodelreset\n\n");
+    extern vector<mapmodelinfo> mapmodels;
+
+    loopv(mapmodels)
+        f->printf("mmodel %s // %d\n", escapestring(mapmodels[i].name), i);
+
+    f->printf("\n\n//texture smoothgroups\n");
+    extern vector<int> smoothgroups;
+    loopv(smoothgroups)
+    {
+        if(smoothgroups[i] < 0) continue;
+        f->printf("smoothangle %i %i\n", i, smoothgroups[i]);
+    }
+
+    f->printf("\n//Textures\n\ntexturereset\n\n");
+
+    extern vector<Slot *> slots;
+    loopv(slots)
+    {
+        saveslotconfig(f, *slots[i], i);
+    }
+
+    f->printf("\n\n");
+    delete f;
+
+    conoutf("successfully generated mapdata cfg: %s", acfname);
 }
 
 VAR(dbgvars, 0, 0, 1);
@@ -533,7 +729,7 @@ void loadvslot(stream *f, VSlot &vs, int changed)
         }
     }
     if(vs.changed & (1<<VSLOT_SCALE)) vs.scale = f->getlil<float>();
-    if(vs.changed & (1<<VSLOT_ROTATION)) vs.rotation = clamp(f->getlil<int>(), 0, 7);
+    if(vs.changed & (1<<VSLOT_ROTATION)) vs.rotation = f->getlil<int>();
     if(vs.changed & (1<<VSLOT_OFFSET))
     {
         loopk(2) vs.offset[k] = f->getlil<int>();
@@ -584,7 +780,129 @@ void loadvslots(stream *f, int numvslots)
     delete[] prev;
 }
 
-bool save_world(const char *mname, bool nolms)
+struct octaent
+{
+    vec3 o;
+    short attr1, attr2, attr3, attr4, attr5;
+    uchar type;
+    uchar reserved;
+};
+
+void octa_to_lamiae_entity(const mapheader &hdr, extentity &e)
+{
+    switch(e.type)
+    {
+        case ET_PARTICLES:
+            switch(e.attr[0])
+            {
+                case 0:
+                    if(!e.attr[3]) break;
+                    [[fallthrough]];
+                case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 12: case 13: case 14:
+                    e.attr[3] = ((e.attr[3] & 0xF00) << 12) | ((e.attr[3] & 0x0F0) << 8) | ((e.attr[3] & 0x00F) << 4) | 0x0F0F0F;
+                    if(e.attr[0] != 5 && e.attr[0] != 6) break;
+                    [[fallthrough]];
+                case 3: case 11:
+                    e.attr[2] = ((e.attr[2] & 0xF00) << 12) | ((e.attr[2] & 0x0F0) << 8) | ((e.attr[2] & 0x00F) << 4) | 0x0F0F0F;
+                    break;
+                default:
+                    break;
+            }
+            switch(e.attr[0])
+            {
+                // fire/smoke
+                case 13: case 14:
+                    e.attr[0] -= 12;
+                    break;
+                    //fountains and explosion
+                case 1: case 2: case 3:
+                    e.attr[0] += 2; break;
+
+                    //bars
+                case 5: case 6:
+                    e.attr[0]++; break;
+
+                    //text
+                case 11:
+                    e.attr[0] = 8; break;
+
+                    //multi effect
+                case 4: case 7: case 8: case 9: case 10: case 12:
+                {
+                    int num[] = {9, 0, 0, 10, 11, 12, 13, 0, 14};
+                    e.attr[0] = num[e.attr[0] - 4];
+                    break;
+                }
+            }
+            break;
+        case ET_MAPMODEL:
+            if(memcmp(hdr.magic, "OCTA", 4)) break;
+            swap(e.attr[0], e.attr[1]);
+            e.attr[2] = e.attr[3] = e.attr[4] = 0;
+            break;
+    }
+}
+
+void lamiae_to_octa_entity(const extentity &e, octaent &oe)
+{
+    oe.o = e.o; oe.type = e.type;
+    oe.reserved = 0;
+    oe.attr1 = e.attr.length() >= 1 ? e.attr[0] : 0;
+    oe.attr2 = e.attr.length() >= 2 ? e.attr[1] : 0;
+    oe.attr3 = e.attr.length() >= 3 ? e.attr[2] : 0;
+    oe.attr4 = e.attr.length() >= 4 ? e.attr[3] : 0;
+    oe.attr5 = e.attr.length() >= 5 ? e.attr[4] : 0;
+
+    switch(e.type)
+    {
+        case ET_PARTICLES:
+            switch(e.attr[0])
+            {
+                case 0:
+                    if(!e.attr[3]) break;
+                    [[fallthrough]];
+                case 1: case 2: case 6: case 7: case 9: case 10: case 11: case 12: case 13: case 14: case 15:
+                    oe.attr4 = ((e.attr[3] & 0xF00000) >> 12) | ((e.attr[3] & 0xF000) >> 8) | ((e.attr[3] & 0xF0) >> 4);
+                    if(e.attr[0] != 6 && e.attr[0] != 7) break;
+                    [[fallthrough]];
+                case 5: case 8:
+                    oe.attr3 = ((e.attr[2] & 0xF00000) >> 12) | ((e.attr[2] & 0xF000) >> 8) | ((e.attr[2] & 0xF0) >> 4);
+                    break;
+                default:
+                    break;
+            }
+            switch(oe.attr1)
+            {
+                //fire/smoke 11/12
+                case 1: case 2:
+                    oe.attr1 += 12; break;
+
+                //fountains and explosion 1/2/3
+                case 3: case 4: case 5:
+                    oe.attr1 -= 2; break;
+
+                //bars 5/6
+                case 6: case 7:
+                    oe.attr1--; break;
+
+                //text
+                case 8:
+                    oe.attr1 = 11; break;
+
+                //multi effect
+                case 9: case 10: case 11: case 12: case 13: case 14:
+                {
+                    int num[] = {4, 7, 8, 9, 10, 12};
+                    oe.attr1 = num[oe.attr1 - 9];
+                    break;
+                }
+                default:
+                    break;
+            }
+    }
+}
+
+bool save_world(const char *mname, bool nolms, bool octa)
 {
     if(!*mname) mname = game::getclientmap();
     setmapfilenames(*mname ? mname : "untitled");
@@ -603,8 +921,8 @@ bool save_world(const char *mname, bool nolms)
     renderprogress(0, "saving map...");
 
     mapheader hdr;
-    memcpy(hdr.magic, "TMAP", 4);
-    hdr.version = MAPVERSION;
+    memcpy(hdr.magic, (octa ? "TMAP" : "MLAM"), 4);
+    hdr.version = octa ? TESSMAPVERSION : LAMIAEMAPVERSION;
     hdr.headersize = sizeof(hdr);
     hdr.worldsize = worldsize;
     hdr.numents = 0;
@@ -648,11 +966,11 @@ bool save_world(const char *mname, bool nolms)
     });
 
     if(dbgvars) conoutf(CON_DEBUG, "wrote %d vars", hdr.numvars);
-
     f->putchar((int)strlen(game::gameident()));
     f->write(game::gameident(), (int)strlen(game::gameident())+1);
     f->putlil<ushort>(entities::extraentinfosize());
-    vector<char> extras;
+
+    vector<uchar> extras;
     game::writegamedata(extras);
     f->putlil<ushort>(extras.length());
     f->write(extras.getbuf(), extras.length());
@@ -660,16 +978,36 @@ bool save_world(const char *mname, bool nolms)
     f->putlil<ushort>(texmru.length());
     loopv(texmru) f->putlil<ushort>(texmru[i]);
     char *ebuf = new char[entities::extraentinfosize()];
+
     loopv(ents)
     {
         if(ents[i]->type!=ET_EMPTY || nolms)
         {
-            entity tmp = *ents[i];
-            lilswap(&tmp.o.x, 3);
-            lilswap(&tmp.attr1, 5);
-            f->write(&tmp, sizeof(entity));
-            entities::writeent(*ents[i], ebuf);
-            if(entities::extraentinfosize()) f->write(ebuf, entities::extraentinfosize());
+            if(octa)
+            {
+                octaent ent;
+                lamiae_to_octa_entity(*ents[i], ent);
+
+                lilswap(&ent.o.x, 3);
+                lilswap(&ent.attr1, 5);
+                f->write(&ent, sizeof(octaent));
+                entities::writeent(*ents[i], ebuf);
+                if(entities::extraentinfosize()) f->write(ebuf, entities::extraentinfosize());
+            }
+            else
+            {
+                entity tmp = *ents[i];
+
+                lilswap(&tmp.o.x, 3);
+                f->write(&tmp.o, sizeof(vec3));
+
+                f->putchar(tmp.attr.length());
+                loopvj(tmp.attr) f->putlil<int>(tmp.attr[j]);
+                f->putchar(tmp.type);
+
+                entities::writeent(*ents[i], ebuf);
+                if(entities::extraentinfosize()) f->write(ebuf, entities::extraentinfosize());
+            }
         }
     }
     delete[] ebuf;
@@ -687,46 +1025,14 @@ bool save_world(const char *mname, bool nolms)
 
     delete f;
     conoutf("wrote map file %s", ogzname);
+    writemapcfg();
     return true;
 }
 
-static uint mapcrc = 0;
-
-uint getmapcrc() { return mapcrc; }
-void clearmapcrc() { mapcrc = 0; }
-
-bool load_world(const char *mname, const char *cname)        // still supports all map formats that have existed since the earliest cube betas!
+static void readmapvars(stream *f, int numvars)
 {
-    int loadingstart = SDL_GetTicks();
-    setmapfilenames(mname, cname);
-    stream *f = opengzfile(ogzname, "rb");
-    if(!f) { conoutf(CON_ERROR, "could not read map %s", ogzname); return false; }
-
-    mapheader hdr;
-    octaheader ohdr;
-    memset(&ohdr, 0, sizeof(ohdr));
-    if(!loadmapheader(f, ogzname, hdr, ohdr)) { delete f; return false; }
-
-    resetmap();
-
-    Texture *mapshot = textureload(picname, 3, true, false);
-    renderbackground("loading...", mapshot, mname, game::getmapinfo());
-
-    setvar("mapversion", hdr.version, true, false);
-
-    renderprogress(0, "clearing world...");
-
-    freeocta(worldroot);
-    worldroot = NULL;
-
-    int worldscale = 0;
-    while(1<<worldscale < hdr.worldsize) worldscale++;
-    setvar("mapsize", 1<<worldscale, true, false);
-    setvar("mapscale", worldscale, true, false);
-
     renderprogress(0, "loading vars...");
-
-    loopi(hdr.numvars)
+    loopi(numvars)
     {
         int type = f->getchar(), ilen = f->getlil<ushort>();
         string name;
@@ -779,7 +1085,18 @@ bool load_world(const char *mname, const char *cname)        // still supports a
                 break;
         }
     }
-    if(dbgvars) conoutf(CON_DEBUG, "read %d vars", hdr.numvars);
+    if(dbgvars) conoutf(CON_DEBUG, "read %d vars", numvars);
+}
+
+static uint mapcrc = 0;
+
+uint getmapcrc() { return mapcrc; }
+void clearmapcrc() { mapcrc = 0; }
+
+//Limited compat: supports only newest iteration
+bool read_octaworld(stream *f, mapheader &hdr, octaheader &ohdr)
+{
+    readmapvars(f, hdr.numvars);
 
     string gametype;
     bool samegame = true;
@@ -789,12 +1106,14 @@ bool load_world(const char *mname, const char *cname)        // still supports a
     if(strcmp(gametype, game::gameident())!=0)
     {
         samegame = false;
-        conoutf(CON_WARN, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels", gametype);
+        conoutf(CON_WARN, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels)", gametype);
     }
+
     int eif = f->getlil<ushort>();
     int extrasize = f->getlil<ushort>();
-    vector<char> extras;
+    vector<uchar> extras;
     f->read(extras.pad(extrasize), extrasize);
+
     if(samegame) game::readgamedata(extras);
 
     texmru.shrink(0);
@@ -804,24 +1123,34 @@ bool load_world(const char *mname, const char *cname)        // still supports a
     renderprogress(0, "loading entities...");
 
     vector<extentity *> &ents = entities::getents();
-    int einfosize = entities::extraentinfosize();
-    char *ebuf = einfosize > 0 ? new char[einfosize] : NULL;
+    char *ebuf = eif > 0 ? new char[eif] : NULL;
     loopi(min(hdr.numents, MAXENTS))
     {
         extentity &e = *entities::newentity();
         ents.add(&e);
-        f->read(&e, sizeof(entity));
-        lilswap(&e.o.x, 3);
-        lilswap(&e.attr1, 5);
+
+        e.o.x = f->getlil<float>();
+        e.o.y = f->getlil<float>();
+        e.o.z = f->getlil<float>();
+
+        loopj(5)
+            e.attr.add(f->getlil<short>());
+        e.type = f->getchar();
+        while(e.attr.length() < getattrnum(e.type)) e.attr.add(0);
+        //OCTA entities have an unused reserved byte at the end
+        f->getchar();
+
         fixent(e, hdr.version);
+        octa_to_lamiae_entity(hdr, e);
+
         if(samegame)
         {
-            if(einfosize > 0) f->read(ebuf, einfosize);
+            if(eif > 0) f->read(ebuf, eif);
             entities::readent(e, ebuf, mapversion);
         }
         else
         {
-            if(eif > 0) f->seek(eif, SEEK_CUR);
+            f->seek(eif, SEEK_CUR);
             if(e.type>=ET_GAMESPECIFIC)
             {
                 entities::deleteentity(ents.pop());
@@ -841,7 +1170,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
     if(hdr.numents > MAXENTS)
     {
         conoutf(CON_WARN, "warning: map has %d entities", hdr.numents);
-        f->seek((hdr.numents-MAXENTS)*(samegame ? sizeof(entity) + einfosize : eif), SEEK_CUR);
+        f->seek((hdr.numents-MAXENTS)*(sizeof(entity) + eif), SEEK_CUR);
     }
 
     renderprogress(0, "loading slots...");
@@ -857,7 +1186,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
 
     if(!failed)
     {
-        if(mapversion <= 0) loopi(ohdr.lightmaps)
+        loopi(ohdr.lightmaps)
         {
             int type = f->getchar();
             if(type&0x80)
@@ -865,6 +1194,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
                 f->getlil<ushort>();
                 f->getlil<ushort>();
             }
+
             int bpp = 3;
             if(type&(1<<4) && (type&0x0F)!=2) bpp = 4;
             f->seek(bpp*LM_PACKW*LM_PACKH, SEEK_CUR);
@@ -874,43 +1204,299 @@ bool load_world(const char *mname, const char *cname)        // still supports a
         if(hdr.blendmap) loadblendmap(f, hdr.blendmap);
     }
 
-    mapcrc = f->getcrc();
-    delete f;
+    return !failed;
+}
 
-    conoutf("read map %s (%.1f seconds)", ogzname, (SDL_GetTicks()-loadingstart)/1000.0f);
+bool read_tessworld(stream *f, mapheader &hdr)
+{
+    readmapvars(f, hdr.numvars);
 
-    clearmainmenu();
+    string gametype;
+    bool samegame = true;
+    int len = f->getchar();
+    if(len >= 0) f->read(gametype, len+1);
+    gametype[max(len, 0)] = '\0';
+    if(strcmp(gametype, game::gameident())!=0)
+    {
+        samegame = false;
+        conoutf(CON_WARN, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels)", gametype);
+    }
 
-    identflags |= IDF_OVERRIDDEN;
-    execfile("config/default_map_settings.cfg", false);
-    execfile(cfgname, false);
-    identflags &= ~IDF_OVERRIDDEN;
+    int eif = f->getlil<ushort>();
+    int extrasize = f->getlil<ushort>();
+    vector<uchar> extras;
+    f->read(extras.pad(extrasize), extrasize);
 
-    preloadusedmapmodels(true);
+    if(samegame) game::readgamedata(extras);
 
-    game::preload();
-    flushpreloadedmodels();
+    texmru.shrink(0);
+    ushort nummru = f->getlil<ushort>();
+    loopi(nummru) texmru.add(f->getlil<ushort>());
 
-    preloadmapsounds();
+    renderprogress(0, "loading entities...");
 
-    entitiesinoctanodes();
-    attachentities();
-    allchanged(true);
+    vector<extentity *> &ents = entities::getents();
+    char *ebuf = eif > 0 ? new char[eif] : NULL;
+    loopi(min(hdr.numents, MAXENTS))
+    {
+        extentity &e = *entities::newentity();
+        ents.add(&e);
 
+        e.o.x = f->getlil<float>();
+        e.o.y = f->getlil<float>();
+        e.o.z = f->getlil<float>();
+
+        loopj(5)
+            e.attr.add(f->getlil<short>());
+        e.type = f->getchar();
+        while(e.attr.length() < getattrnum(e.type)) e.attr.add(0);
+        //OCTA entities have an unused reserved byte at the end
+        f->getchar();
+
+        fixent(e, hdr.version);
+        octa_to_lamiae_entity(hdr, e);
+
+        if(samegame)
+        {
+            if(eif > 0) f->read(ebuf, eif);
+            entities::readent(e, ebuf, mapversion);
+        }
+        else
+        {
+            f->seek(eif, SEEK_CUR);
+            if(e.type>=ET_GAMESPECIFIC)
+            {
+                entities::deleteentity(ents.pop());
+                continue;
+            }
+        }
+        if(!insideworld(e.o))
+        {
+            if(e.type != ET_LIGHT && e.type != ET_SPOTLIGHT)
+            {
+                conoutf(CON_WARN, "warning: ent outside of world: enttype[%s] index %d (%f, %f, %f)", entities::entname(e.type), i, e.o.x, e.o.y, e.o.z);
+            }
+        }
+    }
+    if(ebuf) delete[] ebuf;
+
+    if(hdr.numents > MAXENTS)
+    {
+        conoutf(CON_WARN, "warning: map has %d entities", hdr.numents);
+        f->seek((hdr.numents-MAXENTS)*(sizeof(entity) + eif), SEEK_CUR);
+    }
+
+    renderprogress(0, "loading slots...");
+    loadvslots(f, hdr.numvslots);
+
+    renderprogress(0, "loading octree...");
+    bool failed = false;
+    worldroot = loadchildren(f, ivec(0, 0, 0), hdr.worldsize>>1, failed);
+    if(failed) conoutf(CON_ERROR, "garbage in map");
+
+    renderprogress(0, "validating...");
+    validatec(worldroot, hdr.worldsize>>1);
+
+    if(!failed)
+    {
+        if(hdr.numpvs > 0) loadpvs(f, hdr.numpvs);
+        if(hdr.blendmap) loadblendmap(f, hdr.blendmap);
+    }
+
+    return !failed;
+}
+
+bool read_lamiaeworld(stream *f, mapheader &hdr)
+{
+    readmapvars(f, hdr.numvars);
+
+    string gametype;
+    bool samegame = true;
+    int len = f->getchar();
+    if(len >= 0) f->read(gametype, len+1);
+    gametype[max(len, 0)] = '\0';
+    if(strcmp(gametype, game::gameident())!=0)
+    {
+        samegame = false;
+        conoutf(CON_WARN, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels)", gametype);
+    }
+
+    int eif = f->getlil<ushort>();
+    int extrasize = f->getlil<ushort>();
+    vector<uchar> extras;
+    f->read(extras.pad(extrasize), extrasize);
+
+    if(samegame) game::readgamedata(extras);
+
+    texmru.shrink(0);
+    ushort nummru = f->getlil<ushort>();
+    loopi(nummru) texmru.add(f->getlil<ushort>());
+
+    renderprogress(0, "loading entities...");
+
+    vector<extentity *> &ents = entities::getents();
+    char *ebuf = eif > 0 ? new char[eif] : NULL;
+    loopi(min(hdr.numents, MAXENTS))
+    {
+        extentity &e = *entities::newentity();
+        ents.add(&e);
+
+        e.o.x = f->getlil<float>();
+        e.o.y = f->getlil<float>();
+        e.o.z = f->getlil<float>();
+
+        uchar numattrs = f->getchar();
+        loopj(numattrs)
+        {
+            e.attr.add(f->getlil<int>());
+        }
+        e.type = f->getchar();
+        while(e.attr.length() < getattrnum(e.type)) e.attr.add(0);
+
+        fixent(e, hdr.version);
+        if(samegame)
+        {
+            if(eif > 0) f->read(ebuf, eif);
+            entities::readent(e, ebuf, mapversion);
+        }
+        else
+        {
+            f->seek(eif, SEEK_CUR);
+            if(e.type>=ET_GAMESPECIFIC)
+            {
+                entities::deleteentity(ents.pop());
+                continue;
+            }
+        }
+        if(e.type == ET_MAPMODEL && hdr.version < 3)
+        {
+            swap(e.attr[0], e.attr[1]);
+            e.attr[2] = e.attr[3] = e.attr[4] = 0;
+        }
+        if(!insideworld(e.o))
+        {
+            if(e.type != ET_LIGHT && e.type != ET_SPOTLIGHT)
+            {
+                conoutf(CON_WARN, "warning: ent outside of world: enttype[%s] index %d (%f, %f, %f)", entities::entname(e.type), i, e.o.x, e.o.y, e.o.z);
+            }
+        }
+    }
+    if(ebuf) delete[] ebuf;
+
+    if(hdr.numents > MAXENTS)
+    {
+        conoutf(CON_WARN, "warning: map has %d entities", hdr.numents);
+        f->seek((hdr.numents-MAXENTS)*(sizeof(entity) + eif), SEEK_CUR);
+    }
+
+    renderprogress(0, "loading slots...");
+    loadvslots(f, hdr.numvslots);
+
+    renderprogress(0, "loading octree...");
+    bool failed = false;
+    worldroot = loadchildren(f, ivec(0, 0, 0), hdr.worldsize>>1, failed);
+    if(failed) conoutf(CON_ERROR, "garbage in map");
+
+    renderprogress(0, "validating...");
+    validatec(worldroot, hdr.worldsize>>1);
+
+    if(!failed)
+    {
+        if(hdr.numpvs > 0) loadpvs(f, hdr.numpvs);
+        if(hdr.blendmap) loadblendmap(f, hdr.blendmap);
+    }
+
+    return !failed;
+}
+
+bool load_world(const char *mname, const char *cname)
+{
+    int loadingstart = SDL_GetTicks();
+    bool loaded = false;
+    setmapfilenames(mname);
+
+    stream *f = opengzfile(ogzname, "rb");
+    if(!f) { conoutf(CON_ERROR, "could not read map %s", ogzname); return false; }
+
+    mapheader hdr;
+    octaheader ohdr;
+    memset(&ohdr, 0, sizeof(ohdr));
+    if(!loadmapheader(f, ogzname, hdr, ohdr)) { delete f; return false; }
+
+    resetmap();
+
+    Texture *mapshot = textureload(picname, 3, true, false);
     renderbackground("loading...", mapshot, mname, game::getmapinfo());
+    renderprogress(0, "clearing world...");
+    freeocta(worldroot);
+    worldroot = NULL;
 
-    if(maptitle[0] && strcmp(maptitle, "Untitled Map by Unknown")) conoutf(CON_ECHO, "%s", maptitle);
+    setvar("mapversion", hdr.version, true, false);
+    int worldscale = 0;
+    while(1<<worldscale < hdr.worldsize) worldscale++;
+    setvar("mapsize", 1<<worldscale, true, false);
+    setvar("mapscale", worldscale, true, false);
 
-    startmap(cname ? cname : mname);
+    if(memcmp(hdr.magic, "MLAM", 4)==0)
+    {
+        loaded = read_lamiaeworld(f, hdr);
+    }
+    else if(memcmp(hdr.magic, "TMAP", 4)==0)
+    {
+        conoutf("Importing map from Tesseract format...");
+        loaded = read_tessworld(f, hdr);
+    }
+    else if(memcmp(hdr.magic, "OCTA", 4)==0)
+    {
+        conoutf("Importing map from Octa format...");
+        loaded = read_octaworld(f, hdr, ohdr);
+    }
+    else
+    {
+        conoutf(CON_ERROR, "Map format %4.4s missing handler in load_world! report a bug!", hdr.magic);
+    }
 
-    return true;
+    if(loaded)
+    {
+        mapcrc = f->getcrc();
+
+        conoutf("read map %s (%.1f seconds)", ogzname, (SDL_GetTicks()-loadingstart)/1000.0f);
+
+        clearmainmenu();
+
+        identflags |= IDF_OVERRIDDEN;
+
+        execfile("config/default_map_settings.cfg", false);
+        execfile(acfname, false);
+        execfile(mcfname, false);
+
+        identflags &= ~IDF_OVERRIDDEN;
+
+        preloadusedmapmodels(true);
+        game::preload();
+        flushpreloadedmodels();
+
+        preloadmapsounds();
+
+        entitiesinoctanodes();
+        attachentities();
+        allchanged(true);
+        startmap(cname ? cname : mname);
+
+        if(maptitle[0] && strcmp(maptitle, "Untitled Map by Unknown")) conoutf(CON_ECHO, "%s", maptitle);
+    }
+
+    delete f;
+    return loaded;
 }
 
 void savecurrentmap() { save_world(game::getclientmap()); }
-void savemap(char *mname) { save_world(mname); }
+void savemap(char *mname) { save_world(mname, false, false); }
 
 COMMAND(savemap, "s");
 COMMAND(savecurrentmap, "");
+
+ICOMMAND(exporttess, "s", (char *mname), save_world(mname, false, true););
 
 void writeobj(char *name)
 {
@@ -1038,19 +1624,19 @@ void writecollideobj(char *name)
         conoutf(CON_ERROR, "could not find map model in selection");
         return;
     }
-    model *m = loadmapmodel(mm->attr1);
+    model *m = loadmapmodel(mm->attr[0]);
     if(!m)
     {
-        mapmodelinfo *mmi = getmminfo(mm->attr1);
+        mapmodelinfo *mmi = getmminfo(mm->attr[0]);
         if(mmi) conoutf(CON_ERROR, "could not load map model: %s", mmi->name);
-        else conoutf(CON_ERROR, "could not find map model: %d", mm->attr1);
+        else conoutf(CON_ERROR, "could not find map model: %d", mm->attr[0]);
         return;
     }
 
     matrix4x3 xform;
     m->calctransform(xform);
-    float scale = mm->attr5 > 0 ? mm->attr5/100.0f : 1;
-    int yaw = mm->attr2, pitch = mm->attr3, roll = mm->attr4;
+    float scale = mm->attr[4] > 0 ? mm->attr[4]/100.0f : 1;
+    int yaw = mm->attr[1], pitch = mm->attr[2], roll = mm->attr[3];
     matrix3 orient;
     orient.identity();
     if(scale != 1) orient.scale(scale);

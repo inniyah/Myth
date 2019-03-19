@@ -66,6 +66,7 @@ static inline T max(T a, T b, T c)
 {
     return max(max(a, b), c);
 }
+
 template<class T>
 static inline T min(T a, T b)
 {
@@ -76,8 +77,9 @@ static inline T min(T a, T b, T c)
 {
     return min(min(a, b), c);
 }
+
 template<class T, class U>
-static inline T clamp(T a, U b, U c)
+static inline T clamp(T a, U b, U c) //val min max
 {
     return max(T(b), min(a, T(c)));
 }
@@ -94,7 +96,7 @@ static inline int bitscan(uint mask)
 }
 #else
 static inline int bitscan(uint mask)
-{   
+{
     if(!mask) return -1;
     int i = 1;
     if(!(mask&0xFFFF)) { i += 16; mask >>= 16; }
@@ -248,6 +250,8 @@ inline char *newconcatstring(const char *s, const char *t)
 #define loopvj(v)   for(int j = 0; j<(v).length(); j++)
 #define loopvk(v)   for(int k = 0; k<(v).length(); k++)
 #define loopvrev(v) for(int i = (v).length()-1; i>=0; i--)
+#define loopvjrev(v) for(int j = (v).length()-1; j>=0; j--)
+#define loopvkrev(v) for(int k = (v).length()-1; k>=0; k--)
 
 template <class T>
 struct databuf
@@ -767,7 +771,7 @@ template <class T> struct vector
     }
 
     template<class U>
-    int find(const U &o)
+    int find(const U &o) const
     {
         loopi(ulen) if(buf[i]==o) return i;
         return -1;
@@ -905,6 +909,186 @@ template <class T> struct vector
     #undef UNIQUE
 };
 
+template <class T> struct smallvector
+{
+    T *buf;
+    int len;
+
+    smallvector() : buf(NULL), len(0)
+    {
+    }
+
+    smallvector(const smallvector &v) : buf(NULL), len(0)
+    {
+        *this = v;
+    }
+
+    ~smallvector() { shrink(0); }
+
+    smallvector<T> &operator=(const smallvector<T> &v)
+    {
+        shrink(0);
+        growbuf(v.length());
+        loopv(v) buf[i] = v[i];
+        return *this;
+    }
+
+    void growbuf(int sz)
+    {
+        int olen = len;
+        len = max(sz, 0);
+        uchar *newbuf = len > 0 ? new uchar[len*sizeof(T)] : NULL;
+        if(olen > 0)
+        {
+            if(len > 0) memcpy(newbuf, buf, min(len, olen)*sizeof(T));
+            delete[] (uchar *)buf;
+        }
+        buf = (T *)newbuf;
+    }
+
+    T &add(const T &x)
+    {
+        growbuf(len+1);
+        new (&buf[len-1]) T(x);
+        return buf[len-1];
+    }
+
+    T &add()
+    {
+        growbuf(len+1);
+        new (&buf[len-1]) T;
+        return buf[len-1];
+    }
+
+    void add(const T &x, int n)
+    {
+        if(n <= 0) return;
+        growbuf(len+n);
+        while(n > 0) new (&buf[len-n--]) T(x);
+    }
+
+    void put(const T &v) { add(v); }
+
+    void put(const T *v, int n)
+    {
+        if(n <= 0) return;
+        growbuf(len + n);
+        memcpy(&buf[len-n], v, n*sizeof(T));
+    }
+
+    void shrink(int i)
+    {
+        ASSERT(i<=len);
+        if(i >= len) return;
+        if(isclass<T>::yes) for(int j = i; j < len; j++) buf[j].~T();
+        growbuf(i);
+    }
+
+    void setsize(int i)
+    {
+        ASSERT(i<=len);
+        if(i >= len) return;
+        growbuf(i);
+    }
+
+    void deletecontents()
+    {
+        for(int i = 0; i < len; i++) delete buf[i];
+        setsize(0);
+    }
+
+    void deletearrays()
+    {
+        for(int i = 0; i < len; i++) delete[] buf[i];
+        setsize(0);
+    }
+
+    T remove(int i)
+    {
+        T e = buf[i];
+        for(int p = i+1; p<len; p++) buf[p-1] = buf[p];
+        growbuf(len-1);
+        return e;
+    }
+
+    T removeunordered(int i)
+    {
+        T e = buf[i];
+        if(len>1) buf[i] = buf[len-1];
+        growbuf(len-1);
+        return e;
+    }
+
+    void drop() { buf[len-1].~T(); growbuf(len-1); }
+
+    T &insert(int i, const T &e)
+    {
+        add(T());
+        for(int p = len-1; p>i; p--) buf[p] = buf[p-1];
+        buf[i] = e;
+        return buf[i];
+    }
+
+    T *insert(int i, const T *e, int n)
+    {
+        growbuf(len+n);
+        loopj(n) add(T());
+        for(int p = len-1; p>=i+n; p--) buf[p] = buf[p-n];
+        loopj(n) buf[i+j] = e[j];
+        return &buf[i];
+    }
+
+    void disown() { buf = NULL; len = 0; }
+
+    bool inrange(size_t i) const { return i<size_t(len); }
+    bool inrange(int i) const { return i>=0 && i<len; }
+
+    T &last() { return buf[len-1]; }
+    bool empty() const { return len==0; }
+    int length() const { return len; }
+    T &operator[](int i) { ASSERT(i>=0 && i<len); return buf[i]; }
+    const T &operator[](int i) const { ASSERT(i >= 0 && i<len); return buf[i]; }
+    T *getbuf() { return buf; }
+    const T *getbuf() const { return buf; }
+    bool inbuf(const T *e) const { return e >= buf && e < &buf[len]; }
+
+    template<class U>
+    int find(const U &o)
+    {
+        loopi(len) if(buf[i]==o) return i;
+        return -1;
+    }
+
+    template<class K>
+    int htfind(const K &key)
+    {
+        loopi(len) if(htcmp(key, buf[i])) return i;
+        return -1;
+    }
+
+    #define UNIQUE(overwrite, cleanup) \
+        for(int i = 1; i < len; i++) if(htcmp(buf[i-1], buf[i])) \
+        { \
+            int n = i; \
+            while(++i < len) if(!htcmp(buf[n-1], buf[i])) { overwrite; n++; } \
+            cleanup; \
+            break; \
+        }
+    void unique() // contents must be initially sorted
+    {
+        UNIQUE(buf[n] = buf[i], setsize(n));
+    }
+    void uniquedeletecontents()
+    {
+        UNIQUE(swap(buf[n], buf[i]), deletecontents(n));
+    }
+    void uniquedeletearrays()
+    {
+        UNIQUE(swap(buf[n], buf[i]), deletearrays(n));
+    }
+    #undef UNIQUE
+};
+
 template<class H, class E, class K, class T> struct hashbase
 {
     typedef E elemtype;
@@ -940,6 +1124,8 @@ template<class H, class E, class K, class T> struct hashbase
         DELETEA(chains);
         deletechunks();
     }
+
+    int length() const { return numelems; }
 
     chain *insert(uint h)
     {
@@ -1228,7 +1414,7 @@ template<class T> inline void endiansame(T *buf, size_t len) {}
 #define bigswap endianswap
 #else
 #define lilswap endianswap
-#define bigswap endiansame 
+#define bigswap endiansame
 #endif
 #else
 template<class T> inline T lilswap(T n) { return islittleendian() ? n : endianswap(n); }
@@ -1355,6 +1541,7 @@ extern char *path(const char *s, bool copy);
 extern const char *parentdir(const char *directory);
 extern bool fileexists(const char *path, const char *mode);
 extern bool createdir(const char *path);
+extern bool isdir(char* path); //__offtools__ simple dir check
 extern size_t fixpackagedir(char *dir);
 extern const char *sethomedir(const char *dir);
 extern const char *addpackagedir(const char *dir);
@@ -1371,7 +1558,7 @@ extern bool listdir(const char *dir, bool rel, const char *ext, vector<char *> &
 extern int listfiles(const char *dir, const char *ext, vector<char *> &files);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 extern void seedMT(uint seed);
-extern uint randomMT();
+extern uint randomMT(void);
 
 extern void putint(ucharbuf &p, int n);
 extern void putint(packetbuf &p, int n);

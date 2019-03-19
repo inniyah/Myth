@@ -3130,6 +3130,22 @@ namespace UI
         return window && world->children.find(window) >= 0;
     }
 
+    int numui()
+    {
+        int n = 0;
+        loopv(world->children)
+        {
+            if(world->children[i]->gettype() == Window::typestr())
+                n++;
+        }
+        return n;
+    }
+
+    void hideallui()
+    {
+        world->hideall();
+    }
+
     ICOMMAND(showui, "s", (char *name), intret(showui(name) ? 1 : 0));
     ICOMMAND(hideui, "s", (char *name), intret(hideui(name) ? 1 : 0));
     ICOMMAND(hidetopui, "", (), intret(world->hidetop() ? 1 : 0));

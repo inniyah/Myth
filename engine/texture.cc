@@ -1647,11 +1647,44 @@ Texture *textureload(const char *name, int clamp, bool mipit, bool msg)
     return notexture;
 }
 
+Texture *textureget(const char *name)
+{
+    string tname;
+    copystring(tname, name);
+    Texture *t = textures.access(path(tname));
+    return t ? t : notexture;
+}
+
 bool settexture(const char *name, int clamp)
 {
     Texture *t = textureload(name, clamp, true, false);
     glBindTexture(GL_TEXTURE_2D, t->id);
     return t != notexture;
+}
+
+bool settexture(Texture *&tex)
+{
+    if(!tex)
+        tex = notexture;
+
+    glBindTexture(GL_TEXTURE_2D, tex->id);
+    return tex != notexture;
+}
+
+const char *textypename(int i)
+{
+    switch(i)
+    {
+        case TEX_DIFFUSE: return "0";
+        case TEX_NORMAL: return "n";
+        case TEX_GLOW: return "g";
+        case TEX_SPEC: return "s";
+        case TEX_DEPTH: return "z";
+        case TEX_ENVMAP: return "e";
+
+        case TEX_UNKNOWN:
+        default: return "1";
+    }
 }
 
 vector<VSlot *> vslots;
@@ -3006,9 +3039,9 @@ void initenvmaps()
         const extentity &ent = *ents[i];
         if(ent.type != ET_ENVMAP) continue;
         envmap &em = envmaps.add();
-        em.radius = ent.attr1 ? clamp(int(ent.attr1), 0, 10000) : envmapradius;
-        em.size = ent.attr2 ? clamp(int(ent.attr2), 4, 9) : 0;
-        em.blur = ent.attr3 ? clamp(int(ent.attr3), 1, 2) : 0;
+        em.radius = ent.attr[0] ? clamp(int(ent.attr[0]), 0, 10000) : envmapradius;
+        em.size = ent.attr[1] ? clamp(int(ent.attr[1]), 4, 9) : 0;
+        em.blur = ent.attr[2] ? clamp(int(ent.attr[2]), 1, 2) : 0;
         em.o = ent.o;
     }
 }
@@ -3789,6 +3822,20 @@ bool loadimage(const char *filename, ImageData &image)
     if(!s) return false;
     image.wrap(s);
     return true;
+}
+
+//for engine use only
+void scaledscreenshot(char *filename, int format, int x, int y)
+{
+    ImageData image(screenw, screenh, 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, texalign(image.data, screenw, 3));
+    glReadPixels(0, 0, screenw, screenh, GL_RGB, GL_UNSIGNED_BYTE, image.data);
+    if(x || y)
+    {
+        float ratio = min(1.0f, min(x ? (float)x / image.w : 1, y ? (float)y / image.h : 1));
+        scaleimage(image, image.w * ratio, image.h * ratio);
+    }
+    saveimage(path(filename), format, image, true);
 }
 
 SVARP(screenshotdir, "screenshot");

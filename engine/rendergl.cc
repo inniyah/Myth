@@ -2463,3 +2463,13 @@ void cleanupgl()
     gle::cleanup();
 }
 
+void sethudnotextureshader()
+{
+    hudnotextureshader->set();
+}
+
+void sethudshader()
+{
+    hudshader->set();
+}
+

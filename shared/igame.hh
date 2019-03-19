@@ -5,7 +5,10 @@ namespace entities
     extern void editent(int i, bool local);
     extern const char *entnameinfo(entity &e);
     extern const char *entname(int i);
+    extern const int numattrs(int type);
     extern int extraentinfosize();
+    extern void saveextrainfo(entity &e, char *buf);
+    extern void loadextrainfo(entity &e, char *buf);
     extern void writeent(entity &e, char *buf);
     extern void readent(entity &e, char *buf, int ver);
     extern float dropheight(entity &e);
@@ -77,8 +80,8 @@ namespace game
     extern void renderplayerpreview(int model, int color, int team, int weap);
     extern int numanims();
     extern void findanims(const char *pattern, vector<int> &anims);
-    extern void writegamedata(vector<char> &extras);
-    extern void readgamedata(vector<char> &extras);
+    extern void writegamedata(vector<uchar> &extras);
+    extern void readgamedata(vector<uchar> &extras);
     extern float clipconsole(float w, float h);
     extern const char *defaultcrosshair(int index);
     extern int selectcrosshair(vec3 &col);

@@ -103,6 +103,7 @@ extern void compactvslot(VSlot &vs);
 extern int compactvslots(bool cull = false);
 extern void reloadtextures();
 extern void cleanuptextures();
+extern const char *textypename(int i);
 
 // pvs
 extern void clearpvs();
@@ -649,6 +650,7 @@ extern void entitiesinoctanodes();
 extern void attachentities();
 extern void freeoctaentities(cube &c);
 extern bool pointinsel(const selinfo &sel, const vec3 &o);
+extern const int getattrnum(int type);
 
 extern void resetmap();
 extern void startmap(const char *name);
@@ -752,6 +754,7 @@ extern void menuprocess();
 extern void clearmainmenu();
 
 // sound
+extern void writemapsounds(stream *f);
 extern void clearmapsounds();
 extern void checkmapsounds();
 extern void updatesounds();

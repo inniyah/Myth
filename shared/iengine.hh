@@ -5,6 +5,7 @@ extern int lastmillis;                  // last time
 extern int elapsedtime;                 // elapsed frame time
 extern int totalmillis;                 // total elapsed time
 extern uint totalsecs;
+extern bvec watercolour;
 extern int gamespeed, paused;
 
 enum
@@ -54,6 +55,7 @@ extern int thirdperson;
 extern bool isthirdperson();
 
 extern bool settexture(const char *name, int clamp = 0);
+extern void scaledscreenshot(char *filename, int format, int x = 0, int y = 0);
 
 // octaedit
 
@@ -222,15 +224,18 @@ extern bool emptymap(int factor, bool force, const char *mname = "", bool usecfg
 extern bool enlargemap(bool force);
 extern int findentity(int type, int index = 0, int attr1 = -1, int attr2 = -1);
 extern void findents(int low, int high, bool notspawned, const vec3 &pos, const vec3 &radius, vector<int> &found);
-extern void mpeditent(int i, const vec3 &o, int type, int attr1, int attr2, int attr3, int attr4, int attr5, bool local);
+extern void mpeditent(int i, const vec3 &o, int type, int *attrs, bool local);
 extern vec3 getselpos();
 extern int getworldsize();
 extern int getmapversion();
+extern void renderentsimplebox(const extentity &e, const vec3 &radius);
+extern void renderentbox(const extentity &e, const vec3 &center, const vec3 &radius, int yaw, int pitch, int roll);
 extern void renderentcone(const extentity &e, const vec3 &dir, float radius, float angle);
 extern void renderentarrow(const extentity &e, const vec3 &dir, float radius);
 extern void renderentattachment(const extentity &e);
 extern void renderentsphere(const extentity &e, float radius);
 extern void renderentring(const extentity &e, float radius, int axis = 0);
+extern const int getattrnum(int type);
 
 // main
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
@@ -316,9 +321,12 @@ extern void pushhudscale(float sx, float sy = 0);
 extern void pushhudtranslate(float tx, float ty, float sx = 0, float sy = 0);
 extern void resethudshader();
 
+extern void sethudnotextureshader();
+extern void sethudshader();
+
 // renderparticles
 enum
-{
+{ // These should match partrenderer *parts[], implemented in renderparticles.cc
     PART_BLOOD = 0,
     PART_WATER,
     PART_SMOKE,
@@ -338,6 +346,7 @@ enum
     PART_LENS_FLARE
 };
 
+extern int emitmillis;
 extern bool canaddparticles();
 extern void regular_particle_splash(int type, int num, int fade, const vec3 &p, int color = 0xFFFFFF, float size = 1.0f, int radius = 150, int gravity = 2, int delay = 0);
 extern void regular_particle_flame(int type, const vec3 &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15);
@@ -350,15 +359,17 @@ extern void particle_meter(const vec3 &s, float val, int type, int fade = 1, int
 extern void particle_flare(const vec3 &p, const vec3 &dest, int fade, int type, int color = 0xFFFFFF, float size = 0.28f, physent *owner = NULL);
 extern void particle_fireball(const vec3 &dest, float max, int type, int fade = -1, int color = 0xFFFFFF, float size = 4.0f);
 extern void removetrackedparticles(physent *owner = NULL);
+extern void regularlensflare(vec3 o, uchar r, uchar g, uchar b, bool sun = false, bool sparkle = false, int sizemod = 100);
 
 // stain
 enum
-{
+{ // These should match stainrenderer stains[], implemented in stain.cc
     STAIN_BLOOD = 0,
     STAIN_PULSE_SCORCH,
     STAIN_RAIL_HOLE,
     STAIN_PULSE_GLOW,
-    STAIN_RAIL_GLOW
+    STAIN_RAIL_GLOW,
+    STAIN_MAX
 };
 
 extern void addstain(int type, const vec3 &center, const vec3 &surface, float radius, const bvec &color = bvec(0xFF, 0xFF, 0xFF), int info = 0);
@@ -369,12 +380,16 @@ static inline void addstain(int type, const vec3 &center, const vec3 &surface, f
 }
 
 // worldio
+extern string mpath, mname;
 extern bool load_world(const char *mname, const char *cname = NULL);
-extern bool save_world(const char *mname, bool nolms = false);
+extern bool save_world(const char *mname, bool nolms = false, bool octa = false);
+extern void setmapdir(const char *pth = NULL);
+extern void getmapfilenames(const char *cname);
 extern void fixmapname(char *name);
 extern uint getmapcrc();
 extern void clearmapcrc();
 extern bool loadents(const char *fname, vector<entity> &ents, uint *crc = NULL);
+extern void backup(const char *name, const char *backupname);
 
 // physics
 extern vec3 collidewall;
@@ -437,7 +452,7 @@ extern int intersectmodel(const char *mdl, int anim, const vec3 &pos, float yaw,
 extern void abovemodel(vec3 &o, const char *mdl);
 extern void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int hold, int attack, int attackdelay, int lastaction, int lastpain, float scale = 1, bool ragdoll = false, float trans = 1);
 extern void interpolateorientation(dynent *d, float &interpyaw, float &interppitch);
-extern void setbbfrommodel(dynent *d, const char *mdl);
+extern void setbbfrommodel(physent *d, const char *mdl, float size = 1);
 extern const char *mapmodelname(int i);
 extern model *loadmodel(const char *name, int i = -1, bool msg = false);
 extern void preloadmodel(const char *name);
@@ -445,18 +460,23 @@ extern void flushpreloadedmodels(bool msg = true);
 extern bool matchanim(const char *name, const char *pattern);
 
 // UI
+extern vector<int> entgroup;
+extern int efocus, enthover, entorient;
 
 namespace UI
 {
-    bool showui(const char *name);
-    bool hideui(const char *name);
-    bool toggleui(const char *name);
-    void holdui(const char *name, bool on);
-    bool uivisible(const char *name);
+    extern bool showui(const char *name);
+    extern bool hideui(const char *name);
+    extern bool toggleui(const char *name);
+    extern void holdui(const char *name, bool on);
+    extern bool uivisible(const char *name);
+    extern int numui();
+    extern void hideallui();
 }
 
 // ragdoll
 
+extern void ragdolladdvel(dynent *d, vec3 &vel);
 extern void moveragdoll(dynent *d);
 extern void cleanragdoll(dynent *d);
 

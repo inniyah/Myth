@@ -4,6 +4,7 @@ project(OctaCore)
 
 # Build options.
 option(OCTACORE_BUILD_CLIENT "Build the game client" ON)
+option(OCTACORE_BUILD_RPGGAME "Build the rpggame client" ON)
 option(OCTACORE_BUILD_SERVER "Build the game server" ON)
 
 find_package(Doxygen)
@@ -121,6 +122,106 @@ if(OCTACORE_BUILD_CLIENT)
   if(UNIX)
     configure_file("scripts/runclient.sh.in" "${CMAKE_CURRENT_BINARY_DIR}/runclient.sh" @ONLY)
   endif()
+endif()
+
+if(OCTACORE_BUILD_RPGGAME)
+  set(RPGGAME_SOURCES
+      shared/crypto.cc
+      shared/geom.cc
+      shared/glemu.cc
+      shared/stream.cc
+      shared/tools.cc
+      shared/zip.cc
+      engine/aa.cc
+      engine/bih.cc
+      engine/blend.cc
+      engine/client.cc
+      engine/command.cc
+      engine/console.cc
+      engine/dynlight.cc
+      engine/grass.cc
+      engine/light.cc
+      engine/main.cc
+      engine/material.cc
+      engine/menus.cc
+      engine/movie.cc
+      engine/normal.cc
+      engine/octa.cc
+      engine/octaedit.cc
+      engine/octarender.cc
+      engine/physics.cc
+      engine/pvs.cc
+      engine/rendergl.cc
+      engine/renderlights.cc
+      engine/rendermodel.cc
+      engine/renderparticles.cc
+      engine/rendersky.cc
+      engine/rendertext.cc
+      engine/renderva.cc
+      engine/server.cc
+      engine/serverbrowser.cc
+      engine/shader.cc
+      engine/sound.cc
+      engine/stain.cc
+      engine/texture.cc
+      engine/ui.cc
+      engine/water.cc
+      engine/world.cc
+      engine/worldio.cc
+      rpggame/rpgaction.cc
+      rpggame/rpgcamera.cc
+      rpggame/rpgchar.cc
+      rpggame/rpgcontainer.cc
+      rpggame/rpgentities.cc
+      rpggame/rpggui.cc
+      rpggame/rpgio.cc
+      rpggame/rpgobstacle.cc
+      rpggame/rpgproj.cc
+      rpggame/rpgreserved.cc
+      rpggame/rpgstats.cc
+      rpggame/rpgstubs.cc
+      rpggame/waypoint.cc
+      rpggame/rpgai.cc
+      rpggame/rpg.cc
+      rpggame/rpgconfig.cc
+      rpggame/rpgeffect.cc
+      rpggame/rpghud.cc
+      rpggame/rpgitem.cc
+      rpggame/rpgplatform.cc
+      rpggame/rpgrender.cc
+      rpggame/rpgscript.cc
+      rpggame/rpgstatus.cc
+      rpggame/rpgtest.cc
+      rpggame/rpgtrigger.cc
+    )
+  set(RPGGAME_INCLUDES
+      ${CMAKE_CURRENT_SOURCE_DIR}/shared
+      ${CMAKE_CURRENT_SOURCE_DIR}/engine
+      )
+  set(RPGGAME_LIBRARIES
+      ${PLATFORM_LIBRARIES}
+      ${ENET_LIBRARIES}
+      ${ZLIB_LIBRARIES}
+      ${OPENGL_LIBRARIES}
+      ${SDL2_LIBRARIES}
+      SDL2_image
+      SDL2_mixer
+      )
+  add_executable(native_rpggame ${RPGGAME_SOURCES})
+  target_compile_options(native_rpggame PUBLIC
+    ${ENET_CFLAGS_OTHER}
+    ${ZLIB_CFLAGS_OTHER}
+    ${OPENGL_CFLAGS_OTHER}
+    ${SDL2_CFLAGS_OTHER}
+    )
+  target_include_directories(native_rpggame SYSTEM PUBLIC
+    ${ENET_INCLUDE_DIRS}
+    ${ZLIB_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
+    )
+  target_include_directories(native_rpggame PRIVATE ${RPGGAME_INCLUDES})
+  target_link_libraries(native_rpggame ${RPGGAME_LIBRARIES})
 endif()
 
 if(OCTACORE_BUILD_SERVER)

@@ -7,8 +7,8 @@ enum { ET_EMPTY=0, ET_LIGHT, ET_MAPMODEL, ET_PLAYERSTART, ET_ENVMAP, ET_PARTICLE
 
 struct entity                                   // persistent map entity
 {
-    vec3 o;                                      // position
-    short attr1, attr2, attr3, attr4, attr5;
+    vec3 o;                                     // position
+    smallvector<int> attr;                      // attributes
     uchar type;                                 // type is one of the above
     uchar reserved;
 };
@@ -48,23 +48,23 @@ enum { CS_ALIVE = 0, CS_DEAD, CS_SPAWNING, CS_LAGGED, CS_EDITING, CS_SPECTATOR }
 
 enum { PHYS_FLOAT = 0, PHYS_FALL, PHYS_SLIDE, PHYS_SLOPE, PHYS_FLOOR, PHYS_STEP_UP, PHYS_STEP_DOWN, PHYS_BOUNCE };
 
-enum { ENT_PLAYER = 0, ENT_CAMERA, ENT_BOUNCE };
+enum { ENT_PLAYER = 0, ENT_INANIMATE, ENT_CAMERA, ENT_BOUNCE };
 
 enum { COLLIDE_NONE = 0, COLLIDE_ELLIPSE, COLLIDE_OBB, COLLIDE_TRI };
 
 #define CROUCHTIME 200
 #define CROUCHHEIGHT 0.75f
 
-struct physent                                  // base entity type, can be affected by physics
+struct physent                                    // base entity type, can be affected by physics
 {
-    vec3 o, vel, falling;                        // origin, velocity
-    vec3 deltapos, newpos;                       // movement interpolation
+    vec3 o, vel, falling;                         // origin, velocity
+    vec3 deltapos, newpos;                        // movement interpolation
     float yaw, pitch, roll;
-    float maxspeed;                             // cubes per second, 100 for player
+    float maxspeed;                               // cubes per second, 100 for player
     int timeinair;
     float radius, eyeheight, maxheight, aboveeye; // bounding box size
     float xradius, yradius, zmargin;
-    vec3 floor;                                  // the normal of floor the dynent is on
+    vec3 floor;                                   // the normal of floor the dynent is on
 
     int inwater;
     bool jumping;

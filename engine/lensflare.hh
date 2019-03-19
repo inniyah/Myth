@@ -68,7 +68,7 @@ struct flarerenderer : partrenderer
         f.sparkle = sparkle;
     }
 
-    void addflare(vec3 &o, uchar r, uchar g, uchar b, bool sun, bool sparkle)
+    void addflare(vec3 &o, uchar r, uchar g, uchar b, bool sun, bool sparkle, int sizemod = 100)
     {
         //frustrum + fog check
         if(isvisiblesphere(0.0f, o) > (sun?VFC_FOGGED:VFC_FULL_VISIBLE)) return;
@@ -79,13 +79,14 @@ struct flarerenderer : partrenderer
         if(sun) //fixed size
         {
             mod = 1.0;
-            size = flaredir.magnitude() * flaresize / 100.0f;
+            size = flaredir.magnitude() * flaresize / 100.0f * (sizemod > 0 ? sizemod / 100.0f : 1);
         }
         else
         {
-            mod = (flarecutoff-vec3(o).sub(center).squaredlen())/flarecutoff;
+            mod = ((flarecutoff * (sizemod > 0 ? (sizemod / 100.0f) : 1))-vec3(o).sub(center).squaredlen())/(flarecutoff * (sizemod > 0 ? (sizemod / 100.0f) : 1));
+            if(mod > 1.0f) mod = 1.0f;
             if(mod < 0.0f) return;
-            size = flaresize / 5.0f;
+            size = flaresize / 5.0f * (sizemod > 0 ? sizemod / 100.0f : 1);
         }
         newflare(o, center, r, g, b, mod, size, sun, sparkle);
     }

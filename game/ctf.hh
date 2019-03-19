@@ -195,8 +195,8 @@ struct ctfclientmode : clientmode
         loopv(ments)
         {
             entity &e = ments[i];
-            if(e.type != FLAG || !validteam(e.attr2)) continue;
-            if(!addflag(flags.length(), e.o, e.attr2)) break;
+            if(e.type != FLAG || !validteam(e.attr[1])) continue;
+            if(!addflag(flags.length(), e.o, e.attr[1])) break;
         }
         notgotflags = false;
     }
@@ -477,10 +477,10 @@ struct ctfclientmode : clientmode
         loopv(entities::ents)
         {
             extentity *e = entities::ents[i];
-            if(e->type!=FLAG || !validteam(e->attr2)) continue;
+            if(e->type!=FLAG || !validteam(e->attr[1])) continue;
             int index = flags.length();
-            if(!addflag(index, e->o, e->attr2)) continue;
-            flags[index].spawnangle = e->attr1;
+            if(!addflag(index, e->o, e->attr[1])) continue;
+            flags[index].spawnangle = e->attr[0];
         }
     }
 

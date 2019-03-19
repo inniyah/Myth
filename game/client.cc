@@ -1760,15 +1760,17 @@ namespace game
                 conoutf("%s calced lights", colorname(d));
                 mpcalclight(false);
                 break;
-            case N_EDITENT:            // coop edit of ent
+            case N_EDITENT: // coop edit of ent
             {
                 if(!d) return;
                 int i = getint(p);
                 float x = getint(p)/DMF, y = getint(p)/DMF, z = getint(p)/DMF;
                 int type = getint(p);
-                int attr1 = getint(p), attr2 = getint(p), attr3 = getint(p), attr4 = getint(p), attr5 = getint(p);
-
-                mpeditent(i, vec3(x, y, z), type, attr1, attr2, attr3, attr4, attr5, false);
+                const int numattrs = getattrnum(type);
+                int *attrs = new int[numattrs];
+                loopi(numattrs)
+                    attrs[i] = getint(p);
+                mpeditent(i, vec3(x, y, z), type, attrs, false);
                 break;
             }
             case N_EDITVAR:

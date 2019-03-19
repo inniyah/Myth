@@ -530,6 +530,17 @@ void moveragdoll(dynent *d)
     d->o.lerp(eye, 1-k);
 }
 
+void ragdolladdvel(dynent *d, vec3 &vel)
+{
+    if(!d->ragdoll) return;
+
+    loopv(d->ragdoll->skel->verts)
+    {
+        d->ragdoll->verts[i].oldpos.sub(vel);
+        d->ragdoll->collidemillis = d->ragdoll->lastmove = lastmillis;
+    }
+}
+
 void cleanragdoll(dynent *d)
 {
     DELETEP(d->ragdoll);

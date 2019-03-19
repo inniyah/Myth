@@ -804,12 +804,12 @@ bool mmcollide(physent *d, const vec3 &dir, float cutoff, octaentities &oc) // c
     loopv(oc.mapmodels)
     {
         extentity &e = *ents[oc.mapmodels[i]];
-        if(e.flags&EF_NOCOLLIDE || !mapmodels.inrange(e.attr1)) continue;
-        mapmodelinfo &mmi = mapmodels[e.attr1];
+        if(e.flags&EF_NOCOLLIDE || !mapmodels.inrange(e.attr[0])) continue;
+        mapmodelinfo &mmi = mapmodels[e.attr[0]];
         model *m = mmi.collide;
         if(!m)
         {
-            if(!mmi.m && !loadmodel(NULL, e.attr1)) continue;
+            if(!mmi.m && !loadmodel(NULL, e.attr[0])) continue;
             if(mmi.m->collidemodel) m = loadmodel(mmi.m->collidemodel);
             if(!m) m = mmi.m;
             mmi.collide = m;
@@ -818,11 +818,11 @@ bool mmcollide(physent *d, const vec3 &dir, float cutoff, octaentities &oc) // c
         if(!mcol) continue;
 
         vec3 center, radius;
-        float rejectradius = m->collisionbox(center, radius), scale = e.attr5 > 0 ? e.attr5/100.0f : 1;
+        float rejectradius = m->collisionbox(center, radius), scale = e.attr[4] > 0 ? e.attr[4]/100.0f : 1;
         center.mul(scale);
         if(d->o.reject(vec3(e.o).add(center), d->radius + rejectradius*scale)) continue;
 
-        int yaw = e.attr2, pitch = e.attr3, roll = e.attr4;
+        int yaw = e.attr[1], pitch = e.attr[2], roll = e.attr[3];
         if(mcol == COLLIDE_TRI || testtricol)
         {
             if(!m->bih && !m->setBIH()) continue;
