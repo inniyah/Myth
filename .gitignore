@@ -1,4 +1,4 @@
-bin_unix/native_*
 build
 *.cfg
 *.old
+*.bk
