@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.5)
 project(OctaCore)
 
 # Build options.
-option(OCTACORE_BUILD_CLIENT "Build the game client" ON)
-option(OCTACORE_BUILD_RPGGAME "Build the rpggame client" ON)
-option(OCTACORE_BUILD_SERVER "Build the game server" ON)
+option(LAMIAE_BUILD_CLIENT "Build the game client" OFF)
+option(LAMIAE_BUILD_RPGGAME "Build the rpggame client" ON)
+option(LAMIAE_BUILD_SERVER "Build the game server" OFF)
 
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
@@ -19,7 +19,7 @@ pkg_search_module(ZLIB REQUIRED zlib)
 pkg_search_module(SDL2 REQUIRED sdl2)
 pkg_search_module(ENET REQUIRED libenet)
 
-if(OCTACORE_BUILD_CLIENT)
+if(LAMIAE_BUILD_CLIENT OR LAMIAE_BUILD_RPGGAME)
   # Add OpenGL.
   pkg_search_module(OPENGL REQUIRED gl)
 
@@ -35,7 +35,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wno-missing-exception-spec")
 endif()
 
-if(OCTACORE_BUILD_CLIENT)
+if(LAMIAE_BUILD_CLIENT)
   # Client executable.
   set(CLIENT_SOURCES
       shared/crypto.cc
@@ -124,75 +124,74 @@ if(OCTACORE_BUILD_CLIENT)
   endif()
 endif()
 
-if(OCTACORE_BUILD_RPGGAME)
+if(LAMIAE_BUILD_RPGGAME)
   set(RPGGAME_SOURCES
-      shared/crypto.cc
-      shared/geom.cc
-      shared/glemu.cc
-      shared/stream.cc
-      shared/tools.cc
-      shared/zip.cc
-      engine/aa.cc
-      engine/bih.cc
-      engine/blend.cc
-      engine/client.cc
-      engine/command.cc
-      engine/console.cc
-      engine/dynlight.cc
-      engine/grass.cc
-      engine/light.cc
-      engine/main.cc
-      engine/material.cc
-      engine/menus.cc
-      engine/movie.cc
-      engine/normal.cc
-      engine/octa.cc
-      engine/octaedit.cc
-      engine/octarender.cc
-      engine/physics.cc
-      engine/pvs.cc
-      engine/rendergl.cc
-      engine/renderlights.cc
-      engine/rendermodel.cc
-      engine/renderparticles.cc
-      engine/rendersky.cc
-      engine/rendertext.cc
-      engine/renderva.cc
-      engine/server.cc
-      engine/serverbrowser.cc
-      engine/shader.cc
-      engine/sound.cc
-      engine/stain.cc
-      engine/texture.cc
-      engine/ui.cc
-      engine/water.cc
-      engine/world.cc
-      engine/worldio.cc
-      rpggame/rpgaction.cc
-      rpggame/rpgcamera.cc
-      rpggame/rpgchar.cc
-      rpggame/rpgcontainer.cc
-      rpggame/rpgentities.cc
-      rpggame/rpggui.cc
-      rpggame/rpgio.cc
-      rpggame/rpgobstacle.cc
-      rpggame/rpgproj.cc
-      rpggame/rpgreserved.cc
-      rpggame/rpgstats.cc
-      rpggame/rpgstubs.cc
-      rpggame/waypoint.cc
-      rpggame/rpgai.cc
-      rpggame/rpg.cc
-      rpggame/rpgconfig.cc
-      rpggame/rpgeffect.cc
-      rpggame/rpghud.cc
-      rpggame/rpgitem.cc
-      rpggame/rpgplatform.cc
-      rpggame/rpgrender.cc
-      rpggame/rpgscript.cc
-      rpggame/rpgstatus.cc
-      rpggame/rpgtest.cc
-      rpggame/rpgtrigger.cc
+      shared/crypto.cpp
+      shared/geom.cpp
+      shared/glemu.cpp
+      shared/stream.cpp
+      shared/tools.cpp
+      shared/zip.cpp
+      engine/aa.cpp
+      engine/bih.cpp
+      engine/blend.cpp
+      engine/client.cpp
+      engine/command.cpp
+      engine/console.cpp
+      engine/dynlight.cpp
+      engine/grass.cpp
+      engine/light.cpp
+      engine/main.cpp
+      engine/material.cpp
+      engine/movie.cpp
+      engine/normal.cpp
+      engine/octa.cpp
+      engine/octaedit.cpp
+      engine/octarender.cpp
+      engine/pvs.cpp
+      engine/physics.cpp
+      engine/rendergl.cpp
+      engine/renderlights.cpp
+      engine/rendermodel.cpp
+      engine/renderparticles.cpp
+      engine/rendersky.cpp
+      engine/rendertext.cpp
+      engine/renderva.cpp
+      engine/server.cpp
+      engine/serverbrowser.cpp
+      engine/shader.cpp
+      engine/stain.cpp
+      engine/sound.cpp
+      engine/texture.cpp
+      engine/ui.cpp
+      engine/water.cpp
+      engine/world.cpp
+      engine/worldio.cpp
+      rpggame/rpg.cpp
+      rpggame/rpgaction.cpp
+      rpggame/rpgai.cpp
+      rpggame/rpgcamera.cpp
+      rpggame/rpgchar.cpp
+      rpggame/rpgconfig.cpp
+      rpggame/rpgcontainer.cpp
+      rpggame/rpgeffect.cpp
+      rpggame/rpgentities.cpp
+      rpggame/rpggui.cpp
+      rpggame/rpghud.cpp
+      rpggame/rpgio.cpp
+      rpggame/rpgitem.cpp
+      rpggame/rpgobstacle.cpp
+      rpggame/rpgplatform.cpp
+      rpggame/rpgproj.cpp
+      rpggame/rpgscript.cpp
+      rpggame/rpgstats.cpp
+      rpggame/rpgstatus.cpp
+      rpggame/rpgstubs.cpp
+      rpggame/rpgrender.cpp
+      rpggame/rpgreserved.cpp
+      rpggame/rpgtest.cpp
+      rpggame/rpgtrigger.cpp
+      rpggame/waypoint.cpp
     )
   set(RPGGAME_INCLUDES
       ${CMAKE_CURRENT_SOURCE_DIR}/shared
@@ -224,7 +223,7 @@ if(OCTACORE_BUILD_RPGGAME)
   target_link_libraries(native_rpggame ${RPGGAME_LIBRARIES})
 endif()
 
-if(OCTACORE_BUILD_SERVER)
+if(LAMIAE_BUILD_SERVER)
   # Server executable.
   set(SERVER_SOURCES
       shared/crypto.cc

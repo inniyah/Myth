@@ -1,8 +1,7 @@
 ﻿#ifndef __RPGGAME__
 #define __RPGGAME__
 
-#include "cube.hh"
-#include "engine.hh"
+#include "cube.h"
 
 #define MAPGAMEVERSION 2
 
@@ -598,7 +597,7 @@ struct effect
 	int lightflags, lightfade, lightradius, lightinitradius;
 	vec3 lightcol, lightinitcol;
 
-	effect() : key(NULL), flags(FX_DYNLIGHT|FX_FIXEDFLARE), stain(STAIN_BLOOD), mdl(NULL), spin(0, 0, 0), particle(PART_FLAME), colour(0xFFBF00), fade(500), gravity(50), size(4), lightflags(DL_EXPAND), lightfade(500), lightradius(64), lightinitradius(lightradius), lightcol(1, .9, 0), lightinitcol(lightcol) {}
+	effect() : key(NULL), flags(FX_DYNLIGHT|FX_FIXEDFLARE), stain(STAIN_BURN), mdl(NULL), spin(0, 0, 0), particle(PART_FIREBALL1), colour(0xFFBF00), fade(500), gravity(50), size(4), lightflags(DL_EXPAND), lightfade(500), lightradius(64), lightinitradius(lightradius), lightcol(1, .9, 0), lightinitcol(lightcol) {}
 	~effect() { delete[] mdl; }
 
 	enum
@@ -1592,8 +1591,6 @@ struct rpgchar : rpgent
 {
 	vector<equipment*> equipped;
 	vec3 emitters[SLOT_NUM * 2]; //two emitters a slot; start and end
-
-	float jumpvel;
 
 	const char *name, *mdl, *portrait;
 	vec3 colour;

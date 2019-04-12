@@ -761,4 +761,3 @@ int main(int argc, char **argv)
     printf("tessfont: (%g, %g) .. (%g, %g) = (%g, %g) / (%g, %g), %d texs, %d secs\n", x1, y1, x2, y2, x2 - x1, y2 - y1, w2, h2, numtex, (int)(endtime - starttime));
     return EXIT_SUCCESS;
 }
-
