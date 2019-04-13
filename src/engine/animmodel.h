@@ -1724,8 +1724,8 @@ template<class MDL, class BASE> struct modelloader : BASE
 
     bool loadconfig()
     {
-        formatstring(dir, "media/model/%s", BASE::name);
-        defformatstring(cfgname, "media/model/%s/%s.cfg", BASE::name, MDL::formatname());
+        formatstring(dir, "media/models/%s", BASE::name);
+        defformatstring(cfgname, "media/models/%s/%s.cfg", BASE::name, MDL::formatname());
 
         identflags &= ~IDF_PERSIST;
         bool success = execfile(cfgname, false);
@@ -1745,7 +1745,7 @@ template<class MDL, class MESH> struct modelcommands
     static void setdir(char *name)
     {
         if(!MDL::loading) { conoutf("not loading an %s", MDL::formatname()); return; }
-        formatstring(MDL::dir, "media/model/%s", name);
+        formatstring(MDL::dir, "media/models/%s", name);
     }
 
     #define loopmeshes(meshname, m, body) do { \
