@@ -178,7 +178,6 @@ void trydisconnect(bool local)
     }
     else if(local && haslocalclients()) localdisconnect();
     else conoutf("not connected");
-
 }
 
 ICOMMAND(connect, "sis", (char *name, int *port, char *pw), connectserv(name, *port, pw));

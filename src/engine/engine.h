@@ -9,8 +9,8 @@
 
 #include "octa.h"
 #include "light.h"
-#include "bih.h"
 #include "texture.h"
+#include "bih.h"
 #include "model.h"
 
 extern dynent *player;

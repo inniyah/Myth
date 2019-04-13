@@ -154,6 +154,7 @@ struct verthash
         chain.add(table[h]);
         return table[h] = verts.length()-1;
     }
+
     int addvert(const vec3 &pos, const vec3 &tc = vec3(0, 0, 0), const bvec &norm = bvec(128, 128, 128), const bvec4 &tangent = bvec4(128, 128, 128, 128))
     {
         vertex vtx;

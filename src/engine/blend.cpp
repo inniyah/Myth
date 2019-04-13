@@ -916,6 +916,7 @@ void addblendbrush(const char *name, const char *imgname)
     else if(curbrush >= brushes.length()) curbrush = brushes.length()-1;
 
 }
+
 COMMAND(addblendbrush, "ss");
 
 ICOMMAND(nextblendbrush, "i", (int *dir),

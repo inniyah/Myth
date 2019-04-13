@@ -310,8 +310,8 @@ void inputcommand(char *init, char *action = NULL, char *prompt = NULL, char *fl
 ICOMMAND(saycommand, "C", (char *init), inputcommand(init));
 COMMAND(inputcommand, "ssss");
 
- void pasteconsole()
- {
+void pasteconsole()
+{
     if(!SDL_HasClipboardText()) return;
     char *cb = SDL_GetClipboardText();
     if(!cb) return;
