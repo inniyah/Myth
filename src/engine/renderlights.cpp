@@ -16,10 +16,12 @@ int aow = -1, aoh = -1;
 GLuint aofbo[4] = { 0, 0, 0, 0 }, aotex[4] = { 0, 0, 0, 0 }, aonoisetex = 0;
 matrix4 eyematrix, worldmatrix, linearworldmatrix, screenmatrix;
 
+extern int amd_pf_bug;
+
 int gethdrformat(int prec, int fallback = GL_RGB)
 {
-    if(prec >= 3) return GL_RGB16F;
-    if(prec >= 2) return GL_R11F_G11F_B10F;
+    if(prec >= 3 && hasTF) return GL_RGB16F;
+    if(prec >= 2 && hasPF && !amd_pf_bug) return GL_R11F_G11F_B10F;
     if(prec >= 1) return GL_RGB10;
     return fallback;
 }
@@ -60,12 +62,13 @@ void setupbloom(int w, int h)
     {
         glGenBuffers_(1, &bloompbo);
         glBindBuffer_(GL_PIXEL_PACK_BUFFER, bloompbo);
-        glBufferData_(GL_PIXEL_PACK_BUFFER, 4*sizeof(GLfloat), NULL, GL_DYNAMIC_COPY);
+        glBufferData_(GL_PIXEL_PACK_BUFFER, 4*(hasTF ? sizeof(GLfloat) : sizeof(GLushort))*(hasTRG ? 1 : 3), NULL, GL_DYNAMIC_COPY);
         glBindBuffer_(GL_PIXEL_PACK_BUFFER, 0);
     }
 
+    static const uchar gray[12] = { 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32 };
     static const float grayf[12] = { 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f, 0.125f };
-    createtexture(bloomtex[4], bloompbo ? 4 : 1, 1, (const void *)grayf, 3, 1, GL_R16F);
+    createtexture(bloomtex[4], bloompbo ? 4 : 1, 1, hasTF ? (const void *)grayf : (const void *)gray, 3, 1, hasTF ? (hasTRG ? GL_R16F : GL_RGB16F) : (hasTRG ? GL_R16 : GL_RGB16));
 
     loopi(5 + (bloomformat != GL_RGB ? 1 : 0))
     {
@@ -181,7 +184,7 @@ void setupao(int w, int h)
     delete[] noise;
 
     bool upscale = aoreduce && aobilateral && aobilateralupscale;
-    GLenum format = aoprec ? GL_R8 : GL_RGBA8,
+    GLenum format = aoprec && hasTRG ? GL_R8 : GL_RGBA8,
            packformat = aobilateral && aopackdepth ? (aodepthformat ? GL_RG16F : GL_RGBA8) : format;
     int packfilter = upscale && aopackdepth && !aodepthformat ? 0 : 1;
     loopi(upscale ? 3 : 2)
@@ -255,7 +258,7 @@ VAR(debugao, 0, 0, 1);
 
 void initao()
 {
-    aodepthformat = aofloatdepth;
+    aodepthformat = aofloatdepth && hasTRG && hasTF ? aofloatdepth : 0;
 }
 
 void viewao()
@@ -481,13 +484,16 @@ void initgbuffer()
     msaamaxsamples = msaamaxdepthtexsamples = msaamaxcolortexsamples = msaaminsamples = msaasamples = msaalight = 0;
     msaapositions.setsize(0);
 
-    GLint val;
-    glGetIntegerv(GL_MAX_SAMPLES, &val);
-    msaamaxsamples = val;
-    glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &val);
-    msaamaxdepthtexsamples = val;
-    glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &val);
-    msaamaxcolortexsamples = val;
+    if(hasFBMS && hasFBB && hasTMS)
+    {
+        GLint val;
+        glGetIntegerv(GL_MAX_SAMPLES, &val);
+        msaamaxsamples = val;
+        glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &val);
+        msaamaxdepthtexsamples = val;
+        glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &val);
+        msaamaxcolortexsamples = val;
+    }
 
     int maxsamples = min(msaamaxsamples, msaamaxcolortexsamples), reqsamples = min(msaa, maxsamples);
     if(reqsamples >= 2)
@@ -507,17 +513,18 @@ void initgbuffer()
         else if(msaalineardepth >= 0) lineardepth = msaalineardepth;
     }
 
-    gdepthformat = lineardepth;
+    if(lineardepth > 1 && (!hasAFBO || !hasTF || !hasTRG)) gdepthformat = 1;
+    else gdepthformat = lineardepth;
 
     if(msaaminsamples)
     {
-        ghasstencil = (msaadepthstencil > 1 || (msaadepthstencil && gdepthformat)) ? 2 : (msaastencil ? 1 : 0);
+        ghasstencil = (msaadepthstencil > 1 || (msaadepthstencil && gdepthformat)) && hasDS ? 2 : (msaastencil ? 1 : 0);
 
         checkmsaasamples();
 
-        if(msaapreserve >= 0) msaalight = 3;
+        if(msaapreserve >= 0) msaalight = hasMSS ? 3 : (msaasamples==2 ? 2 : msaapreserve);
     }
-    else ghasstencil = (gdepthstencil > 1 || (gdepthstencil && gdepthformat)) ? 2 : (gstencil ? 1 : 0);
+    else ghasstencil = (gdepthstencil > 1 || (gdepthstencil && gdepthformat)) && hasDS ? 2 : (gstencil ? 1 : 0);
 
     initao();
 }
@@ -616,7 +623,7 @@ void setupmsbuffer(int w, int h)
     {
         if(!msglowtex) glGenTextures(1, &msglowtex);
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, msglowtex);
-        glTexImage2DMultisample_(GL_TEXTURE_2D_MULTISAMPLE, msaasamples, hdrformat, w, h, GL_TRUE);
+        glTexImage2DMultisample_(GL_TEXTURE_2D_MULTISAMPLE, msaasamples, hasAFBO ? hdrformat : GL_RGBA8, w, h, GL_TRUE);
     }
     
     bindmsdepth();
@@ -627,7 +634,7 @@ void setupmsbuffer(int w, int h)
 
     if(glCheckFramebufferStatus_(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
-        if(msaalight)
+        if(msaalight && hasAFBO)
         {
             glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, msglowtex);
             glTexImage2DMultisample_(GL_TEXTURE_2D_MULTISAMPLE, msaasamples, GL_RGBA8, w, h, GL_TRUE);
@@ -787,7 +794,7 @@ void setupgbuffer()
 
         createtexture(gcolortex, gw, gh, NULL, 3, 0, GL_RGBA8, GL_TEXTURE_RECTANGLE);
         createtexture(gnormaltex, gw, gh, NULL, 3, 0, GL_RGBA8, GL_TEXTURE_RECTANGLE);
-        createtexture(gglowtex, gw, gh, NULL, 3, 0, hdrformat, GL_TEXTURE_RECTANGLE);
+        createtexture(gglowtex, gw, gh, NULL, 3, 0, hasAFBO ? hdrformat : GL_RGBA8, GL_TEXTURE_RECTANGLE);
 
         bindgdepth();
         glFramebufferTexture2D_(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, gcolortex, 0);
@@ -797,10 +804,14 @@ void setupgbuffer()
 
         if(glCheckFramebufferStatus_(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            createtexture(gglowtex, gw, gh, NULL, 3, 0, GL_RGBA8, GL_TEXTURE_RECTANGLE);
-            glFramebufferTexture2D_(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, gglowtex, 0);
-            if(glCheckFramebufferStatus_(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                fatal("failed allocating g-buffer!");
+            if(hasAFBO)
+            {
+                createtexture(gglowtex, gw, gh, NULL, 3, 0, GL_RGBA8, GL_TEXTURE_RECTANGLE);
+                glFramebufferTexture2D_(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, gglowtex, 0);
+                if(glCheckFramebufferStatus_(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                    fatal("failed allocating g-buffer!");
+            }
+            else fatal("failed allocating g-buffer!");
         }
 
         glClearColor(0, 0, 0, 0);
@@ -1134,7 +1145,7 @@ void processhdr(GLuint outfbo, int aa)
         {
             glBindBuffer_(GL_PIXEL_PACK_BUFFER, bloompbo);
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
-            glReadPixels(0, 0, 4, 1, GL_RED, GL_FLOAT, NULL);
+            glReadPixels(0, 0, 4, 1, hasTRG ? GL_RED : GL_RGB, hasTF ? GL_FLOAT : GL_UNSIGNED_SHORT, NULL);
             glBindBuffer_(GL_PIXEL_PACK_BUFFER, 0);
         }
 
@@ -1145,7 +1156,7 @@ void processhdr(GLuint outfbo, int aa)
     {
         gle::bindvbo(bloompbo);
         gle::enablecolor();
-        gle::colorpointer(sizeof(GLfloat), (const void *)0, GL_FLOAT, 1);
+        gle::colorpointer(hasTF ? sizeof(GLfloat) : sizeof(GLushort), (const void *)0, hasTF ? GL_FLOAT : GL_UNSIGNED_SHORT, 1);
         gle::clearvbo();
     }
 
@@ -1378,7 +1389,7 @@ void clearrhshaders()
 
 void setupradiancehints()
 {
-    GLenum rhformat = rhprec >= 1 ? GL_RGBA16F : GL_RGBA8;
+    GLenum rhformat = hasTF && rhprec >= 1 ? GL_RGBA16F : GL_RGBA8;
 
     loopi(!rhrect && rhcache ? 8 : 4)
     {
@@ -1703,8 +1714,8 @@ static inline void setsmcomparemode() // use embedded shadow cmp
 }
 
 extern int usetexgather;
-static inline bool usegatherforsm() { return smfilter > 1 && smgather && usetexgather; }
-static inline bool usesmcomparemode() { return !usegatherforsm() || (usetexgather > 1); }
+static inline bool usegatherforsm() { return smfilter > 1 && smgather && hasTG && usetexgather; }
+static inline bool usesmcomparemode() { return !usegatherforsm() || (hasTG && hasGPU5 && usetexgather > 1); }
 
 void viewshadowatlas()
 {
