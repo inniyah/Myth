@@ -239,6 +239,7 @@ extern void renderentarrow(const extentity &e, const vec3 &dir, float radius);
 extern void renderentattachment(const extentity &e);
 extern void renderentsphere(const extentity &e, float radius);
 extern void renderentring(const extentity &e, float radius, int axis = 0);
+extern const int getattrnum(int type);
 
 // main
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
@@ -336,15 +337,18 @@ enum
     PART_STEAM,
     PART_FLAME,
     PART_FIREBALL1, PART_FIREBALL2, PART_FIREBALL3,
-    PART_STREAK, PART_LIGHTNING,
-    PART_EXPLOSION, PART_EXPLOSION_BLUE,
+    PART_STREAK,
+    PART_RAIL_TRAIL, PART_PULSE_SIDE, PART_PULSE_FRONT,
+    PART_LIGHTNING,
+    PART_EXPLOSION, PART_EXPLOSION_BLUE, PART_PULSE_BURST,
     PART_SPARK, PART_EDIT,
     PART_MUZZLE_FLASH1, PART_MUZZLE_FLASH2, PART_MUZZLE_FLASH3,
     PART_HUD_ICON,
     PART_HUD_ICON_GREY,
+    PART_SNOW, PART_LEAVES,
+    PART_RAIL_MUZZLE_FLASH, PART_PULSE_MUZZLE_FLASH,
     PART_TEXT,
     PART_METER, PART_METER_VS,
-    PART_SNOW, PART_LEAVES,
     PART_LENS_FLARE
 };
 
@@ -372,6 +376,10 @@ enum
     STAIN_STAIN,
     STAIN_RIPPLE,
     STAIN_LEAVES,
+    STAIN_PULSE_SCORCH,
+    STAIN_RAIL_HOLE,
+    STAIN_PULSE_GLOW,
+    STAIN_RAIL_GLOW,
     STAIN_MAX
 };
 
@@ -384,13 +392,14 @@ static inline void addstain(int type, const vec3 &center, const vec3 &surface, f
 
 // worldio
 extern string mpath, mname;
-extern void backup(const char *name, const char *backupname);
 extern bool load_world(const char *mname, const char *cname = NULL);
 extern bool save_world(const char *mname, bool nolms = false, bool octa = false);
 extern void setmapdir(const char *pth = NULL);
 extern void getmapfilenames(const char *cname);
 extern uint getmapcrc();
 extern void clearmapcrc();
+extern bool loadents(const char *fname, vector<entity> &ents, uint *crc = NULL);
+extern void backup(const char *name, const char *backupname);
 
 // physics
 extern vec3 collidewall;
@@ -458,6 +467,27 @@ extern model *loadmodel(const char *name, int i = -1, bool msg = false);
 extern void preloadmodel(const char *name);
 extern void flushpreloadedmodels(bool msg = true);
 extern bool matchanim(const char *name, const char *pattern);
+
+// UI
+struct Texture;
+struct VSlot;
+extern Texture *textureload(const char *name, int clamp = 0, bool mipit = true, bool msg = true);
+extern bool settexture(Texture *&tex);
+
+extern vector<int> entgroup;
+extern int efocus, enthover, entorient;
+
+namespace UI
+{
+    extern bool showui(const char *name);
+    extern bool hideui(const char *name);
+    extern bool toggleui(const char *name);
+    extern void holdui(const char *name, bool on);
+    extern bool hascursor(bool target = true);
+    extern bool uivisible(const char *name);
+    extern int numui();
+    extern void hideallui();
+}
 
 // ragdoll
 
@@ -541,23 +571,3 @@ extern void freepubkey(void *pubkey);
 extern void *genchallenge(void *pubkey, const void *seed, int seedlen, vector<char> &challengestr);
 extern void freechallenge(void *answer);
 extern bool checkchallenge(const char *answerstr, void *correct);
-
-// UI
-struct Texture;
-struct VSlot;
-extern Texture *textureload(const char *name, int clamp = 0, bool mipit = true, bool msg = true);
-extern bool settexture(Texture *&tex);
-
-extern vector<int> entgroup;
-extern int efocus, enthover, entorient;
-
-namespace UI
-{
-    extern int numui();
-    extern bool hascursor(bool target = true);
-    extern void hideallui();
-    extern bool hideui(const char *name);
-    extern bool uivisible(const char *name);
-    extern bool toggleui(const char *name);
-    extern void holdui(const char *name, bool on);
-};

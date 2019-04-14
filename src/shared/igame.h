@@ -80,7 +80,7 @@ namespace game
     extern int numdynents();
     extern void rendergame();
     extern void renderavatar();
-    extern const int numanims();
+    extern int numanims();
     extern void findanims(const char *pattern, vector<int> &anims);
     extern void writegamedata(vector<uchar> &extras);
     extern void readgamedata(vector<uchar> &extras);

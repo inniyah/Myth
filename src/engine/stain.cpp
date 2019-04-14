@@ -745,12 +745,16 @@ struct stainrenderer
 };
 
 stainrenderer stains[] =
-{
-    stainrenderer("media/particles/burn"), //improve collision detection first
-    stainrenderer("media/particles/blood", SF_RND4|SF_ROTATE|SF_INVMOD),
-    stainrenderer("media/particles/stain", 0, 10, 2000, 20),
-    stainrenderer("media/particles/ripple", 0, 10, 750, 20),
-    stainrenderer("media/particles/leaves", SF_RND4|SF_ROTATE),
+{ // These should match the enum in iengine.h
+    stainrenderer("<grey>media/particles/burn"), //improve collision detection first
+    stainrenderer("<grey>media/particles/blood", SF_RND4|SF_ROTATE|SF_INVMOD),
+    stainrenderer("<grey>media/particles/stain", 0, 10, 2000, 20),
+    stainrenderer("<grey>media/particles/ripple", 0, 10, 750, 20),
+    stainrenderer("<grey>media/particles/leaves", SF_RND4|SF_ROTATE),
+    stainrenderer("<grey>media/particles/pulse_scorch", SF_ROTATE, 500),
+    stainrenderer("<grey>media/particles/rail_hole", SF_ROTATE|SF_OVERBRIGHT),
+    stainrenderer("<grey>media/particles/pulse_glow", SF_ROTATE|SF_GLOW|SF_SATURATE, 250, 1500, 250),
+    stainrenderer("<grey>media/particles/rail_glow",  SF_ROTATE|SF_GLOW|SF_SATURATE, 100, 1100, 100)
 };
 
 void initstains()

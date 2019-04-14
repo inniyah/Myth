@@ -110,7 +110,77 @@ static bool loadmapheader(stream *f, const char *ogzname, mapheader &hdr, octahe
     else { conoutf(CON_ERROR, "garbage in header or unsupported map format (%4.4s) for %s", hdr.magic, ogzname); return false; }
 
     return true;
- }
+}
+
+bool loadents(const char *fname, vector<entity> &ents, uint *crc)
+{
+    getmapfilenames(fname);
+    defformatstring(ogzname, "%s%s.ogz", mpath, mname);
+    stream *f = opengzfile(ogzname, "rb");
+    if(!f) { conoutf(CON_ERROR, "could not read map %s", ogzname); return false; }
+
+    mapheader hdr;
+    octaheader ohdr;
+    if(!loadmapheader(f, ogzname, hdr, ohdr)) { delete f; return false; }
+
+    loopi(hdr.numvars)
+    {
+        int type = f->getchar(), ilen = f->getlil<ushort>();
+        f->seek(ilen, SEEK_CUR);
+        switch(type)
+        {
+            case ID_VAR: f->getlil<int>(); break;
+            case ID_FVAR: f->getlil<float>(); break;
+            case ID_SVAR: { int slen = f->getlil<ushort>(); f->seek(slen, SEEK_CUR); break; }
+        }
+    }
+
+    string gametype;
+    bool samegame = true;
+    int len = f->getchar();
+    if(len >= 0) f->read(gametype, len+1);
+    gametype[max(len, 0)] = '\0';
+    if(strcmp(gametype, game::gameident()))
+    {
+        samegame = false;
+        conoutf(CON_WARN, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels", gametype);
+    }
+    int eif = f->getlil<ushort>();
+    int extrasize = f->getlil<ushort>();
+    f->seek(extrasize, SEEK_CUR);
+
+    ushort nummru = f->getlil<ushort>();
+    f->seek(nummru*sizeof(ushort), SEEK_CUR);
+
+    loopi(min(hdr.numents, MAXENTS))
+    {
+        entity &e = ents.add();
+        f->read(&e, sizeof(entity));
+        lilswap(&e.o.x, 3);
+        lilswap(&e.attr[0], 5);
+        fixent(e, hdr.version);
+        if(eif > 0) f->seek(eif, SEEK_CUR);
+        if(samegame)
+        {
+            entities::readent(e, NULL, hdr.version);
+        }
+        else if(e.type>=ET_GAMESPECIFIC)
+        {
+            ents.pop();
+            continue;
+        }
+    }
+
+    if(crc)
+    {
+        f->seek(0, SEEK_END);
+        *crc = f->getcrc();
+    }
+
+    delete f;
+
+    return true;
+}
 
 #ifndef STANDALONE
 string ogzname, bakname, mcfname, acfname, acfbakname, picname;

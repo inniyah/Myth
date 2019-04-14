@@ -130,7 +130,7 @@ namespace game
 		}
 	}
 
-	const int numanims() {return NUMANIMS;}
+	int numanims() {return NUMANIMS;}
 
 	void findanims(const char *pattern, vector<int> &anims)
 	{

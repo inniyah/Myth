@@ -839,7 +839,7 @@ struct softquadrenderer : quadrenderer
 };
 
 static partrenderer *parts[] =
-{
+{ // These should match the enum in iengine.h
     new quadrenderer("<grey>media/particles/blood", PT_PART|PT_FLIP|PT_MOD|PT_RND4|PT_COLLIDE, STAIN_BLOOD),    // blood spats (note: rgb is inverted)
     new trailrenderer("<grey>media/particles/base", PT_TRAIL|PT_LERP|PT_COLLIDE, STAIN_RIPPLE),                 // water, entity
     new quadrenderer("<grey>media/particles/smoke", PT_PART|PT_FLIP|PT_LERP),                        // smoke
@@ -849,22 +849,28 @@ static partrenderer *parts[] =
     new quadrenderer("<grey>media/particles/ball2", PT_PART|PT_BRIGHT),                              // fireball2
     new quadrenderer("<grey>media/particles/ball3", PT_PART|PT_BRIGHT),                              // fireball3
     new taperenderer("<grey>media/particles/flare", PT_TAPE|PT_BRIGHT),                              // streak
+    new taperenderer("<grey>media/particles/rail_trail", PT_TAPE|PT_FEW|PT_BRIGHT),                  // rail trail
+    new taperenderer("<grey>media/particles/pulse_side", PT_TAPE|PT_FEW|PT_BRIGHT),                  // pulse side
+    new quadrenderer("<grey>media/particles/pulse_front", PT_PART|PT_FLIP|PT_FEW|PT_BRIGHT),         // pulse front
     &lightnings,                                                                                     // lightning
     &fireballs,                                                                                      // explosion fireball
     &bluefireballs,                                                                                  // bluish explosion fireball
+    &pulsebursts,                                                                                    // pulse burst
     new quadrenderer("<grey>media/particles/spark", PT_PART|PT_FLIP|PT_BRIGHT),                      // sparks
     new quadrenderer("<grey>media/particles/base",  PT_PART|PT_FLIP|PT_BRIGHT),                      // edit mode entities
     new quadrenderer("<grey>media/particles/muzzleflash1", PT_PART|PT_FLIP|PT_BRIGHT|PT_TRACK),      // muzzle flash
     new quadrenderer("<grey>media/particles/muzzleflash2", PT_PART|PT_FLIP|PT_BRIGHT|PT_TRACK),      // muzzle flash
     new quadrenderer("<grey>media/particles/muzzleflash3", PT_PART|PT_FLIP|PT_BRIGHT|PT_TRACK),      // muzzle flash
-    new quadrenderer("media/textures/notexture", PT_PART|PT_ICON),                                   // hud icon
-    new quadrenderer("<colorify:1/1/1>media/textures/notexture", PT_PART|PT_ICON),                   // grey hud icon
+    new quadrenderer("media/interface/hud/items", PT_PART|PT_FEW|PT_ICON),                           // hud icon
+    new quadrenderer("<colorify:1/1/1>media/interface/hud/items", PT_PART|PT_FEW|PT_ICON),           // grey hud icon
+    new quadrenderer("media/particles/snow", PT_PART|PT_BRIGHT|PT_RND4|PT_FLIP|PT_COLLIDE, STAIN_STAIN),        // snow
+    new quadrenderer("<grey>media/particles/leaves", PT_PART|PT_RND4|PT_FLIP|PT_LERP|PT_COLLIDE, STAIN_LEAVES), //leaves
+    new quadrenderer("<grey>media/particles/rail_muzzle", PT_PART|PT_FEW|PT_FLIP|PT_BRIGHT|PT_TRACK),           // rail muzzle flash
+    new quadrenderer("<grey>media/particles/pulse_muzzle", PT_PART|PT_FEW|PT_FLIP|PT_BRIGHT|PT_TRACK),          // pulse muzzle flash
     &texts,                                                                                          // text
     &meters,                                                                                         // meter
     &metervs,                                                                                        // meter vs
-    new quadrenderer("media/particles/snow", PT_PART|PT_BRIGHT|PT_RND4|PT_FLIP|PT_COLLIDE, STAIN_STAIN),        // snow
-    new quadrenderer("<grey>media/particles/leaves", PT_PART|PT_RND4|PT_FLIP|PT_LERP|PT_COLLIDE, STAIN_LEAVES), //leaves
-    &flares // must be done last
+		&flares // must be done last
 };
 
 VARFP(maxparticles, 10, 8000, 20000, initparticles());

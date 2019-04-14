@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.5)
 project(OctaCore)
 
 # Build options.
-option(LAMIAE_BUILD_CLIENT "Build the game client" OFF)
+option(LAMIAE_BUILD_CLIENT "Build the game client" ON)
 option(LAMIAE_BUILD_RPGGAME "Build the rpggame client" ON)
-option(LAMIAE_BUILD_SERVER "Build the game server" OFF)
+option(LAMIAE_BUILD_SERVER "Build the game server" ON)
 
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
@@ -38,57 +38,57 @@ endif()
 if(LAMIAE_BUILD_CLIENT)
   # Client executable.
   set(CLIENT_SOURCES
-      shared/crypto.cc
-      shared/geom.cc
-      shared/glemu.cc
-      shared/stream.cc
-      shared/tools.cc
-      shared/zip.cc
-      engine/aa.cc
-      engine/bih.cc
-      engine/blend.cc
-      engine/client.cc
-      engine/command.cc
-      engine/console.cc
-      engine/dynlight.cc
-      engine/grass.cc
-      engine/light.cc
-      engine/main.cc
-      engine/material.cc
-      engine/menus.cc
-      engine/movie.cc
-      engine/normal.cc
-      engine/octa.cc
-      engine/octaedit.cc
-      engine/octarender.cc
-      engine/physics.cc
-      engine/pvs.cc
-      engine/rendergl.cc
-      engine/renderlights.cc
-      engine/rendermodel.cc
-      engine/renderparticles.cc
-      engine/rendersky.cc
-      engine/rendertext.cc
-      engine/renderva.cc
-      engine/server.cc
-      engine/serverbrowser.cc
-      engine/shader.cc
-      engine/sound.cc
-      engine/stain.cc
-      engine/texture.cc
-      engine/ui.cc
-      engine/water.cc
-      engine/world.cc
-      engine/worldio.cc
-      game/ai.cc
-      game/client.cc
-      game/entities.cc
-      game/game.cc
-      game/render.cc
-      game/scoreboard.cc
-      game/server.cc
-      game/waypoint.cc
-      game/weapon.cc
+      shared/crypto.cpp
+      shared/geom.cpp
+      shared/glemu.cpp
+      shared/stream.cpp
+      shared/tools.cpp
+      shared/zip.cpp
+      engine/aa.cpp
+      engine/bih.cpp
+      engine/blend.cpp
+      engine/client.cpp
+      engine/command.cpp
+      engine/console.cpp
+      engine/dynlight.cpp
+      engine/grass.cpp
+      engine/light.cpp
+      engine/main.cpp
+      engine/material.cpp
+      engine/menus.cpp
+      engine/movie.cpp
+      engine/normal.cpp
+      engine/octa.cpp
+      engine/octaedit.cpp
+      engine/octarender.cpp
+      engine/physics.cpp
+      engine/pvs.cpp
+      engine/rendergl.cpp
+      engine/renderlights.cpp
+      engine/rendermodel.cpp
+      engine/renderparticles.cpp
+      engine/rendersky.cpp
+      engine/rendertext.cpp
+      engine/renderva.cpp
+      engine/server.cpp
+      engine/serverbrowser.cpp
+      engine/shader.cpp
+      engine/sound.cpp
+      engine/stain.cpp
+      engine/texture.cpp
+      engine/ui.cpp
+      engine/water.cpp
+      engine/world.cpp
+      engine/worldio.cpp
+      game/ai.cpp
+      game/client.cpp
+      game/entities.cpp
+      game/game.cpp
+      game/render.cpp
+      game/scoreboard.cpp
+      game/server.cpp
+      game/waypoint.cpp
+      game/weapon.cpp
     )
   set(CLIENT_INCLUDES
       ${CMAKE_CURRENT_SOURCE_DIR}/shared
@@ -226,14 +226,14 @@ endif()
 if(LAMIAE_BUILD_SERVER)
   # Server executable.
   set(SERVER_SOURCES
-      shared/crypto.cc
-      shared/stream.cc
-      shared/tools.cc
-      engine/command.cc
-      engine/server.cc
-      engine/worldio.cc
-      game/entities.cc
-      game/server.cc
+      shared/crypto.cpp
+      shared/stream.cpp
+      shared/tools.cpp
+      engine/command.cpp
+      engine/server.cpp
+      engine/worldio.cpp
+      game/entities.cpp
+      game/server.cpp
       )
   set(SERVER_INCLUDES
       ${CMAKE_CURRENT_SOURCE_DIR}/shared
@@ -259,11 +259,11 @@ if(LAMIAE_BUILD_SERVER)
 
   # Master executable.
   set(MASTER_SOURCES
-      shared/crypto.cc
-      shared/stream.cc
-      shared/tools.cc
-      engine/command.cc
-      engine/master.cc
+      shared/crypto.cpp
+      shared/stream.cpp
+      shared/tools.cpp
+      engine/command.cpp
+      engine/master.cpp
       )
   set(MASTER_INCLUDES
       ${CMAKE_CURRENT_SOURCE_DIR}/shared
