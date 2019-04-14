@@ -175,6 +175,7 @@ struct ident
     {}
 
     void changed() { if(fun) fun(this); }
+
     void setval(const tagval &v)
     {
         valtype = v.type;
