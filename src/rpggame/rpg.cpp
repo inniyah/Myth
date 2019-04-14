@@ -925,7 +925,16 @@ namespace game
 	{
 		return false;
 	}
-	int scaletime(int t) { return t * gamespeed; }
+
+	bool allowmouselook()
+	{
+		return true;
+	}
+
+	int scaletime(int t)
+	{
+		return t * gamespeed;
+	}
 
 	bool canjump()
 	{
