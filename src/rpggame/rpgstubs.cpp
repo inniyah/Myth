@@ -38,8 +38,7 @@ namespace server
 	void serverupdate() {}
 	int protocolversion() { return -1; }
 	int laninfoport() {return 0;}
-	int serverinfoport(int servport) {return 0;}
-	int serverport(int infoport) {return 0;}
+	int serverport() {return 0;}
 	const char *defaultmaster() {return "";}
 	int masterport() {return 0;}
 	void processmasterinput(const char *cmd, int cmdlen, const char *args) {}

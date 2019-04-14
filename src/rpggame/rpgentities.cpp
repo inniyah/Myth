@@ -383,7 +383,7 @@ namespace entities
 		ERRORF("no teleport destination %i", dest);
 	}
 
-	void entradius(extentity &e, bool &color)
+	void entradius(extentity &e, bool color)
 	{
 		switch(e.type)
 		{

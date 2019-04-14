@@ -21,7 +21,7 @@ namespace game
 		return 1350.f / 1600.f;
 	}
 
-	float clipconsole(int w, int h)
+	float clipconsole(float w, float h)
 	{
 		return 0;
 	}

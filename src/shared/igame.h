@@ -13,7 +13,7 @@ namespace entities
     extern void readent(entity &e, char *buf, int ver);
     extern float dropheight(entity &e);
     extern void fixentity(extentity &e);
-    extern void entradius(extentity &e, bool &color);
+    extern void entradius(extentity &e, bool color);
     extern bool mayattach(extentity &e);
     extern bool attachent(extentity &e, extentity &a);
     extern bool printent(extentity &e, char *buf, int len);
@@ -84,7 +84,7 @@ namespace game
     extern void findanims(const char *pattern, vector<int> &anims);
     extern void writegamedata(vector<uchar> &extras);
     extern void readgamedata(vector<uchar> &extras);
-    extern float clipconsole(int w, int h);
+    extern float clipconsole(float w, float h);
     extern const char *defaultcrosshair(int index);
     extern int selectcrosshair(vec3 &col);
     extern void setupcamera();
@@ -113,16 +113,15 @@ namespace server
     extern void localdisconnect(int n);
     extern void localconnect(int n);
     extern bool allowbroadcast(int n);
+    extern void recordpacket(int chan, void *data, int len);
     extern void parsepacket(int sender, int chan, packetbuf &p);
     extern void sendservmsg(const char *s);
-    extern void recordpacket(int chan, void *data, int len);
     extern bool sendpackets(bool force = false);
     extern void serverinforeply(ucharbuf &req, ucharbuf &p);
     extern void serverupdate();
     extern int protocolversion();
     extern int laninfoport();
-    extern int serverinfoport(int servport = -1);
-    extern int serverport(int infoport = -1);
+    extern int serverport();
     extern const char *defaultmaster();
     extern int masterport();
     extern void processmasterinput(const char *cmd, int cmdlen, const char *args);

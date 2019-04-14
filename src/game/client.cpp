@@ -644,6 +644,16 @@ namespace game
         changemap(name, 0);
     }
 
+    bool mousemove(int &dx, int &dy, float &cursens)
+    {
+        return false;
+    }
+
+    bool recomputecamera(physent *&camera1, physent &tempcamera, bool &detachedcamera, float &thirdpersondistance)
+    {
+        return false;
+    }
+
     void newmap(int size)
     {
         addmsg(N_NEWMAP, "ri", size);
@@ -837,6 +847,8 @@ namespace game
         else if(*numargs < 0) intret(gamepaused ? 1 : 0);
         else printvar(id, gamepaused ? 1 : 0);
     });
+
+    bool showenthelpers() { return editmode; }
 
     bool ispaused() { return gamepaused; }
 
@@ -1323,7 +1335,6 @@ namespace game
             case N_WELCOME:
             {
                 connected = true;
-                notifywelcome();
                 break;
             }
 

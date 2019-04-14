@@ -406,6 +406,102 @@ namespace entities
         return type >= 0 && size_t(type) < sizeof(num)/sizeof(num[0]) ? num[type] : 0;
     }
 
+	int getentyaw(const entity &e)
+	{
+		switch(e.type)
+		{
+			case TELEPORT:
+			case TELEDEST:
+				return e.attr[0];
+			default:
+				return 0;
+		}
+	}
+
+	int getentpitch(const entity &e)
+	{
+		switch(e.type)
+		{
+			default:
+				return 0;
+		}
+	}
+
+	int getentroll(const entity &e)
+	{
+		switch(e.type)
+		{
+			default:
+				return 0;
+		}
+	}
+
+	int getentscale(const entity &e)
+	{
+		switch(e.type)
+		{
+			default:
+				return 0;
+		}
+	}
+
+	bool radiusent(extentity &e)
+	{
+		switch(e.type)
+		{
+			case LIGHT:
+			case ENVMAP:
+			case MAPSOUND:
+			case JUMPPAD:
+				return true;
+				break;
+			default:
+				return false;
+				break;
+		}
+	}
+
+	bool dirent(extentity &e)
+	{
+		switch(e.type)
+		{
+			case MAPMODEL:
+			case PLAYERSTART:
+			case SPOTLIGHT:
+			case TELEPORT:
+			case TELEDEST:
+			case JUMPPAD:
+				return true;
+				break;
+			default:
+				return false;
+				break;
+		}
+	}
+
+void renderhelpertext(extentity &e, vec3 &pos, char *buf, int len)
+	{
+		switch(e.type)
+		{
+			case TELEDEST:
+				pos.z += 3.0f;
+				nformatstring(buf, len, "Yaw: %i\nTag: %i",
+					e.attr[0],
+					e.attr[1]
+				);
+				break;
+			case JUMPPAD:
+				pos.z += 6.0f;
+				nformatstring(buf, len, "Z: %i\nY: %i\nX: %i\nRadius: %i",
+					e.attr[0],
+					e.attr[1],
+					e.attr[2],
+					e.attr[3]
+				);
+				break;
+		}
+	}
+
     void editent(int i, bool local)
     {
         extentity &e = *ents[i];

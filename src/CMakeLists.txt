@@ -55,7 +55,6 @@ if(LAMIAE_BUILD_CLIENT)
       engine/light.cpp
       engine/main.cpp
       engine/material.cpp
-      engine/menus.cpp
       engine/movie.cpp
       engine/normal.cpp
       engine/octa.cpp
