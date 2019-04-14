@@ -280,7 +280,11 @@ static bool modifyoctaent(int flags, int id, extentity &e)
     e.flags ^= EF_OCTA;
     switch(e.type)
     {
-        case ET_LIGHT: clearlightcache(id); if(e.attr[4]&L_VOLUMETRIC) { if(flags&MODOE_ADD) volumetriclights++; else --volumetriclights; } break;
+        case ET_LIGHT:
+            clearlightcache(id);
+            if(e.attr[4]&L_VOLUMETRIC) { if(flags&MODOE_ADD) volumetriclights++; else --volumetriclights; }
+            if(e.attr[4]&L_NOSPEC) { if(!(flags&MODOE_ADD ? nospeclights++ : --nospeclights)) cleardeferredlightshaders(); }
+            break;
         case ET_SPOTLIGHT: if(!(flags&MODOE_ADD ? spotlights++ : --spotlights)) { cleardeferredlightshaders(); cleanupvolumetric(); } break;
         case ET_PARTICLES: clearparticleemitters(); break;
         case ET_DECAL: if(flags&MODOE_CHANGED) changed(o, r, false); break;
@@ -598,10 +602,16 @@ void entselectionbox(const entity &e, vec3 &eo, vec3 &es)
 {
     model *m = NULL;
     const char *mname = entities::entmodel(e);
-    if(mname) m = loadmodel(mname);
-    else if(e.type == ET_MAPMODEL) m = loadmapmodel(e.attr[0]);
-
-    if(m)
+    if(mname && (m = loadmodel(mname)))
+    {
+        m->collisionbox(eo, es);
+        if(es.x > es.y) es.y = es.x; else es.x = es.y; // square
+        es.z = (es.z + eo.z + 1 + entselradius)/2; // enclose ent radius box and model box
+        eo.x += e.o.x;
+        eo.y += e.o.y;
+        eo.z = e.o.z - entselradius + es.z;
+    }
+    else if(e.type == ET_MAPMODEL && (m = loadmapmodel(e.attr[0])))
     {
         mmcollisionbox(e, m, eo, es);
         es.max(entselradius);
@@ -619,7 +629,6 @@ void entselectionbox(const entity &e, vec3 &eo, vec3 &es)
         es = vec3(entselradius);
         eo = e.o;
     }
-
     eo.sub(es);
     es.mul(2);
 }
@@ -929,60 +938,58 @@ static void renderentbox(const vec3 &eo, vec3 es)
 
 void renderentselection(const vec3 &o, const vec3 &ray, bool entmoving)
 {
-    if(!noentedit())
+    if(noentedit() || (entgroup.empty() && enthover < 0)) return;
+    vec3 eo, es;
+
+    if(entgroup.length())
     {
-        vec3 eo, es;
+        gle::colorub(0, 40, 0);
+        gle::defvertex();
+        gle::begin(GL_LINES, entgroup.length()*24);
+        loopv(entgroup) entfocus(entgroup[i],
+            entselectionbox(e, eo, es);
+            renderentbox(eo, es);
+        );
+        xtraverts += gle::end();
+    }
 
-        if(entgroup.length())
+    if(enthover >= 0)
+    {
+        gle::colorub(0, 40, 0);
+        entfocus(enthover, entselectionbox(e, eo, es)); // also ensures enthover is back in focus
+        boxs3D(eo, es, 1);
+        if(entmoving && entmovingshadow==1)
         {
-            gle::colorub(0, 40, 0);
-            gle::defvertex();
-            gle::begin(GL_LINES, entgroup.length()*24);
-            loopv(entgroup) entfocus(entgroup[i],
-                entselectionbox(e, eo, es);
-                renderentbox(eo, es);
-            );
-            xtraverts += gle::end();
+            vec3 a, b;
+            gle::colorub(20, 20, 20);
+            (a = eo).x = eo.x - fmod(eo.x, worldsize); (b = es).x = a.x + worldsize; boxs3D(a, b, 1);
+            (a = eo).y = eo.y - fmod(eo.y, worldsize); (b = es).y = a.x + worldsize; boxs3D(a, b, 1);
+            (a = eo).z = eo.z - fmod(eo.z, worldsize); (b = es).z = a.x + worldsize; boxs3D(a, b, 1);
         }
+        gle::colorub(150,0,0);
+        boxs(entorient, eo, es);
+        boxs(entorient, eo, es, clamp(0.015f*camera1->o.dist(eo)*tan(fovy*0.5f*RAD), 0.1f, 1.0f));
+    }
 
-        if(enthover >= 0)
+    if(showenthelpers>=1 && (entgroup.length() || enthover >= 0))
+    {
+        glDepthFunc(GL_GREATER);
+        gle::colorf(0.25f, 0.25f, 0.25f);
+        loopv(entgroup)
         {
-            gle::colorub(0, 40, 0);
-            entfocus(enthover, entselectionbox(e, eo, es)); // also ensures enthover is back in focus
-            boxs3D(eo, es, 1);
-
-            if(entmoving && entmovingshadow==1)
-            {
-                vec3 a, b;
-                gle::colorub(20, 20, 20);
-                (a = eo).x = eo.x - fmod(eo.x, worldsize); (b = es).x = a.x + worldsize; boxs3D(a, b, 1);
-                (a = eo).y = eo.y - fmod(eo.y, worldsize); (b = es).y = a.x + worldsize; boxs3D(a, b, 1);
-                (a = eo).z = eo.z - fmod(eo.z, worldsize); (b = es).z = a.x + worldsize; boxs3D(a, b, 1);
-            }
-            gle::colorub(150,0,0);
-            boxs(entorient, eo, es);
-            boxs(entorient, eo, es, clamp(0.015f*camera1->o.dist(eo)*tan(fovy*0.5f*RAD), 0.1f, 1.0f));
+            extentity &e = *entities::getents()[entgroup[i]];
+            if((showentdir == 2 && entities::dirent(e)) || (showentradius == 2 && entities::radiusent(e))) continue;
+            renderentradius(e, false);
         }
-        if(showenthelpers>=1 && (entgroup.length() || enthover >= 0))
+        if(enthover>=0) entfocus(enthover, renderentradius(e, false));
+        glDepthFunc(GL_LESS);
+        loopv(entgroup)
         {
-            glDepthFunc(GL_GREATER);
-            gle::colorf(0.25f, 0.25f, 0.25f);
-            loopv(entgroup)
-            {
-                extentity &e = *entities::getents()[entgroup[i]];
-                if((showentdir == 2 && entities::dirent(e)) || (showentradius == 2 && entities::radiusent(e))) continue;
-                renderentradius(e, false);
-            }
-            if(enthover>=0) entfocus(enthover, renderentradius(e, false));
-            glDepthFunc(GL_LESS);
-            loopv(entgroup)
-            {
-                extentity &e = *entities::getents()[entgroup[i]];
-                if((showentdir == 2 && entities::dirent(e)) || (showentradius == 2 && entities::radiusent(e))) continue;
-                renderentradius(e, true);
-            }
-            if(enthover>=0) entfocus(enthover, renderentradius(e, true));
+            extentity &e = *entities::getents()[entgroup[i]];
+            if((showentdir == 2 && entities::dirent(e)) || (showentradius == 2 && entities::radiusent(e))) continue;
+            renderentradius(e, true);
         }
+        if(enthover>=0) entfocus(enthover, renderentradius(e, true));
     }
 }
 
@@ -1090,7 +1097,7 @@ void delent()
 
 int findtype(const char *what)
 {
-    for(int i = 0; *entities::entname(i); i++) if(!strcmp(what, entities::entname(i))) return i;
+    for(int i = 0; *entities::entname(i); i++) if(strcmp(what, entities::entname(i))==0) return i;
     conoutf(CON_ERROR, "unknown entity type \"%s\"", what);
     return ET_EMPTY;
 }
@@ -1165,7 +1172,7 @@ COMMAND(attachent, "");
 
 static int keepents = 0;
 
-extentity *newentity(bool local, const vec3 &o, int type, int *attrs, int &idx, bool fix = true)
+extentity *newentity(bool local, const vec3 &o, int type, const int *attrs, int &idx, bool fix = true)
 {
     vector<extentity *> &ents = entities::getents();
     if(local)
@@ -1574,6 +1581,7 @@ void resetmap()
     outsideents.setsize(0);
     spotlights = 0;
     volumetriclights = 0;
+    nospeclights = 0;
 }
 
 void startmap(const char *name)
@@ -1731,10 +1739,3 @@ void mpeditent(int i, const vec3 &o, int type, int *attrs, bool local)
 
 int getworldsize() { return worldsize; }
 int getmapversion() { return mapversion; }
-
-
-
-
-
-
-

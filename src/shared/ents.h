@@ -7,8 +7,8 @@ enum { ET_EMPTY=0, ET_LIGHT, ET_MAPMODEL, ET_PLAYERSTART, ET_ENVMAP, ET_PARTICLE
 
 struct entity                                   // persistent map entity
 {
-    vec3 o;                                      // position
-    smallvector<int> attr;                           // attributes
+    vec3 o;                                     // position
+    smallvector<int> attr;                      // attributes
     uchar type;                                 // type is one of the above
 };
 

@@ -329,7 +329,7 @@ extern void sethudshader();
 
 // renderparticles
 enum
-{
+{ // These should match partrenderer *parts[], implemented in renderparticles.cpp
     PART_BLOOD = 0,
     PART_WATER,
     PART_SMOKE,
@@ -366,7 +366,7 @@ extern void regularlensflare(vec3 o, uchar r, uchar g, uchar b, bool sun = false
 
 // stain
 enum
-{
+{ // These should match stainrenderer stains[], implemented in stain.cpp
     STAIN_BURN = 0, //activate when colision detection for particles are improved
     STAIN_BLOOD,
     STAIN_STAIN,
@@ -519,7 +519,6 @@ extern servinfo *getservinfo(int i);
 } while(0)
 #define GETSERVINFOATTR(idx, aidx, aval, body) \
     GETSERVINFO(idx, si, { if(si->attr.inrange(aidx)) { int aval = si->attr[aidx]; body; } })
-
 
 // client
 extern void sendclientpacket(ENetPacket *packet, int chan);
