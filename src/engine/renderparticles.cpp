@@ -113,11 +113,12 @@ enum
     PT_VFLIP     = 1<<15,
     PT_ROT       = 1<<16,
     PT_CULL      = 1<<17,
-    PT_ICON      = 1<<18,
-    PT_NOTEX     = 1<<19,
-    PT_SHADER    = 1<<20,
-    PT_NOLAYER   = 1<<21,
-    PT_COLLIDE   = 1<<22,
+    PT_FEW       = 1<<18,
+    PT_ICON      = 1<<19,
+    PT_NOTEX     = 1<<20,
+    PT_SHADER    = 1<<21,
+    PT_NOLAYER   = 1<<22,
+    PT_COLLIDE   = 1<<23,
     PT_FLIP      = PT_HFLIP | PT_VFLIP | PT_ROT
 };
 
@@ -395,8 +396,8 @@ struct meterrenderer : listrenderer
 
     void startrender()
     {
-         glDisable(GL_BLEND);
-         gle::defvertex();
+        glDisable(GL_BLEND);
+        gle::defvertex();
     }
 
     void endrender()
@@ -867,6 +868,7 @@ static partrenderer *parts[] =
 };
 
 VARFP(maxparticles, 10, 8000, 20000, initparticles());
+VARFP(fewparticles, 10, 100, 10000, initparticles());
 
 void initparticles()
 {
@@ -875,7 +877,7 @@ void initparticles()
     if(!particlenotextureshader) particlenotextureshader = lookupshaderbyname("particlenotexture");
     if(!particlesoftshader) particlesoftshader = lookupshaderbyname("particlesoft");
     if(!particletextshader) particletextshader = lookupshaderbyname("particletext");
-    loopi(sizeof(parts)/sizeof(parts[0])) parts[i]->init(maxparticles);
+    loopi(sizeof(parts)/sizeof(parts[0])) parts[i]->init(parts[i]->type&PT_FEW ? min(fewparticles, maxparticles) : maxparticles);
     loopi(sizeof(parts)/sizeof(parts[0]))
     {
         loadprogress = float(i+1)/(sizeof(parts)/sizeof(parts[0]));
@@ -1079,11 +1081,11 @@ void particle_text(const vec3 &s, const char *t, int type, int fade, int color, 
 
 void particle_textcopy(const vec3 &s, const char *t, int type, int fade, int color, float size, int gravity)
 {
-     if(!canaddparticles()) return;
-     if(!particletext || camera1->o.dist(s) > maxparticletextdistance) return;
-     particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size, gravity);
-     p->text = newstring(t);
-     p->flags = 1;
+    if(!canaddparticles()) return;
+    if(!particletext || camera1->o.dist(s) > maxparticletextdistance) return;
+    particle *p = newparticle(s, vec3(0, 0, 1), fade, type, color, size, gravity);
+    p->text = newstring(t);
+    p->flags = 1;
 }
 
 void particle_icon(const vec3 &s, int ix, int iy, int type, int fade, int color, float size, int gravity)

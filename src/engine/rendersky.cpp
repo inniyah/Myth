@@ -179,14 +179,14 @@ namespace fogdome
         vec3 pos;
         bvec4 color;
 
-       vert() {}
+        vert() {}
         vert(const vec3 &pos, const bvec &fcolor, float alpha) : pos(pos), color(fcolor, uchar(alpha*255))
         {
         }
         vert(const vert &v0, const vert &v1) : pos(vec3(v0.pos).add(v1.pos).normalize()), color(v0.color)
         {
             if(v0.pos.z != v1.pos.z) color.a += uchar((v1.color.a - v0.color.a) * (pos.z - v0.pos.z) / (v1.pos.z - v0.pos.z));
-       }
+        }
     } *verts = NULL;
     GLushort *indices = NULL;
     int numverts = 0, numindices = 0, capindices = 0;
@@ -204,6 +204,7 @@ namespace fogdome
         indices[face+2] = i1;
         subdivide(depth, face);
     }
+
     void subdivide(int depth, int face)
     {
         if(depth-- <= 0) return;
@@ -260,6 +261,7 @@ namespace fogdome
                 genface(depth-1, 3*i+2, 3*((i+1)%hres)+1, 3*((i+1)%hres));
             }
         }
+
         if(capsize >= 0)
         {
             GLushort *cap = &indices[numindices];
@@ -290,7 +292,7 @@ namespace fogdome
 
     void cleanup()
     {
-       numverts = numindices = 0;
+        numverts = numindices = 0;
         if(vbuf) { glDeleteBuffers_(1, &vbuf); vbuf = 0; }
         if(ebuf) { glDeleteBuffers_(1, &ebuf); ebuf = 0; }
     }
