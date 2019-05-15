@@ -2868,6 +2868,7 @@ Texture *cubemapload(const char *name, bool mipit, bool msg, bool transient)
 }
 
 VARR(envmapradius, 0, 128, 10000);
+VARR(envmapbb, 0, 0, 1);
 VARP(aaenvmap, 0, 1, 1);
 
 struct envmap
@@ -3046,8 +3047,18 @@ ushort closestenvmap(const vec3 &o)
     loopv(envmaps)
     {
         envmap &em = envmaps[i];
-        float dist = em.o.dist(o);
-        if(dist < em.radius && dist < mindist)
+        float dist;
+        if(envmapbb)
+        {
+            if(!o.insidebb(vec(em.o).sub(em.radius), vec(em.o).add(em.radius))) continue;
+            dist = em.o.dist(o);
+        }
+        else
+        {
+            dist = em.o.dist(o);
+            if(dist > em.radius) continue;
+        }
+        if(dist < mindist)
         {
             minemid = EMID_RESERVED + i;
             mindist = dist;
